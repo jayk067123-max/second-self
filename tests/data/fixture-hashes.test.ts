@@ -29,4 +29,23 @@ describe("主素材哈希", () => {
     expect(Buffer.byteLength(text, "utf8")).toBe(436);
     expect(text.trimEnd().split(/\r?\n/)).toHaveLength(8);
   });
+
+  // 重传覆盖的一对素材：改了任一份却不更新 EXPECTED 四数，这里当场红。
+  // 这样"素材冻结"从流程约束变成测试约束（评审 WO-09 强化项）。
+  const OLD_TIMETABLE = join(process.cwd(), "docs", "demo-fixtures", "07-旧课表-重传前.txt");
+  const NEW_TIMETABLE = join(process.cwd(), "docs", "demo-fixtures", "08-新课表-重传用.txt");
+
+  it("07-旧课表-重传前.txt 哈希与冻结表一致（580 B）", () => {
+    expect(sha256(OLD_TIMETABLE)).toBe(
+      "6b2e9b89244ffa5be8685c274dfa252c8cabf657a76444d123576e7d9d8ca17d",
+    );
+    expect(readFileSync(OLD_TIMETABLE).byteLength).toBe(580);
+  });
+
+  it("08-新课表-重传用.txt 哈希与冻结表一致（691 B）", () => {
+    expect(sha256(NEW_TIMETABLE)).toBe(
+      "33b8b52354e8a0c87fec74262aa5ff3e6587c0d5b1693152c0766ec28cab6e82",
+    );
+    expect(readFileSync(NEW_TIMETABLE).byteLength).toBe(691);
+  });
 });
