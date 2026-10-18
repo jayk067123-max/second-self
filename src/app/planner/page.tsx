@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { computeAvatarSummary, tasksOnDay } from "@/domain/avatar";
 import { DEFAULT_DETECT_CONFIG, conflictedTaskIds, detectConflicts } from "@/domain/conflicts";
-import { weekdayLabel } from "@/domain/time";
-import { DEMO_DAY_KEY, DEMO_NOW_ISO } from "@/shared/constants";
+import { TERM_START_DAY_KEY } from "@/shared/constants";
+import { dayKeyOf, weekdayLabel } from "@/domain/time";
 import { usePlannerHydration, usePlannerStore } from "@/data/store";
 import { Badge, Button } from "@/ui/primitives";
 import { AvatarCard } from "@/ui/composites/AvatarCard";
@@ -15,6 +15,7 @@ import { DayTimeline } from "@/ui/composites/DayTimeline";
 import { IntakePanel } from "@/ui/composites/IntakePanel";
 import { ManualAddForm } from "@/ui/composites/ManualAddForm";
 import { ReplanPanel } from "@/ui/composites/ReplanPanel";
+import { TimetableReuploadPanel } from "@/ui/composites/TimetableReuploadPanel";
 
 /**
  * 今日编排页 —— 只做「组装 + 派生计算」。
@@ -30,16 +31,24 @@ export default function PlannerPage() {
   const toggleDone = usePlannerStore((s) => s.toggleDone);
   const clearAll = usePlannerStore((s) => s.clearAll);
   const dismissError = usePlannerStore((s) => s.dismissError);
+  const demoClock = usePlannerStore((s) => s.demoClock);
 
-  // 演示时钟注入：日期与"现在"都取 DEMO_NOW，不读系统时钟（见 shared/constants 的说明）
-  const [dayKey] = useState(() => DEMO_DAY_KEY);
-  // 冲突规则要求 now 由调用方注入（函数内不读时钟），这里挂载时定一次，保证渲染稳定
-  const [now] = useState(() => new Date(DEMO_NOW_ISO));
+  // 演示时钟：导入带 demoNow 的种子后以 seed 为准，否则用系统时间；来源在角标里显式标注。
+  // 冲突规则要求 now 由调用方注入（domain 函数内不读时钟），这里从时钟状态派生。
+  const now = useMemo(() => new Date(demoClock.iso), [demoClock.iso]);
+  const dayKey = useMemo(() => dayKeyOf(now.getTime()), [now]);
 
   const todayTasks = useMemo(() => tasksOnDay(tasks, dayKey), [tasks, dayKey]);
+  // 学期锚点与 now 一样**由调用方注入**：domain 的默认值不该绑死演示学期，
+  // 否则 live 模式下 repeat.weeks 会拿演示学期算周次而整体错位（逻辑手 裁定）。
+  // 演示/当前产品只有单学期，这里注入演示锚点；将来多学期时从用户设置读。
+  const detectConfig = useMemo(
+    () => ({ ...DEFAULT_DETECT_CONFIG, termStartDayKey: TERM_START_DAY_KEY }),
+    [],
+  );
   const conflicts = useMemo(
-    () => detectConflicts(tasks, DEFAULT_DETECT_CONFIG, now),
-    [tasks, now],
+    () => detectConflicts(tasks, detectConfig, now),
+    [tasks, detectConfig, now],
   );
   const conflictIds = useMemo(() => conflictedTaskIds(conflicts), [conflicts]);
   const avatar = useMemo(() => computeAvatarSummary(tasks, dayKey), [tasks, dayKey]);
@@ -63,9 +72,12 @@ export default function PlannerPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* 演示时钟角标：录像硬要求，说明"今天"是注入的、与运行机器时钟无关 */}
+          {/* 演示时钟角标：录像硬要求。显示"现在"与**来源**（种子自带 / 系统时间），
+              避免观众以为日期算错，也证明时间是可注入、可复现的 */}
           <Badge tone="neutral" aria-label="演示时钟">
-            演示时钟 {dayKey} 09:00
+            演示时钟 {dayKey} {String(now.getHours()).padStart(2, "0")}:
+            {String(now.getMinutes()).padStart(2, "0")} · 来源
+            {demoClock.source === "seed" ? " seed" : "系统时间"}
           </Badge>
           <Badge tone="brand">选题 B · 个人效能</Badge>
           <Button variant="secondary" className="h-8 px-3 text-micro" onClick={undo} disabled={!hasSnapshot}>
@@ -105,6 +117,7 @@ export default function PlannerPage() {
         <div className="flex flex-col gap-4">
           <IntakePanel />
           <ManualAddForm />
+          <TimetableReuploadPanel />
           <DayTimeline
             tasks={todayTasks}
             conflictIds={conflictIds}

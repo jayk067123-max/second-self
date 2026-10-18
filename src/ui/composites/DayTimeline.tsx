@@ -81,11 +81,57 @@ export function DayTimeline({
                     冲突
                   </Badge>
                 ) : null}
-                <Badge tone={task.priority === 1 ? "danger" : task.priority === 2 ? "neutral" : "brand"} className="shrink-0">
-                  {PRIORITY_LABEL[task.priority as 1 | 2 | 3]}
-                </Badge>
+                {/* 固定课标记：**纯文字 chip**，不用 emoji（1080p→H.264→二次转码后 12px 锁形会糊，
+                    而且与「每周」徽标不同族、横向对不齐）。两枚 chip 同尺寸/同基线/同色系：
+                    固定=品牌色描边，每周=中性灰描边 */}
+                {task.locked ? (
+                  <Badge
+                    tone="brand"
+                    className="w-11 shrink-0 justify-center"
+                    title="固定课：重排不会移动它"
+                  >
+                    固定
+                  </Badge>
+                ) : null}
+                {task.repeat ? (
+                  <Badge
+                    tone="neutral"
+                    className="w-11 shrink-0 justify-center"
+                    title="周期安排：一条任务，按规则重复"
+                  >
+                    每周
+                  </Badge>
+                ) : null}
+                {task.needsReview ? (
+                  <Badge tone="warn" className="shrink-0" title="AI 自评没把握，需人工核对">
+                    待确认
+                  </Badge>
+                ) : null}
+                {/* 优先级三档：用**实心圆点 + 文字**表达，与冲突的四类文本徽标在形状上区分开，
+                    颜色也走独立 token（青/蓝/灰），不与冲突的红/黄语义色混用（FR-18） */}
+                <span
+                  className="flex shrink-0 items-center gap-1 text-micro"
+                  title={`优先级：${PRIORITY_LABEL[task.priority as 1 | 2 | 3]}`}
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "size-2 rounded-pill",
+                      task.priority === 1
+                        ? "bg-prio-high-400"
+                        : task.priority === 2
+                          ? "bg-prio-mid-400"
+                          : "bg-prio-low-400",
+                    )}
+                  />
+                  <span className="text-ink-300">{PRIORITY_LABEL[task.priority as 1 | 2 | 3]}</span>
+                </span>
                 <span className="w-20 shrink-0 text-right font-mono text-micro text-ink-400">
-                  {task.durationMin > 0 ? formatDuration(task.durationMin) : "—"}
+                  {task.durationMin > 0
+                    ? task.durationInferred
+                      ? `约 ${formatDuration(task.durationMin)} · 待确认`
+                      : formatDuration(task.durationMin)
+                    : "—"}
                 </span>
                 <span className="w-16 shrink-0 text-right font-mono text-micro text-ink-400">
                   {deadlineMs !== null ? `DDL ${shortDate(task.deadline)}` : ""}

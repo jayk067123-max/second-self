@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TERM_START_DAY_KEY } from "@/shared/constants";
 
 /**
  * 冲突契约 —— 冲突检测的「唯一真源」。
@@ -90,9 +89,12 @@ export const DetectConfigSchema = z.object({
    * 单双周以学期周为基准，不以日历年周为准，所以这个锚点必须由调用方给。
    * null = 未设置：带 weeks 的重复任务按"每周都上"展开（不藏课）。
    *
-   * 默认值**刻意绑定到本学期锚点**而不是 null：评审当场抓过 WO-03 ——
-   * 默认 null 时周次过滤在真实调用里整段不触发，单测全绿但功能是死的（假绿）。
-   * 换学期/live 模式时改 `shared/constants` 里那一个常量即可，domain 不用动。
+   * **默认是 null，且刻意不绑定任何学期常量**：domain 不知道"用户在哪个学期"。
+   * 曾经为了防 WO-03（默认 null 导致周次过滤在真实调用里整段不触发、单测绿功能死的"假绿"）
+   * 把默认值直接绑到 `shared/constants` 的演示锚点上，代价是 live 模式会用演示学期算周次。
+   * 现在改成**由 app 层注入**（`page.tsx` 的 detectConfig 里显式传 `TERM_START_DAY_KEY`），
+   * 与 `now` 的注入方式一致：端口唯一，默认中性。
+   * WO-03 的防回归责任随之落到"集成用例"上（见 `tests/domain/week-filter-integration.test.ts`）。
    */
   termStartDayKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
 });
@@ -107,8 +109,8 @@ export const DEFAULT_DETECT_CONFIG: DetectConfig = {
   minOverlapMin: 5,
   maxCards: 5,
   repeatHorizonDays: 14,
-  // 学期第 1 周周一：没有它就判断不了"第几周"，`repeat.weeks` 的周次过滤会整段失效（评审 WO-03）
-  termStartDayKey: TERM_START_DAY_KEY,
+  // 中性默认：domain 不知道用户在哪个学期。演示/运行时由 app 层注入（与 now 同一种方式）。
+  termStartDayKey: null,
 };
 
 /**

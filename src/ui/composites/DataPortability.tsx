@@ -39,7 +39,12 @@ export function DataPortability() {
       const result = importJson(text);
       setMsg(
         result.ok
-          ? { tone: "ok", text: `已导入 ${result.imported} 条任务，可用「撤销上次写回」退回` }
+          ? {
+              tone: "ok",
+              text: result.demo
+                ? `已导入 ${result.imported} 条任务（演示数据），可用「撤销上次写回」退回`
+                : `已导入 ${result.imported} 条任务，可用「撤销上次写回」退回`,
+            }
           : { tone: "err", text: result.error ?? "导入失败" },
       );
     } catch {

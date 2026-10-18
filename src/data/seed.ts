@@ -33,6 +33,8 @@ export const SeedTaskSchema = z.object({
   locked: z.boolean().optional(),
   flexible: z.boolean().optional(),
   status: z.enum(["todo", "done"]).optional(),
+  /** 预估用时（只有截止日的任务 durationMin 为 0，用它补） */
+  estateMin: z.number().int().min(0).max(24 * 60).optional(),
 });
 
 export const DemoSeedSchema = z.object({
@@ -87,13 +89,13 @@ export function adaptDemoSeed(raw: unknown): Result<PlannerPayload> {
   }
 
   const tasks: Task[] = [];
-  for (const seed of parsed.data.tasks) {
+  for (const [index, seed] of parsed.data.tasks.entries()) {
     const hasTime = seed.start !== null && seed.end !== null;
     // 时间段必须有日期才谈得上"排布"；只有截止日的任务 date 允许为 null
     if (hasTime && seed.date === null) {
       return {
         ok: false,
-        error: `演示种子里的「${seed.title}」写了时段却没有日期，无法定位`,
+        error: `第 ${index + 1} 条「${seed.title}」写了时段却没有日期，无法定位（整批拒绝，不改任何数据）`,
       };
     }
     const hasBlock = hasTime && seed.date !== null;
@@ -108,7 +110,8 @@ export function adaptDemoSeed(raw: unknown): Result<PlannerPayload> {
       title: seed.title,
       start,
       end,
-      durationMin: seed.durationMin,
+      // 只有截止日的任务 durationMin 为 0，但 estateMin 是预估用时 → 用预估补上
+      durationMin: seed.durationMin > 0 ? seed.durationMin : (seed.estateMin ?? 0),
       deadline: seed.deadline,
       priority,
       source: "manual" as const,
@@ -123,9 +126,10 @@ export function adaptDemoSeed(raw: unknown): Result<PlannerPayload> {
 
     const checked = TaskSchema.safeParse(candidate);
     if (!checked.success) {
+      const first = checked.error.issues[0];
       return {
         ok: false,
-        error: `演示种子里的「${seed.title}」不符合 Task 契约：${checked.error.issues[0]?.message ?? "未知原因"}`,
+        error: `第 ${index + 1} 条「${seed.title}」不符合 Task 契约：${first?.path.join(".") || "(根)"} ${first?.message ?? ""}`.trim(),
       };
     }
     tasks.push(checked.data);

@@ -1,6 +1,7 @@
 import type { Task, TaskDraft } from "@/domain/schemas/task";
-import { buildLocalPlans, type ReplanPlan } from "@/domain/planner";
-import { DEFAULT_PLAN_OPTIONS } from "@/domain/planner";
+import { buildLocalProposals, type ReplanPlan } from "@/domain/reflow";
+import { DEFAULT_DETECT_CONFIG } from "@/domain/conflicts";
+import { TERM_START_DAY_KEY } from "@/shared/constants";
 import { msFromDayKey } from "@/domain/time";
 
 /**
@@ -34,14 +35,10 @@ const SHORT_DATE_RE = /(\d{1,2})\s*[月/-]\s*(\d{1,2})\s*[日号]?/;
 const WEEKDAY_RE = /(下下|下|本|这|每)?\s*(?:周|星期)\s*([一二三四五六日天])/;
 /** 更正行：「【更正】」「【再更正】」「（更正）」——应并入上一条任务，不新增 */
 const CORRECTION_RE = /^\s*[【（(]?\s*再?更正\s*[】）)]?/;
-/**
- * 群消息抬头：「@全体成员 提醒几件事」「【通知】」这类行不是日程。
- * 只有在整行不含任何时间信息时才按抬头处理 ——
- * 「@全体成员 明天下午3点开班会」仍然必须变成任务，不能被杀掉。
- * 注意：这里**跳过不等于丢掉**，跳过的行会被 domain/completeness 重算出来，
- * 出现在「没看懂，请你确认」列表里，用户一眼能看到。
- */
-const ANNOUNCEMENT_RE = /^\s*(?:@全体成员|@所有人|【通知】|【群公告】|群公告)/;
+/** 条件性/不确定表述：「下雨顺延」「具体时间等通知」「待定」——有这些一律不许当确定结果 */
+const CONDITIONAL_RE = /顺延|等通知|另行通知|待定|暂定|具体时间|未定|看情况/;
+
+/** 更正行：「【更正】」「【再更正】」「（更正）」——应并入上一条任务，不新增 */
 
 const WEEKDAY_INDEX: Record<string, number> = {
   一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 0, 天: 0,
@@ -66,10 +63,17 @@ export function demoParseTasks(text: string, dayKey: string): TaskDraft[] {
     /** 星期解析：「每周三」「下周三」「这周六」→ 具体日期；解析到即为"相对日期"，需人工确认 */
     const weekday = resolveWeekday(line, dayKey);
     const baseDay = weekday?.date ?? (TOMORROW_RE.test(line) ? shiftDay(dayKey, 1) : dayKey);
+    // 提前把"是否相对日期推出来 / 是否周期规则"定下来，避免后面的类型收窄把 weekday 弄成 never
+    const weeklyRepeat =
+      weekday !== null && weekday.weekly
+        ? { kind: "weekly" as const, byDay: [weekday.byDay] }
+        : null;
 
     let start: string | null = null;
     let end: string | null = null;
     let durationMin = 0;
+    /** 时长是默认值估出来的（原文没给）→ 入库后界面必须显示「约 N 分钟 · 待确认」 */
+    let durationInferred = false;
 
     const range = RANGE_RE.exec(line);
     if (range) {
@@ -98,9 +102,13 @@ export function demoParseTasks(text: string, dayKey: string): TaskDraft[] {
         const m = Number.parseInt(single[2] ?? "0", 10);
         // 下午/晚上且小时 < 12 → 换算 24 小时制（"下午3点" = 15:00）
         const h = PM_RE.test(line) && rawHour < 12 ? rawHour + 12 : rawHour;
-        durationMin = extractDuration(line) ?? 60;
+        const explicitDuration = extractDuration(line);
+        // EXPECTED 表：只给开始时间时默认 90 分钟（志愿者培训）
+        durationMin = explicitDuration ?? 90;
         start = isoAt(baseDay, h * 60 + m);
         end = isoAt(baseDay, h * 60 + m + durationMin);
+        // 时长是估的 → 打标记，界面会显示成「约 90 分钟 · 待确认」，不许假装确定
+        if (explicitDuration === null) durationInferred = true;
       }
     }
 
@@ -136,22 +144,47 @@ export function demoParseTasks(text: string, dayKey: string): TaskDraft[] {
       }
     }
 
-    if (start === null && durationMin === 0) durationMin = extractDuration(line) ?? 0;
-
-    const title = cleanTitle(line);
-    if (title.length === 0) continue;
-
-    // 群消息抬头且不含任何时间线索 → 不是任务，交给完整性校验报为"待确认"
-    if (
-      ANNOUNCEMENT_RE.test(line) &&
-      start === null &&
-      deadline === null &&
-      weekday === null
-    ) {
-      continue;
+    // 「10月31日下午3点前提交」是**截止**不是开始：把时段搬到 deadline，别占时间轴。
+    // 注意日期要取原文里的 10-31，而不是 dayKey（否则会变成"今天 15:00 截止"）
+    if (DEADLINE_RE.test(line) && /前/.test(line)) {
+      const isoD = ISO_DATE_RE.exec(line);
+      const shortD = SHORT_DATE_RE.exec(line);
+      const clock = SINGLE_TIME_RE.exec(line) ?? HOUR_ONLY_RE.exec(line);
+      let deadlineDay: string | null = null;
+      if (isoD) {
+        deadlineDay = `${isoD[1]}-${isoD[2]}-${isoD[3]}`;
+      } else if (shortD) {
+        const year = Number.parseInt(dayKey.slice(0, 4), 10);
+        const mm = String(Number.parseInt(shortD[1] ?? "1", 10)).padStart(2, "0");
+        const dd = String(Number.parseInt(shortD[2] ?? "1", 10)).padStart(2, "0");
+        deadlineDay = `${year}-${mm}-${dd}`;
+      }
+      if (clock) {
+        const rawHour = Number.parseInt(clock[1] ?? "0", 10);
+        const minute = Number.parseInt(clock[2] ?? "0", 10);
+        const hour = PM_RE.test(line) && rawHour < 12 ? rawHour + 12 : rawHour;
+        const day = deadlineDay ?? baseDay;
+        deadline = isoAt(day, hour * 60 + minute);
+      } else if (deadline === null && deadlineDay !== null) {
+        deadline = isoAt(deadlineDay, 23 * 60 + 59);
+      }
+      start = null;
+      end = null;
+      durationMin = 0;
     }
 
-    // 更正行不新增任务：把时间/时长覆盖到上一条，并把它标成待确认（发生过更正＝不确定）
+    if (start === null && durationMin === 0) durationMin = extractDuration(line) ?? 0;
+
+    // 「下周一交」「周五之前」：有星期 + 交付类动词 → 视为当天 23:59 截止
+    if (deadline === null && weekday !== null && /(交|提交|截止|前|答辩|报名|上传)/.test(line)) {
+      deadline = isoAt(weekday.date, 23 * 60 + 59);
+    }
+
+    // **标题保留原文**：时间数字是附加信息，不许把原文掏空
+    const title = normalizeTitle(line);
+    if (title.length === 0) continue;
+
+    // 更正行不新增任务：把时间/截止覆盖到上一条，并标成待确认（发生过更正＝不确定）
     if (isCorrection) {
       const previous = drafts[drafts.length - 1];
       if (previous) {
@@ -160,11 +193,50 @@ export function demoParseTasks(text: string, dayKey: string): TaskDraft[] {
           previous.end = end;
           previous.durationMin = Math.max(durationMin, 15);
         }
-        previous.needsReview = true;
+        if (deadline !== null) previous.deadline = deadline;
+        // 归并成功就**不再**标 needsReview（选题官口径：更正已经把字段改成确定值，
+        // 再挂黄标等于让用户重复核对同一件事）。字段没能覆盖成功时才保留待确认。
+        if (start === null && deadline === null) previous.needsReview = true;
         previous.rawTextOrigin = `${previous.rawTextOrigin ?? ""}\n${line}`.slice(0, 500);
       }
       continue;
     }
+
+    // 群消息抬头/接龙/纯叙述句不成为任务：**只有含时间或截止线索的句子才是任务**。
+    // 判的是"原文里有没有时间线索"，不是"我们敢不敢填 start"。
+    const hasClockCue =
+      RANGE_RE.test(line) ||
+      POINT_RANGE_RE.test(line) ||
+      SINGLE_TIME_RE.test(line) ||
+      HOUR_ONLY_RE.test(line);
+    const hasDeadlineCue =
+      DEADLINE_RE.test(line) &&
+      (ISO_DATE_RE.test(line) || SHORT_DATE_RE.test(line) || MONTH_END_RE.test(line) || weekday !== null);
+    // 相对日期词（下周/本月/月底…）与"弹性待办"（有空再做）仍算有日期线索：
+    // 它们不是叙述句，只是日期不够具体 —— 保留成任务并标 needsReview，比直接丢掉诚实
+    const hasRelativeDateCue = /下周|本周|这周|下个月|下月|本月|月底|近期|之后|以后/.test(line);
+    const hasFlexibleCue = FLEX_RE.test(line);
+    // 「紧急：交周报」这类有明确行动与紧迫度、但没写时间的行，仍是任务（只是 needsReview）
+    const hasUrgentCue = URGENT_RE.test(line);
+    if (
+      !hasClockCue &&
+      !hasDeadlineCue &&
+      !hasRelativeDateCue &&
+      !hasFlexibleCue &&
+      !hasUrgentCue &&
+      weekday === null
+    ) {
+      continue;
+    }
+
+    // 地点：从原文里抽（影响缓冲规则的同地点/跨校区判定）
+    const locationMatch = /(二教|三教|一教|四教|实验楼|图书馆|教学楼|综合楼|体育馆)\s*\d*/.exec(line);
+    // 固定课：补课/调课这类"学校排的、不能动"的安排（用户权威标记，规则版可判）
+    const locked = /补课|调课/.test(line) && start !== null;
+    // 弹性：作业/材料/表格/答辩这类可顺延的交付物
+    const flexible =
+      !locked &&
+      /(推迟|截止|提交|上?交|签字|顺延|申请|报名|答辩|作业|表格)/.test(line);
 
     drafts.push({
       title: title.slice(0, 200),
@@ -174,18 +246,31 @@ export function demoParseTasks(text: string, dayKey: string): TaskDraft[] {
       deadline,
       priority: URGENT_RE.test(line) ? 1 : FLEX_RE.test(line) ? 3 : 2,
       rawTextOrigin: line.slice(0, 500),
-      // 没有明确时段，或日期是靠「周三/下周」这类相对表述推出来的 → 需要人工确认
-      needsReview: start === null || weekday !== null,
-      // 规则版解析不识别周期安排，一律单次（模型版才可能给 repeat）
-      repeat: null,
+      // 只有"原文本身说不清"才需要人工确认：
+      // 条件性表述（顺延/等通知），或既没有具体日期也没有时段的条目。
+      // 星期/相对日期能算准的、时长按默认值估的，都不再打扰用户。
+      needsReview:
+        CONDITIONAL_RE.test(line) ||
+        durationInferred ||
+        (weekday === null && deadline === null && start === null),
+      // 时长是估的 → 界面上要显示成「约 N 分钟 · 待确认」，不能只留在数据里
+      durationInferred,
+      // 「每周三」→ 周期规则；一条重复安排只存一行，不展开
+      repeat: weeklyRepeat,
+      location: locationMatch ? locationMatch[0].replace(/\s+/g, "") : null,
+      locked,
+      flexible,
     });
   }
 
   return drafts;
 }
 
-/** 解析「周三 / 每周三 / 下周三 / 这周六」→ 具体日期（相对 DEMO_NOW，不读系统时钟） */
-function resolveWeekday(line: string, dayKey: string): { date: string; weekly: boolean } | null {
+/** 解析「周三 / 每周三 / 下周三 / 这周六」→ 具体日期（相对注入的 dayKey，不读系统时钟） */
+function resolveWeekday(
+  line: string,
+  dayKey: string,
+): { date: string; weekly: boolean; byDay: number } | null {
   const match = WEEKDAY_RE.exec(line);
   if (!match) return null;
   const weekdayChar = match[2];
@@ -200,12 +285,46 @@ function resolveWeekday(line: string, dayKey: string): { date: string; weekly: b
   if (prefix === "下") delta += 7;
   if (prefix === "下下") delta += 14;
 
-  return { date: shiftDay(dayKey, delta), weekly: prefix === "每" };
+  // byDay 用 ISO 口径：周一=1 … 周日=7
+  const isoWeekday = target === 0 ? 7 : target;
+  return { date: shiftDay(dayKey, delta), weekly: prefix === "每", byDay: isoWeekday };
 }
 
 /** 重排兜底：直接复用 domain 的确定性方案生成器 */
 export function demoReplanPlans(tasks: readonly Task[], dayKey: string): ReplanPlan[] {
-  return buildLocalPlans(tasks, dayKey, DEFAULT_PLAN_OPTIONS);
+  // 兜底不再自己造"计划"：走 reflow 的 buildLocalProposals → 与模型提议共用同一套裁决器，
+  // 效果闸（冲突数必须下降、locked 不动、18 条不变）照旧生效，不留第二条判定路径。
+  const now = new Date(msFromDayKey(dayKey, 9 * 60));
+  const inputs = {
+    now,
+    detect: { ...DEFAULT_DETECT_CONFIG, termStartDayKey: TERM_START_DAY_KEY },
+  };
+  const accepted = buildLocalProposals(tasks, inputs);
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+
+  return accepted
+    .map((item, index) => {
+      const blocks = item.tasksAfter
+        .filter((after) => {
+          const before = byId.get(after.id);
+          return (
+            after.start !== null &&
+            after.end !== null &&
+            (before?.start !== after.start || before?.end !== after.end)
+          );
+        })
+        .map((after) => ({ taskId: after.id, start: after.start as string, end: after.end as string }));
+      return {
+        id: item.proposal.id || `local-${index + 1}`,
+        title: item.proposal.label,
+        rationale:
+          item.proposal.sacrifices.length > 0
+            ? `牺牲：${item.proposal.sacrifices.join("、")}`
+            : "本地兜底：最小改动，冲突数下降才上桌",
+        blocks,
+      };
+    })
+    .filter((plan) => plan.blocks.length > 0);
 }
 
 function extractDuration(line: string): number | null {
@@ -216,21 +335,20 @@ function extractDuration(line: string): number | null {
   return null;
 }
 
-function cleanTitle(line: string): string {
+/**
+ * 标题归一化：**只去掉序号与更正标记，保留原文全部内容（含时间数字）**。
+ * 提取出来的 start/end/deadline 是附加字段，绝不把原文掏空 ——
+ * 用户要能在任务卡上读到原句，判断 AI 有没有理解错。
+ */
+function normalizeTitle(line: string): string {
   return line
-    .replace(RANGE_RE, " ")
-    .replace(SINGLE_TIME_RE, " ")
-    .replace(DURATION_MIN_RE, " ")
-    .replace(DURATION_HOUR_RE, " ")
-    .replace(/\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{1,2}/g, " ")
-    .replace(/\d{1,2}\s*[月/-]\s*\d{1,2}\s*[日号]?/g, " ")
-    .replace(/(截止|DDL|ddl|之前|前完成|前交|前发)/g, " ")
-    .replace(/^(今天|明天|后天|今晚|明晚)[,，:：]?\s*/, "")
-    .replace(/^[-*·•\d.、)\s]+/, "")
-    .replace(/[（(]\s*[)）]/g, " ")
+    .replace(CORRECTION_RE, " ")
+    // 只剥"5. " / "5、" 这种序号，别把 "10月31日" 的 10 当成序号吃掉
+    .replace(/^\d{1,2}\s*[.、)）]\s*/, "")
+    .replace(/^[-*·•\s]+/, "")
     .replace(/\s{2,}/g, " ")
-    .replace(/^[\s:：,，、-]+|[\s:：,，、-]+$/g, "")
-    .trim();
+    .trim()
+    .slice(0, 200);
 }
 
 function isoAt(dayKey: string, minutes: number): string {

@@ -16,21 +16,25 @@ import { Badge, Card, CardText, CardTitle } from "@/ui/primitives";
  *   疲惫  = 环降饱和 + 核心缩小 14% + 光晕减弱   （"没做完"）
  *   超载  = 环保持满但转警示红 + 核心裂纹        （"做满了但排不下"）
  * 两态必须一眼分开，不能只靠文字标签。
+ *
+ * FR-18 硬约束：**组件内不许出现十六进制色值**，一律引用 design-tokens 的 CSS 变量
+ * （`src/app/globals.css` 的 `@theme`）。`grep "#"` 在组件里应为 0。
+ * 半透明底用 fillOpacity 表达，不再写 rgba()，保证换肤只改 token 一处。
  */
-const PALETTE: Record<AvatarState, { ring: string; body: string; stroke: string; dot: string }> = {
+const PALETTE: Record<AvatarState, { ring: string; bodyOpacity: number }> = {
   // 满血用品牌蓝（不是薄荷绿），与落地页主色一致
-  energized: { ring: "#5b8cff", body: "rgba(91,140,255,0.12)", stroke: "#5b8cff", dot: "#5b8cff" },
+  energized: { ring: "var(--color-brand-500)", bodyOpacity: 0.12 },
   // 疲惫：环降饱和（去掉彩度，偏灰）
-  tired: { ring: "#6b7f9e", body: "rgba(107,127,158,0.10)", stroke: "#93a5bf", dot: "#93a5bf" },
+  tired: { ring: "var(--color-ink-400)", bodyOpacity: 0.1 },
   // 超载：满圈警示红
-  overloaded: { ring: "#ff7a85", body: "rgba(255,122,133,0.12)", stroke: "#ff7a85", dot: "#ff7a85" },
+  overloaded: { ring: "var(--color-danger-400)", bodyOpacity: 0.12 },
 };
 
-/** 光晕强度：满血最强、疲惫明显减弱、超载红晕 */
+/** 光晕强度：满血最强、疲惫明显减弱、超载红晕（颜色同样走 token） */
 const GLOW: Record<AvatarState, string> = {
-  energized: "drop-shadow(0 0 10px rgba(91,140,255,0.75))",
-  tired: "drop-shadow(0 0 3px rgba(107,127,158,0.35))",
-  overloaded: "drop-shadow(0 0 9px rgba(255,122,133,0.7))",
+  energized: "drop-shadow(0 0 10px var(--color-brand-500))",
+  tired: "drop-shadow(0 0 3px var(--color-ink-600))",
+  overloaded: "drop-shadow(0 0 9px var(--color-danger-400))",
 };
 
 /** 核心缩放：疲惫态比满血小 14%，这是"没做完"的体感线索 */
@@ -71,7 +75,7 @@ export function AvatarCard({ summary }: { summary: AvatarSummary }) {
       <div className="flex items-center gap-5">
         <div className="relative grid size-28 shrink-0 place-items-center">
           <svg viewBox="0 0 120 120" className="absolute size-28" aria-hidden style={{ filter: GLOW[summary.state] }}>
-            <circle cx="60" cy="60" r={RADIUS} fill="none" stroke="#1b2740" strokeWidth="7" />
+            <circle cx="60" cy="60" r={RADIUS} fill="none" stroke="var(--color-ink-700)" strokeWidth="7" />
             <motion.circle
               cx="60"
               cy="60"
@@ -100,33 +104,34 @@ export function AvatarCard({ summary }: { summary: AvatarSummary }) {
                 width="48"
                 height="48"
                 rx="16"
-                fill={palette.body}
-                stroke={palette.stroke}
+                fill={palette.ring}
+                fillOpacity={palette.bodyOpacity}
+                stroke={palette.ring}
                 strokeWidth="2"
               />
               {summary.state === "energized" ? (
                 <>
-                  <circle cx="25" cy="28" r="3" fill={palette.stroke} />
-                  <circle cx="39" cy="28" r="3" fill={palette.stroke} />
-                  <path d="M24 40 Q32 46 40 40" stroke={palette.stroke} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                  <circle cx="25" cy="28" r="3" fill={palette.ring} />
+                  <circle cx="39" cy="28" r="3" fill={palette.ring} />
+                  <path d="M24 40 Q32 46 40 40" stroke={palette.ring} strokeWidth="2.5" fill="none" strokeLinecap="round" />
                 </>
               ) : null}
               {summary.state === "tired" ? (
                 <>
-                  <path d="M22 28 Q25 26 28 28" stroke={palette.stroke} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                  <path d="M36 28 Q39 26 42 28" stroke={palette.stroke} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                  <path d="M26 41 L38 41" stroke={palette.stroke} strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M22 28 Q25 26 28 28" stroke={palette.ring} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                  <path d="M36 28 Q39 26 42 28" stroke={palette.ring} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                  <path d="M26 41 L38 41" stroke={palette.ring} strokeWidth="2.5" strokeLinecap="round" />
                 </>
               ) : null}
               {summary.state === "overloaded" ? (
                 <>
-                  <path d="M22 25 L28 31 M28 25 L22 31" stroke={palette.stroke} strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M36 25 L42 31 M42 25 L36 31" stroke={palette.stroke} strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M25 42 Q32 37 39 42" stroke={palette.stroke} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                  <path d="M22 25 L28 31 M28 25 L22 31" stroke={palette.ring} strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M36 25 L42 31 M42 25 L36 31" stroke={palette.ring} strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M25 42 Q32 37 39 42" stroke={palette.ring} strokeWidth="2.5" fill="none" strokeLinecap="round" />
                   {/* 核心裂纹：超载态专属，"做满了但排不下"的视觉锚点 */}
                   <path
                     d="M14 14 L20 22 L16 26 L24 32"
-                    stroke={palette.stroke}
+                    stroke={palette.ring}
                     strokeWidth="1.6"
                     fill="none"
                     strokeLinecap="round"
@@ -134,7 +139,7 @@ export function AvatarCard({ summary }: { summary: AvatarSummary }) {
                   />
                   <path
                     d="M50 46 L44 40 L47 35"
-                    stroke={palette.stroke}
+                    stroke={palette.ring}
                     strokeWidth="1.4"
                     fill="none"
                     strokeLinecap="round"
@@ -174,9 +179,9 @@ export function AvatarCard({ summary }: { summary: AvatarSummary }) {
 
       <div
         className="rounded-sm px-3 py-2 text-caption leading-relaxed"
-        style={{ backgroundColor: "rgba(255,255,255,0.03)", color: "#dbe4f0" }}
+        style={{ backgroundColor: "var(--color-ink-800)", color: "var(--color-ink-100)" }}
       >
-        <span className="mr-1 font-mono text-micro" style={{ color: palette.dot }}>
+        <span className="mr-1 font-mono text-micro" style={{ color: palette.ring }}>
           播报
         </span>
         {summary.broadcast}

@@ -89,6 +89,16 @@ function parseArgs(argv: string[]): CliOptions {
   return { file, dayKey: dayKeyArg ?? resolveDayKey(demoNow), outPath, demoNow };
 }
 
+/**
+ * 下游提前关闭管道（`| head`、PowerShell 的 `| Select-Object -First N`）时，
+ * 往 stdout 写会抛 EPIPE。这是"消费者不需要更多输出"，不是程序失败 ——
+ * 以 0 退出即可，否则录屏时终端会挂红字，看起来像崩了（映像官实测到过）。
+ */
+process.stdout.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EPIPE") process.exit(0);
+  throw error;
+});
+
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   const absolute = resolve(options.file);

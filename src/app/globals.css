@@ -41,6 +41,14 @@
   --color-danger-400: #ff7a85;
   --color-danger-500: #e84b5c;
 
+  /* ---- 优先级三档（FR-18）----
+   * 与冲突严重度**刻意用不同色相**：冲突=红/黄语义色系，优先级=青/蓝/灰中性档。
+   * 同一屏上「这颗很急」和「这里有冲突」不能靠同一种红去表达。
+   */
+  --color-prio-high-400: #ff9f7a;
+  --color-prio-mid-400: #7ba4ff;
+  --color-prio-low-400: #93a5bf;
+
   /* ---- 圆角 ---- */
   --radius-xs: 0.375rem;
   --radius-sm: 0.5rem;
