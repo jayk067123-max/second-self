@@ -16,6 +16,7 @@ import { IntakePanel } from "@/ui/composites/IntakePanel";
 import { ManualAddForm } from "@/ui/composites/ManualAddForm";
 import { ReplanPanel } from "@/ui/composites/ReplanPanel";
 import { TimetableReuploadPanel } from "@/ui/composites/TimetableReuploadPanel";
+import { toDayLoad } from "@/ui/composites/dayLoad";
 
 /**
  * 今日编排页 —— 只做「组装 + 派生计算」。
@@ -52,6 +53,8 @@ export default function PlannerPage() {
   );
   const conflictIds = useMemo(() => conflictedTaskIds(conflicts), [conflicts]);
   const avatar = useMemo(() => computeAvatarSummary(tasks, dayKey), [tasks, dayKey]);
+  // 负载条与行级「累计 x%」都取这一份（分身卡的同一次计算）；时间轴不再自己算第二遍口径
+  const dayLoad = useMemo(() => toDayLoad(avatar), [avatar]);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-gutter py-8">
@@ -120,6 +123,8 @@ export default function PlannerPage() {
           <TimetableReuploadPanel />
           <DayTimeline
             tasks={todayTasks}
+            dayKey={dayKey}
+            load={dayLoad}
             conflictIds={conflictIds}
             onToggle={toggleDone}
             onRemove={removeTask}

@@ -6,18 +6,38 @@ import { formatClock, formatDuration, parseIsoToMs } from "@/domain/time";
 import { shortDate } from "@/shared/datetime";
 import { Badge, Card, CardText, CardTitle, Dot, EmptyState } from "@/ui/primitives";
 import { cn } from "@/shared/utils";
+import { buildRowLoads, type DayLoadView, type RowLoad } from "./dayLoad";
+
+/**
+ * 负载条颜色只跟分身 state 走（同一份判定，不另立阈值）：
+ * 满血=品牌色、疲惫=警示黄、超载=危险红。颜色不是唯一载体，左边文字自带数字。
+ */
+const LOAD_BAR_TONE: Record<DayLoadView["state"], string> = {
+  energized: "bg-brand-500",
+  tired: "bg-warn-500",
+  overloaded: "bg-danger-500",
+};
+
+/** 行数与 rows 一一对应，取不到时按"不占负载"渲染（防御 `noUncheckedIndexedAccess`，不是业务分支） */
+const NO_LOAD: RowLoad = { minutes: 0, cumulativeMin: 0, cumulativePercent: 0, crossesLimit: false };
 
 /**
  * 今日时间轴 —— 只渲染，不做业务判定。
- * 是否冲突由 props 传进来的集合决定（判定在 domain 里，已单测）。
+ * 是否冲突由 props 传进来的集合决定（判定在 domain 里，已单测）；
+ * 负载占比由 `load` 传入（分身卡同一次计算的结果），行级只做展示换算。
  */
 export function DayTimeline({
   tasks,
+  dayKey,
+  load,
   conflictIds,
   onToggle,
   onRemove,
 }: {
   tasks: Task[];
+  dayKey: string;
+  /** 分身卡算好的当天负载（loadMin/limitMin/ratio/state），本组件不重算口径 */
+  load: DayLoadView;
   conflictIds: Set<string>;
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
@@ -30,6 +50,8 @@ export function DayTimeline({
     if (sb === null) return -1;
     return sa - sb;
   });
+  // 逐行负载：入参是**显示顺序**，累计值才有意义（dayLoad 里复用 domain 的切段口径）
+  const rows = buildRowLoads(sorted, dayKey, load.limitMin);
 
   return (
     <Card className="flex flex-col gap-4">
@@ -41,6 +63,27 @@ export function DayTimeline({
         <span className="font-mono text-micro text-ink-400">{tasks.length} 条</span>
       </div>
 
+      {/* 负载条：数字来自分身卡那一次计算（dailyTotals 口径），时间轴不再自算一份，
+          否则跨天任务会出现"分身说超载、时间轴说没事" */}
+      {sorted.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-micro text-ink-300">{load.label}</span>
+          <div
+            role="progressbar"
+            aria-label="今日负载占用"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(100, Math.max(0, load.percent))}
+            className="h-1.5 overflow-hidden rounded-pill bg-ink-700"
+          >
+            <div
+              className={cn("h-full rounded-pill", LOAD_BAR_TONE[load.state])}
+              style={{ width: `${Math.min(100, Math.max(0, load.percent))}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
+
       {sorted.length === 0 ? (
         <EmptyState
           title="今天还是空的"
@@ -48,12 +91,13 @@ export function DayTimeline({
         />
       ) : (
         <ul className="flex flex-col divide-y divide-ink-700">
-          {sorted.map((task) => {
+          {sorted.map((task, index) => {
             const startMs = parseIsoToMs(task.start);
             const endMs = parseIsoToMs(task.end);
             const hasBlock = startMs !== null && endMs !== null && endMs > startMs;
             const conflicted = conflictIds.has(task.id);
             const deadlineMs = parseIsoToMs(task.deadline);
+            const row = rows[index] ?? NO_LOAD;
             return (
               <li key={task.id} className="flex items-center gap-3 py-2">
                 <input
@@ -107,6 +151,17 @@ export function DayTimeline({
                     待确认
                   </Badge>
                 ) : null}
+                {/* 只看这一行就够：当天从「没超」被推到「超」的就是它。
+                    阈值只有一处——分身卡算好的 limitMin，这里不另设。 */}
+                {row.crossesLimit ? (
+                  <Badge
+                    tone="danger"
+                    className="shrink-0"
+                    title={`排到这条时，当天累计已超过日上限（${formatDuration(row.cumulativeMin)} / ${formatDuration(load.limitMin)}）`}
+                  >
+                    超上限
+                  </Badge>
+                ) : null}
                 {/* 优先级三档：用**实心圆点 + 文字**表达，与冲突的四类文本徽标在形状上区分开，
                     颜色也走独立 token（青/蓝/灰），不与冲突的红/黄语义色混用（FR-18） */}
                 <span
@@ -126,12 +181,24 @@ export function DayTimeline({
                   />
                   <span className="text-ink-300">{PRIORITY_LABEL[task.priority as 1 | 2 | 3]}</span>
                 </span>
-                <span className="w-20 shrink-0 text-right font-mono text-micro text-ink-400">
-                  {task.durationMin > 0
-                    ? task.durationInferred
-                      ? `约 ${formatDuration(task.durationMin)} · 待确认`
-                      : formatDuration(task.durationMin)
-                    : "—"}
+                {/* 时长 + 当日累计占比：**同一列两行**，不加宽（手机竖屏优先）。
+                    累计口径 = 上面那行 + 前面所有行，最后一行必然等于表头百分比。 */}
+                <span className="flex w-20 shrink-0 flex-col items-end font-mono text-micro text-ink-400">
+                  <span>
+                    {task.durationMin > 0
+                      ? task.durationInferred
+                        ? `约 ${formatDuration(task.durationMin)} · 待确认`
+                        : formatDuration(task.durationMin)
+                      : "—"}
+                  </span>
+                  {row.minutes > 0 ? (
+                    <span
+                      className="text-ink-300"
+                      title={`当天累计 ${formatDuration(row.cumulativeMin)} / 上限 ${formatDuration(load.limitMin)}`}
+                    >
+                      累计 {row.cumulativePercent}%
+                    </span>
+                  ) : null}
                 </span>
                 <span className="w-16 shrink-0 text-right font-mono text-micro text-ink-400">
                   {deadlineMs !== null ? `DDL ${shortDate(task.deadline)}` : ""}
