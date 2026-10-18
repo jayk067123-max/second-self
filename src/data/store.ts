@@ -105,10 +105,11 @@ export const usePlannerStore = create<PlannerState>()(
             source,
             done: false,
             // locked/flexible/location 只能来自本地规则或用户（AI 契约里没有这三项）；
-            // 契约收紧后 TaskDraft 已不含它们，这里一律给默认值，不替用户臆断"这是固定课"
-            locked: false,
-            flexible: false,
-            location: null,
+            // TaskDraft 里它们是**可选**字段，本地抽取到了就带上来，没给才用默认值——
+            // 写成死值会把解析出的 location 直接丢掉（例如 notice.txt 的「二教304」）
+            locked: draft.locked ?? false,
+            flexible: draft.flexible ?? false,
+            location: draft.location ?? null,
           };
           const parsed = TaskSchema.safeParse(task);
           if (!parsed.success) {

@@ -5,7 +5,7 @@ import type { CoverageReport, SourceLine } from "@/domain/completeness";
 import type { AiMode } from "@/domain/schemas/api";
 import type { TaskDraft } from "@/domain/schemas/task";
 import { SAMPLE_INTAKE_TEXT } from "@/shared/samples";
-import { DEMO_DAY_KEY } from "@/shared/constants";
+import { dayKeyOf } from "@/domain/time";
 import { usePlannerStore } from "@/data/store";
 import { Badge, Button, Card, CardText, CardTitle, Textarea } from "@/ui/primitives";
 import { AiFailureCard } from "./AiFailureCard";
@@ -35,9 +35,10 @@ type LastInput =
 export function IntakePanel() {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<IntakeMode>("text");
-  // 演示时钟统一来源：与 planner 页共用 DEMO_DAY_KEY，避免"同屏两个今天"
-  // （此前这里用 todayKey(Date.now())，会让 notice.txt 的"这周六"随机器日期漂移）
-  const [dayKey] = useState(() => DEMO_DAY_KEY);
+  // 演示时钟**唯一来源**：与 planner 页共用 store 的 demoClock（导入 demo-seed 后切 seed 时钟），
+  // 不再读系统时间，也不再各自读常量——否则会出现"同屏两个今天"，录制日期还会随机器漂移。
+  const demoClockIso = usePlannerStore((s) => s.demoClock.iso);
+  const dayKey = dayKeyOf(new Date(demoClockIso).getTime());
   const [phase, setPhase] = useState<Phase>("idle");
   const [drafts, setDrafts] = useState<TaskDraft[]>([]);
   const [aiMode, setAiMode] = useState<AiMode | null>(null);

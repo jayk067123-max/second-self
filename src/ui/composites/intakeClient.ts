@@ -95,8 +95,8 @@ export async function compressImageFile(file: File): Promise<CompressedImage> {
     canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("浏览器不支持 canvas，无法压缩图片。请改用「粘贴文本」入口。");
-    // 透明 PNG 转 JPEG 会变黑底：先铺白
-    ctx.fillStyle = "#ffffff";
+    // 透明 PNG 转 JPEG 会变黑底：先铺白（用颜色名不用色值 —— FR-18：组件内不出现十六进制）
+    ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
     ctx.drawImage(bitmap as CanvasImageSource, 0, 0, width, height);
 

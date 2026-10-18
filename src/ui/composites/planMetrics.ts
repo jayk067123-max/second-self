@@ -1,5 +1,5 @@
 import { DEFAULT_DETECT_CONFIG, detectConflicts } from "@/domain/conflicts";
-import { applyPlan, type ReplanPlan } from "@/domain/reflow";
+import type { ReplanPlan } from "@/domain/reflow";
 import type { Task } from "@/domain/schemas/task";
 import { parseIsoToMs } from "@/domain/time";
 
@@ -20,13 +20,26 @@ export interface PlanMetrics {
   movedLockedTitles: string[];
 }
 
+/** 把方案时间块叠加到任务上（本地 10 行，不依赖 domain 的旧 applyPlan，便于它退役） */
+function withBlocks(tasks: readonly Task[], plan: ReplanPlan): Task[] {
+  const byTaskId = new Map(plan.blocks.map((block) => [block.taskId, block]));
+  return tasks.map((task) => {
+    const block = byTaskId.get(task.id);
+    if (!block) return task;
+    const start = parseIsoToMs(block.start);
+    const end = parseIsoToMs(block.end);
+    if (start === null || end === null || end <= start) return task;
+    return { ...task, start: block.start, end: block.end, durationMin: Math.round((end - start) / 60_000) };
+  });
+}
+
 export function computePlanMetrics(
   plan: ReplanPlan,
   tasks: readonly Task[],
   now: Date,
   config = DEFAULT_DETECT_CONFIG,
 ): PlanMetrics {
-  const next = applyPlan(tasks, plan);
+  const next = withBlocks(tasks, plan);
   const before = detectConflicts(tasks, config, now);
   const after = detectConflicts(next, config, now);
 

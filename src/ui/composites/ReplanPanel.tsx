@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { summarizePlan, type ReplanPlan } from "@/domain/planner";
+import { type ReplanPlan } from "@/domain/reflow";
 import type { Task } from "@/domain/schemas/task";
 import {
   ReplanResponseSchema,
@@ -143,7 +143,18 @@ export function ReplanPanel({
         <>
           <div className="grid gap-3 lg:grid-cols-3">
             {result.plans.map((plan) => {
-              const summary = summarizePlan(plan);
+              // 方案摘要（条数/总时长/最晚结束）：本地算，不再依赖 domain 已退役的 summarizePlan
+              const intervals = plan.blocks
+                .map((block) => ({ s: parseIsoToMs(block.start), e: parseIsoToMs(block.end) }))
+                .filter((x): x is { s: number; e: number } => x.s !== null && x.e !== null);
+              const summary = {
+                count: plan.blocks.length,
+                totalMin: intervals.reduce((sum, x) => sum + Math.round((x.e - x.s) / 60_000), 0),
+                lastEnd:
+                  intervals.length === 0
+                    ? "—"
+                    : formatClock(intervals.reduce((max, x) => Math.max(max, x.e), 0)),
+              };
               const metrics = computePlanMetrics(plan, tasks, now);
               const lockedBroken = metrics.movedLockedTitles.length > 0;
               return (
