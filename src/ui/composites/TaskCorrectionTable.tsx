@@ -3,6 +3,7 @@
 import type { TaskDraft } from "@/domain/schemas/task";
 import { PRIORITY_LABEL } from "@/domain/schemas/task";
 import { isoToLocalInput, localInputToIso, minutesToInput } from "@/shared/datetime";
+import { cn } from "@/shared/utils";
 import { Button, Input, Select } from "@/ui/primitives";
 
 /**
@@ -28,7 +29,7 @@ export function TaskCorrectionTable({
     const draft = drafts[index];
     if (!draft) return;
     const nextIso = localInputToIso(value);
-    const patch: Partial<TaskDraft> = { [field]: nextIso };
+    const patch: Partial<TaskDraft> = { [field]: nextIso, needsReview: false };
     const startIso = field === "start" ? nextIso : draft.start;
     const endIso = field === "end" ? nextIso : draft.end;
     if (startIso && endIso) {
@@ -44,7 +45,7 @@ export function TaskCorrectionTable({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-micro text-ink-400">
-          共 {drafts.length} 条 · 直接改单元格，改完再确认。AI 只负责初稿，入什么库由你决定。
+          共 {drafts.length} 条 · 黄色行是 AI 自评没把握的（needsReview），优先核对这几条。改完再确认。
         </p>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={onCancel} className="h-8 px-3 text-micro">
@@ -71,14 +72,24 @@ export function TaskCorrectionTable({
             {drafts.map((draft, index) => (
               <li
                 key={`${index}-${draft.rawTextOrigin ?? draft.title}`}
-                className="grid grid-cols-[2.2fr_1.3fr_1.3fr_0.8fr_1fr_1.4fr_2rem] items-center gap-2 px-2 py-1.5"
+                className={cn(
+                  "grid grid-cols-[2.2fr_1.3fr_1.3fr_0.8fr_1fr_1.4fr_2rem] items-center gap-2 px-2 py-1.5",
+                  draft.needsReview && "bg-warn-500/[0.06]",
+                )}
               >
-                <Input
-                  aria-label={`第 ${index + 1} 条标题`}
-                  value={draft.title}
-                  onChange={(e) => onChange(index, { title: e.target.value })}
-                  className="h-8"
-                />
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <Input
+                    aria-label={`第 ${index + 1} 条标题`}
+                    value={draft.title}
+                    onChange={(e) => onChange(index, { title: e.target.value, needsReview: false })}
+                    className="h-8"
+                  />
+                  {draft.needsReview ? (
+                    <span className="shrink-0 rounded-pill bg-warn-500/15 px-1.5 py-0.5 text-[10px] text-warn-400">
+                      待确认
+                    </span>
+                  ) : null}
+                </div>
                 <Input
                   aria-label={`第 ${index + 1} 条开始时间`}
                   type="datetime-local"

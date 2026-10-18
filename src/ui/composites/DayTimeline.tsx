@@ -4,7 +4,7 @@ import type { Task } from "@/domain/schemas/task";
 import { PRIORITY_LABEL } from "@/domain/schemas/task";
 import { formatClock, formatDuration, parseIsoToMs } from "@/domain/time";
 import { shortDate } from "@/shared/datetime";
-import { Badge, Card, CardText, CardTitle, Dot } from "@/ui/primitives";
+import { Badge, Card, CardText, CardTitle, Dot, EmptyState } from "@/ui/primitives";
 import { cn } from "@/shared/utils";
 
 /**
@@ -42,9 +42,10 @@ export function DayTimeline({
       </div>
 
       {sorted.length === 0 ? (
-        <p className="rounded-sm bg-ink-800/60 px-3 py-6 text-center text-caption text-ink-400">
-          今天还是空的。先把上面那段文本解析成任务。
-        </p>
+        <EmptyState
+          title="今天还是空的"
+          description="把群通知或课表粘到上方「粘贴 → 结构化」，解析成任务后这里会按时间排开。"
+        />
       ) : (
         <ul className="flex flex-col divide-y divide-ink-700">
           {sorted.map((task) => {

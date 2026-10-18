@@ -1,4 +1,5 @@
-import { Badge, Button, Card, CardText, CardTitle, Dot } from "@/ui/primitives";
+import Link from "next/link";
+import { Badge, Card, CardText, CardTitle, Dot } from "@/ui/primitives";
 import { HealthPanel } from "@/ui/composites/HealthPanel";
 import {
   APP_NAME,
@@ -41,8 +42,8 @@ export default function HomePage() {
         </div>
         <div className="flex items-center gap-2">
           <Badge tone="warn">
-            <Dot tone="warn" />
-            选题待定
+            <Dot tone="ok" />
+            选题 B · 第二自我
           </Badge>
           <Badge tone="brand">骨架 v{APP_VERSION}</Badge>
         </div>
@@ -51,20 +52,23 @@ export default function HomePage() {
       {/* ---------- Hero ---------- */}
       <section className="flex flex-col gap-6">
         <Badge tone="brand" className="w-fit">
-          工程地基 · 与选题无关
+          选题 B · 个人效能与数字分身
         </Badge>
         <h1 className="max-w-3xl text-display font-semibold text-ink-50">
-          四层解耦的
-          <span className="text-brand-400"> 可复现基座</span>
+          把乱糟糟的课表和 DDL，
+          <span className="text-brand-400">排成能执行的一天</span>
         </h1>
         <p className="max-w-2xl text-body text-ink-300">
-          这一页只证明一件事：仓库能跑、分层立住了、自检通得过。
-          业务功能等选题拍板后再长在上面，不在骨架里预留半成品。
+          粘一段群通知进来，它拆成任务、找冲突、给重排方案、写回时间轴；
+          数字分身随完成度和当日负载变色呼吸。模型只提建议，合法性由本地代码判定，你随时能否决。
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button size="lg" disabled title="选题确认后开放">
-            开始使用（选题确认后开放）
-          </Button>
+          <Link
+            href="/planner"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-pill bg-brand-500 px-6 text-body font-medium text-ink-950 shadow-glow transition-colors hover:bg-brand-400"
+          >
+            进入今日编排 →
+          </Link>
           <a
             href="/api/health"
             target="_blank"

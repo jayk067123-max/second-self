@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { describeHealth } from "@/domain/health";
 import { HealthReportSchema, type HealthReport } from "@/domain/schemas/system";
-import { Badge, Button, Card, CardText, CardTitle, Dot } from "@/ui/primitives";
+import { Badge, Button, Card, CardText, CardTitle, Dot, SkeletonList } from "@/ui/primitives";
 
 type State =
   | { kind: "loading" }
@@ -91,17 +91,7 @@ export function HealthPanel() {
         </div>
       </div>
 
-      {state.kind === "loading" && (
-        <div className="flex flex-col gap-2" aria-busy>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-9 animate-pulse rounded-sm bg-ink-800"
-              style={{ animationDelay: `${i * 90}ms` }}
-            />
-          ))}
-        </div>
-      )}
+      {state.kind === "loading" && <SkeletonList rows={3} label="正在检测环境" />}
 
       {state.kind === "error" && (
         <p className="rounded-sm bg-danger-500/10 px-3 py-2 text-caption text-danger-400 ring-1 ring-inset ring-danger-500/30">
