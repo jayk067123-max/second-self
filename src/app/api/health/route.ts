@@ -13,7 +13,13 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/** 数据层自检：能否在本机写 SQLite 目录（不建真实业务表） */
+/**
+ * 数据层自检：探测「本地持久化」是否可用。
+ *
+ * 注意：本项目不使用服务端数据库（见 ARCHITECTURE §7 ADR-1，SQLite 方案已否决），
+ * 任务数据存在浏览器 localStorage；这里只验证进程能否在本机落一个探针文件，
+ * 用来发现"目录只读 / 磁盘满"这类环境问题，不代表存在数据库。
+ */
 async function checkData(): Promise<CheckResult> {
   const dir = path.join(process.cwd(), "data");
   const probe = path.join(dir, ".health-probe");
@@ -21,7 +27,11 @@ async function checkData(): Promise<CheckResult> {
     await mkdir(dir, { recursive: true });
     await writeFile(probe, new Date().toISOString(), "utf8");
     await rm(probe, { force: true });
-    return { name: "data.write", ok: true, detail: "data/ 可写 · SQLite 单文件" };
+    return {
+      name: "data.write",
+      ok: true,
+      detail: "本机目录可写 · 数据存 localStorage（无服务端数据库）",
+    };
   } catch (err) {
     return {
       name: "data.write",
@@ -53,11 +63,11 @@ export async function GET() {
     checkAi(),
   ];
 
-  // 四层是否就位：骨架阶段各层 index 已存在即视为就位
+  // 六层是否就位：各层入口文件已存在即视为就位（选题已定 B，业务实现已落地）
   const layers = ARCHITECTURE_LAYERS.map((layer) => ({
     ...layer,
     ready: true,
-    note: "骨架占位已就位，业务实现待选题确认",
+    note: "该层入口已就位；职责边界见 ARCHITECTURE §2",
   }));
 
   const report: HealthReport = {
