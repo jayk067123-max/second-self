@@ -4,8 +4,8 @@
 - 阶段：省赛预指导（截止 2026-10-31 15:00）
 - AI 工具：DS Bot 赛队（全栈手）／底层模型：deepseek-flash
 - 对应提交：`feat(skeleton): 六层目录骨架 [prompt:001]`（待提交）
-- 关联文件：`.nvmrc` `package.json` `tsconfig.json` `next.config.ts` `postcss.config.mjs` `vitest.config.ts` `src/**`（14 个占位文件）`docs/ARCHITECTURE.md`
-- 记录性质：**真实记录**。§1 发 Prompt 前写；§3 按 2026-10-18 落盘实测回填；§2 指令原文、§5 验收待真实输出后回填，禁止提前编。
+- 关联文件：`.nvmrc` `package.json` `tsconfig.json` `next.config.ts` `postcss.config.mjs` `vitest.config.ts` `src/**` `docs/ARCHITECTURE.md`
+- 记录性质：**真实记录**。§1 发 Prompt 前写；§2 指令原文逐字粘贴；§3 按落盘实测回填；§4 骨架 6 子步与 §5 验收逐项待真实产出回填，禁止提前编。
 
 ## 1. 意图卡（发 Prompt 前填）
 
@@ -18,9 +18,9 @@
 | **验收标准** | ①`npm ci && npm run dev` 能起来，浏览器打开首屏无控制台报错 ②`src` 下六层目录齐全，每层至少一个占位文件且职责注释清楚，依赖方向不越界 ③未配 API Key 时自动走 demo 模式、有友好提示而非白屏 ④`npm run verify` 通过 ⑤`git status` 干净，无 `.env`、无 `node_modules` 进入版本库，且 `package.json` 依赖里不存在 `better-sqlite3` / `drizzle-*` |
 | **本轮求助点** | 只要骨架与分层，不要顺手实现功能；架构有歧义时先问，不要自行拍板大改 |
 
-> 已回填的事实：分层与依赖铁律取自全栈手 `docs/ARCHITECTURE.md`（草案 v0.1，2026-10-18）。
+> 已回填的事实：分层与依赖铁律取自 `docs/ARCHITECTURE.md`（**定稿 v1.0**，2026-10-18，13781 B / 123 行，主Bot 重写）。
 > **已定口径（2026-10-18 拍板）**：①分层统一叫「六层目录结构」，不叫"四层" ②`data/` 层是**本地持久化适配层**，SQLite 方案已否决 ③骨架编号不拆 001a-001f，6 子步并入本卡 §4。
-> **待全栈手落盘**：`ARCHITECTURE.md` 仍写 SQLite / `data/app.db` / `[A]`·`[B]` 双分支，需改成 B 单分支 + 适配层口径后，才能作为定稿证据截图。
+> **文档侧已闭环**：定稿 v1.0 已改为 B 单分支、§2 写明"立项口述四层、落盘展开六层"、数据层改为 `StorageAdapter` + `localStorage`。SQLite 仅出现在第 39 行（依赖移除原因）与第 157 行（ADR-1「背景：初版方案为 drizzle + better-sqlite3」），属**刻意保留的演进痕迹，不是口径错误**，可据此截图。
 
 ## 2. 我的 Prompt（原文）
 
@@ -63,80 +63,81 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 
 ## 3. AI 的建议 / 产出（摘要 + 关键原文）
 
-> 本节只写**已落盘可核对**的事实（2026-10-18 实测 `git status` / 文件系统），不写"预期"。
+> 本节只写**已落盘可核对**的事实，标注复核时间。
 
-### 3.1 架构方案：六层目录 + 5 条依赖方向铁律
+### 3.1 架构方案：六层目录 + 依赖方向铁律
 
-分层（原文取自 `docs/ARCHITECTURE.md` §二，作者全栈手）：
+分层（取自 `docs/ARCHITECTURE.md` 定稿 v1.0 §2）：
 
-| 层 | 原文职责 |
+| 层 | 职责 |
 |---|---|
 | `src/app` | 路由与页面装配层：只做组装与渲染，不写业务判断；`api/ai/[task]/route.ts` 是唯一出网口 |
 | `src/ui` | 展示层：纯 props 组件，不 fetch、不读 env、不含算法（`primitives/` + `composites/`） |
 | `src/domain` | 业务逻辑层：纯函数 + zod schema，无 IO、无 React、无时间/随机副作用 |
-| `src/data` | 数据访问层：仅 server 侧 import（**口径已改**：本地持久化适配层，见 §3.4） |
+| `src/data` | 本地持久化适配层：`StorageAdapter` 接口（save/load/export/import）+ `local-adapter.ts`（localStorage 实现，zustand persist 挂载点） |
 | `src/ai` | AI 编排层：prompt 组装、调用、校验、重试、降级（`guarded.ts` 为四道闸核心） |
 | `src/shared` | 常量、类型、无副作用工具 |
 
-依赖方向铁律（**逐字抄原文**）：
+依赖方向铁律（逐字抄原文）：
 1. `src/app` → `src/ui` / `src/domain` / `src/data` / `src/ai`，只往下调。
 2. `src/ui` 只依赖 `src/domain`（schema/类型）与 `src/shared`；**不得** import `data` 或 `ai`。
 3. `src/domain` 不 import 任何其他层（含 `zod` 之外的三方库）。
 4. `src/data`、`src/ai` 只被 `src/app`（server 侧）调用，不在客户端组件里出现。
 5. 密钥只在 server 侧读取：`LLM_API_KEY` 不出现在任何以 `NEXT_PUBLIC_` 前缀的变量里，也不进客户端 bundle。
 
-### 3.2 实际落盘文件（实测清单）
+### 3.2 落盘实测（2026-10-18 复核）
 
-工程基线（骨架第 1 步）：
-`.nvmrc`（内容 `24.14.0`）、`package.json`、`tsconfig.json`、`next.config.ts`、`postcss.config.mjs`、`vitest.config.ts`、`docs/ARCHITECTURE.md`
+工程基线第 1 步：`.nvmrc`（`24.14.0`）、`package.json`、`package-lock.json`、`tsconfig.json`、`next.config.ts`、`postcss.config.mjs`、`eslint.config.mjs`、`vitest.config.ts`
 
-`src/` 占位骨架 14 个文件：
-`ai/index.ts`、`app/globals.css`、`data/index.ts`、`domain/health.ts`、`domain/index.ts`、`domain/schemas/system.ts`、`shared/constants.ts`、`shared/index.ts`、`shared/utils.ts`、`ui/composites/HealthPanel.tsx`、`ui/primitives/Badge.tsx`、`ui/primitives/Button.tsx`、`ui/primitives/Card.tsx`、`ui/primitives/index.ts`
+`src/` 骨架占位（首轮 14 个文件）：`ai/index.ts`、`app/globals.css`、`data/index.ts`、`data/README.md`、`domain/health.ts`、`domain/index.ts`、`domain/README.md`、`domain/schemas/system.ts`、`shared/constants.ts`、`shared/index.ts`、`shared/utils.ts`、`ui/composites/HealthPanel.tsx`、`ui/primitives/{Badge,Button,Card}.tsx`、`ui/primitives/index.ts`
 
-**实测状态（2026-10-18 由 Prompt官在仓库根目录复核）**：
+> 之后 16:10 复核发现 `src/domain` 已新增 `schemas/task.ts`、`conflicts.ts`、`planner.ts`、`time.ts`、`avatar.ts` —— 这些属 **002/003/004 三条核心链**，不计入 001 骨架轮，只在对应卡里记。
+
+**复核结论表**
 
 | 项 | 结论 |
 |---|---|
 | `package-lock.json` | ✅ 已生成 |
 | `eslint.config.mjs` | ✅ 已补齐 |
 | `node_modules` | ✅ 已安装 |
-| `npm run verify` | ✅ 通过（输出见 §5） |
+| `npm run verify` | ✅ 通过（原始输出见 §5） |
 | `better-sqlite3` / `drizzle-orm` / `drizzle-kit` / `@types/better-sqlite3` | ✅ 已从 `package.json` 移除，grep 无残留 |
-| `src/data` 持久化适配层代码本体 | ⬜ **尚未落盘**：`src/data/index.ts` 仍是占位文件（`export const DATA_LAYER_READY = true;`），且其注释仍写「drizzle 裸行」「SQLite 单文件位于 data/app.db」——依赖删了，代码与注释还没跟上 |
+| `ARCHITECTURE.md` 数据层口径 | ✅ 定稿 v1.0 已改 `StorageAdapter` + `localStorage` |
+| `src/data` 适配层代码本体 | ⬜ **仍未落盘**：`src/data/` 只有 `index.ts`（`DATA_LAYER_READY = true`）与 `README.md`，`storage.ts` / `local-adapter.ts` 尚未创建；`index.ts` 注释仍写「drizzle 裸行」「SQLite 单文件位于 data/app.db」 |
 
 ### 3.3 真实取舍（有原文证据的三条）
 
 1. **TypeScript 锁 5.9.3，不用 7.0.2**。原文理由：「不用 7.0.2：原生编译器刚换代，评委机器上风险 > 收益」。
 2. **不用 Vercel AI SDK，改用官方 `openai` SDK 薄封装**。原文理由：「v7 迭代快、错误形态不透明，而本次评分看重"把 AI 幻觉关进笼子"的过程留痕，重试/校验/降级必须自己写才讲得清。用官方 SDK 薄封装，逻辑可见。」
-3. 复现性保底：零 `LLM_API_KEY` 时 `src/ai/client.ts` 自动切 `demo` provider，返回结构合法的固定 mock，全链路照常走通。验收命令统一 `npm run verify` = `typecheck && lint && test`。
+3. 复现性保底：零 `LLM_API_KEY` 时切 `demo` provider，返回结构合法的固定 mock，全链路照常走通。验收命令统一 `npm run verify`。
 
-### 3.4 已拍板、待落盘的选型收敛（技术文档第 3 章样本素材）
+### 3.4 选型收敛（技术文档第 3 章样本素材）
 
-**决策**：`data/` 层走**本地持久化适配层**（storage adapter + zustand persist + localStorage + JSON 导入导出），无服务端数据库、无迁移脚本、无 `db:push`。
-**理由（用户口径）**：SQLite 方案依赖 `better-sqlite3` 原生模块，评委机器上需要 node-gyp + VS Build Tools 才能编译，会拖死「10 分钟复现」，因此否决。
-**当前状态（2026-10-18 复核）——依赖侧已落盘，代码侧待落**：
+**决策**：`data/` 层走**本地持久化适配层**（`StorageAdapter` + zustand persist + localStorage + JSON 导入导出），无服务端数据库、无迁移脚本、无 `db:push`。
+**理由（用户口径）**：SQLite 方案依赖 `better-sqlite3` 原生模块，评委机器上需 node-gyp + VS Build Tools 才能编译，会拖死「10 分钟复现」，因此否决。
+**当前状态（2026-10-18 16:10 复核）——依赖层已收敛，实现层未开始**：
 
-- ✅ **已落盘**：`package.json` 中 `better-sqlite3` / `drizzle-orm` / `drizzle-kit` / `@types/better-sqlite3` 四个依赖已删除（`npm install` 重跑后 `removed 15 packages`），`package-lock.json` 已同步更新，全仓库 grep 无残留。
-- ✅ **连续集成实测**：`npm run verify` 通过（typecheck / lint / 12 个单测全绿，原文输出见 §5）。
-- ⬜ **代码本体未落**：`src/data/index.ts` 仍是占位导出（`DATA_LAYER_READY = true`），注释还写着「drizzle 裸行」「SQLite 单文件位于 data/app.db」；storage adapter / zustand persist / localStorage / JSON 导入导出的实现一个都没写。
-- ⬜ `ARCHITECTURE.md` 的数据层章节与 §五 落地顺序表仍是 SQLite 口径，未随依赖一起改。
+- ✅ 依赖层：四个依赖已删除（`npm install` 重跑 `removed 15 packages`），lock 已重生成，grep 无残留。
+- ✅ 文档层：`ARCHITECTURE.md` 定稿 v1.0 已写入 `StorageAdapter` + `local-adapter.ts` 方案；SQLite 仅作为 ADR-1 背景保留（第 157 行），属刻意留的演进痕迹。
+- ✅ 集成：`npm run verify` 通过（12 个单测全绿，输出见 §5）。
+- ⬜ 实现层：`src/data/storage.ts` / `local-adapter.ts` 尚未创建，`src/data/index.ts` 仍是占位导出且注释仍写 SQLite。
 
-> 结论：**技术选型已在依赖层收敛完成，实现层尚未开始**。§3.4 的证据目前能证明"AI 给的 SQLite 方案被人类否决并已从依赖里清掉"，但还不能声称"适配层已实现"。
-**落盘后须做**：改 `package.json` 依赖、改 `ARCHITECTURE.md` 数据层与落地顺序表，再回填本节的实测证据与截图。
+> 结论口径：**技术选型已在依赖层与文档层收敛完成，实现层尚未开始**。可以证明"AI 给的 SQLite 方案被人类否决并从依赖里清掉"，**不能**声称"适配层已实现"。
 
-### 3.5 另一待落盘项
+### 3.5 已闭环项
 
-`ARCHITECTURE.md` 头部仍写「选题（A 试卷 / B 日程）未定」、§五 落地顺序仍是 `[A]`/`[B]` 双分支，与本项目已定 B 矛盾，且第 5 行「尚未提交」已失效。需全栈手改完再作为定稿证据截图。
+`ARCHITECTURE.md` 曾写「选题（A/B）未定」「尚未提交」，现已由主Bot 重写为定稿 v1.0（B 单分支、状态"定稿"），闭环。
 
 ## 4. 我如何引导与修正
 
 > 本轮按"6 子步并入 §4"记录（不拆 001a-001f）。下表第 1 行是**已拍板的技术选型收敛**，其余行等 6 子步真实跑完后逐条补。
-> **填写纪律**：每行对应一次**实际提交 hash**，跑通 `npm run verify` 才填；哪一步没做、或做了没通过，就如实写「缺口：未完成 / 未通过」，**不许补齐成漂亮的六行**。
+> **填写纪律**：每行对应一次**实际提交主题**（不写 hash），跑通 `npm run verify` 才填；哪一步没做、或做了没通过，就如实写「缺口：未完成 / 未通过」，**不许补齐成漂亮的六行**。
 
 | # | 现象（AI 写歪/报错/跑不通） | 我的判断 | 我下的指令（原文） | 结果 |
 |---|---|---|---|---|
-| 1（子步1·选型） | AI 给出的数据层方案是 `drizzle-orm + better-sqlite3` 单文件 SQLite | 方案本身能跑，但**评的是 10 分钟复现**：`better-sqlite3` 是原生模块，评委机器上需 node-gyp + VS Build Tools 编译，装不上就白屏，复现风险远大于收益 | 「砍掉 drizzle + better-sqlite3，`data/` 层改成本地持久化适配层（storage adapter + zustand persist + localStorage + JSON 导入导出），不要服务端数据库、不要迁移脚本、不要 `db:push`。」（**原文待替换为逐字引用**） | **依赖侧已落盘**：四个依赖删除、lock 更新、grep 无残留、`npm run verify` 通过；**适配层代码待落盘**（见 §3.4） |
-| 2-6 | 待 6 子步真实跑完后补 | | | |
+| 1（子步1·选型） | AI 给出的数据层方案是 `drizzle-orm + better-sqlite3` 单文件 SQLite | 方案本身能跑，但**评的是 10 分钟复现**：`better-sqlite3` 是原生模块，评委机器上需 node-gyp + VS Build Tools 编译，装不上就白屏，复现风险远大于收益 | 「砍掉 drizzle + better-sqlite3，`data/` 层改成本地持久化适配层（storage adapter + zustand persist + localStorage + JSON 导入导出），不要服务端数据库、不要迁移脚本、不要 `db:push`。」（**原文待替换为逐字引用**） | **依赖层 + 文档层已落盘**；**适配层代码待落盘**（见 §3.4） |
+| 2（子步5·AI 编排） | `npm run verify` 在 typecheck 阶段报 `src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.` | 工作区在 `e7bc43c` 之后又往前走了，新落盘的 `src/ai/*` 未过 typecheck；单测 54/54 仍绿，说明问题只在类型层，不影响逻辑正确性 | （修复指令未留原文，属缺口；由落地方自行修正） | **已修复**：16:10 复核 6 文件 65 项全绿，红→绿全过程记录在 §5.1 / §5.2 |
+| 3-6 | 待 6 子步真实跑完后补 | | | |
 
 ## 5. 最终结果（可验证）
 
@@ -168,13 +169,88 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
    Duration  450ms (import 68%, transform 20%, tests 6%, worker 5%)
 ```
 
-- 验收标准逐条对齐：① ⬜（未跑 `npm ci && npm run dev` 取首屏截图）② ✅ 六层目录齐全（`app/ui/domain/data/ai/shared`）③ ◐ `tests/ai/mode.test.ts` 3 项通过证明 demo 模式有实现，但"白屏/友好提示"未在浏览器验证 ④ ✅ `npm run verify` 通过 ⑤ ◐ 无 `.env`、无 SQLite 依赖；但骨架文件整体尚未提交，`git status` 未干净
+- 验收标准逐条对齐：① ⬜（未跑 `npm ci && npm run dev` 取首屏截图）② ✅ 六层目录齐全（`app/ui/domain/data/ai/shared`）③ ◐ `tests/ai/mode.test.ts` 3 项 + `tests/ai/demo.test.ts` 11 项通过，证明 demo 模式有实现，但"白屏/友好提示"未在浏览器验证 ④ ✅ **16:10 复核通过**（6 文件 65 项；16:08 曾红，原始记录保留在 §5.1）⑤ ◐ 无 `.env`、无 SQLite 依赖；但工作区仍有未提交改动
 - 偏差说明：`verify` 通过 ≠ 产品可用。首屏、demo 模式提示、`npm ci` 全新安装三项仍待真实浏览器与干净环境验证，未做就记为未做。
+
+### 5.1 二次复核（2026-10-18 16:08，**记录一次真实的红**）
+
+三条提交落地后（`c5ac80d` / `cf1b37a` / `e7bc43c`），交付官报"5 文件 54 项全绿"。我复核结果分两半，**不整句照抄**：
+
+单测确实全绿（`npm run test` 原文）：
+
+```text
+ ✓ tests/ai/mode.test.ts (3 tests) 5ms
+ ✓ tests/domain/health.test.ts (9 tests) 12ms
+ ✓ tests/domain/avatar.test.ts (9 tests) 12ms
+ ✓ tests/domain/planner.test.ts (15 tests) 13ms
+ ✓ tests/domain/conflicts.test.ts (18 tests) 16ms
+
+ Test Files  5 passed (5)
+      Tests  54 passed (54)
+   Start at  16:08:46
+   Duration  464ms
+```
+
+但 `npm run verify` **整体是红的**，卡在第一步 typecheck：
+
+```text
+> vibe-coding-2026@0.1.0 typecheck
+> tsc --noEmit
+
+src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.
+
+[exit code: 1]
+```
+
+**判断**：不是提交内容有问题，而是**工作区在提交之后又往前走了**——`src/ai/{client,demo,guarded,prompts,tasks}.ts` 是提交后才落盘的未跟踪文件，其中 `tasks.ts` 有一个未使用的参数。所以：
+
+- 交付官那句"verify 全绿"对 `e7bc43c` 那个时刻成立，但对**当前工作区不成立**；
+- 001 的验收④以**当前工作区**为准，记 ⬜（红）；
+- 这条红本身是有价值的留痕：它证明验收是每次实跑出来的，不是抄别人的结论。
+
+**待办**：`src/ai/tasks.ts:191` 的未使用参数需由落地方修掉（删除或补用），修完重跑 `npm run verify` 再回填本节。
+
+### 5.2 三次复核（2026-10-18 16:10，**红转绿**）
+
+上面那个 typecheck 报错已被修掉，重跑 `npm run verify` 全绿，输出原文：
+
+```text
+> npm run typecheck && npm run lint && npm run test
+
+> tsc --noEmit
+> eslint .
+                              （均无输出，通过）
+
+ RUN  v5.0.5 <仓库根>
+
+ ✓ tests/ai/mode.test.ts (3 tests) 10ms
+ ✓ tests/domain/health.test.ts (9 tests) 29ms
+ ✓ tests/domain/conflicts.test.ts (18 tests) 28ms
+ ✓ tests/domain/avatar.test.ts (9 tests) 25ms
+ ✓ tests/domain/planner.test.ts (15 tests) 24ms
+ ✓ tests/ai/demo.test.ts (11 tests) 17ms
+
+ Test Files  6 passed (6)
+      Tests  65 passed (65)
+   Start at  16:10:02
+   Duration  1.39s
+```
+
+**三次复核对比（同一命令、同一工作区、相隔 5 分钟）**
+
+| 时刻 | 单测 | 整体 verify | 触发变化的原因 |
+|---|---|---|---|
+| 16:05 | 2 文件 / 12 项 | ✅ 绿 | 骨架基线刚补齐 |
+| 16:08 | 5 文件 / 54 项 | ❌ 红（TS6133） | `src/ai/*` 在新提交后落盘，`tasks.ts` 带一个未使用参数 |
+| 16:10 | 6 文件 / 65 项 | ✅ 绿 | 该参数已修掉，`tests/ai/demo.test.ts` 同时新增 11 项 |
+
+> 这条链路本身是可复现性的证据：**同一份验收命令在 5 分钟内经历过绿→红→绿**，每次都是实跑，没有一次是抄别人的结论。红的那段保留在 §5.1，不删不覆盖。
 
 ## 6. 经验沉淀
 
 - 骨架轮的 Prompt 里，最该提前写死的是：**「评委机器复现成本」这条硬约束**——技术选型先问"零环境能不能装上"，再问"好不好写"，否则 AI 会选工程上更漂亮但装不上的方案。
-- **叫法为什么从"四层"收敛成"六层"**：§2 原文写的是"Next.js + 四层分层"，那是下发时的粗略叫法，指的是"路由 / 展示 / 业务 / 数据"四个**概念层**。全栈手落盘时把它展开成 `app / ui / domain / data / ai / shared` **六个实际目录**：概念层里没有位置的"AI 编排"单独成层（它是本项目的风险核心，不该塞进业务层），"shared"是无层级归属的横切目录。所以最终口径定为「六层目录结构」——**这是按实际目录结构校正的演进结果，不是笔误，原文保留不改**。技术文档统一用"六层目录结构"。
+- **叫法为什么从"四层"收敛成"六层"**：§2 原文写的是"Next.js + 四层分层"，那是下发时的粗略叫法，指的是"路由 / 展示 / 业务 / 数据"四个**概念层**。落盘时展开成 `app / ui / domain / data / ai / shared` **六个实际目录**：概念层里没有位置的"AI 编排"单独成层（它是本项目的风险核心，不该塞进业务层），"shared"是无层级归属的横切目录。所以最终口径定为「六层目录结构」——**这是按实际目录结构校正的演进结果，不是笔误，原文保留不改**。
+- **留痕本身也要防"读旧版"**：本卡曾据 `ARCHITECTURE.md` 旧版（16:06 前）记下"仍写 SQLite 口径"，实际定稿 v1.0 已改。教训：引用别的 Bot 的文档前先看 `mtime` 与全文，别拿缓存印象当证据。
 
 ## 7. 证据附件
 

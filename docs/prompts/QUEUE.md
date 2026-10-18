@@ -9,7 +9,9 @@
 | 事件 | 触发时间 | 改动方 | 改动内容（一句话） | 意图卡 | 截图通道 | 10min 到点 | 状态 |
 |---|---|---|---|---|---|---|---|
 | E-001 | 2026-10-18 | 全栈手 | 骨架第1步工程基线落盘 + 删 SQLite 依赖 + ARCHITECTURE 草案 | `001-skeleton-architecture.md`（§1 §2 §3 §5 §8 已填） | `05-Prompt与演进记录/001-骨架架构/`（已建，含必截清单） | 10-18 当轮 | 🟠素材齐·待对账（缺：首屏截图、6 子步实际提交、适配层代码） |
-| E-002 | 2026-10-18 | Prompt官（主动前置） | 002 意图卡建卡，冻结 Task 字段 + 两条负面约束 | `002-text-to-task-json.md`（§1 完成，含 3 条待裁定口径） | `05-Prompt与演进记录/002-文本结构化/`（已建） | — | 🟡已建卡·待素材（等 001 第1步 Task schema 落地 + 用户裁定 §1.1） |
+| E-002 | 2026-10-18 | Prompt官（主动前置） | 002 意图卡建卡，冻结 Task 字段 + 两条负面约束 | `002-text-to-task-json.md`（§1 完成，含 3 条待裁定口径） | `05-Prompt与演进记录/002-文本结构化/`（已建） | — | 🟡已建卡·待素材（等用户裁定 §1.1；Task schema 已由全栈手落盘为 10 字段） |
+| E-003 | 2026-10-18 | 逻辑手（新 Bot） | `src/domain/conflicts.ts` / `planner.ts` / `avatar.ts` / `time.ts` / `schemas/task.ts` + 单测 | 待建：`003-conflict-detect-regression.md`（回归链）、`004-reschedule-plan-validation.md` | 待建：`003-冲突检测与重排/` | 首次提交前 | 🟡已建卡·待素材（卡待建，先要它每轮报 commit 主题） |
+| E-004 | 2026-10-18 | 主Bot | 改 `next.config.ts`、`src/shared/constants.ts`、`src/domain/schemas/system.ts`、`.env.example`（verify 12/12 仍过） | 并入 001 §4 子步2-6 缺口栏，不单独立卡 | 并入 `001-骨架架构/` | 已改完 | 🟠素材齐·待对账（缺：改动动机说明，用于填 §4「我的判断」） |
 
 ## 触发源（三种，任一出现就在 10 分钟内开一行）
 
