@@ -147,7 +147,7 @@ vibe-coding-2026/
 | 轮次 | 功能 | 关键约束 |
 |---|---|---|
 | 第 1 轮 | 数据模型与 store | Task 实体：`id / title / start / end / durationMin / deadline / priority(1-3) / source(text\|manual) / done / rawTextOrigin`，字段名与类型**不得变更** |
-| 第 2 轮 | 文本 → 任务结构化 | `now` 必须注入；重复规则单独字段；相对时间不确定时输出 `needsConfirmation`，禁止硬猜；前端必须有人工修正表格 |
+| 第 2 轮 | 文本 → 任务结构化 | `now` 必须注入；重复规则单独字段；相对时间不确定时输出 `needsReview: true`（早期草案曾写作 `needsConfirmation`，已统一为 `needsReview`，勿两处并用），禁止硬猜；前端必须有人工修正表格 |
 | 第 3 轮 | 冲突检测 | 照 `docs/SPEC-冲突检测与重排交互.md`；区间半开 `[a,b)`；`detectConflicts` 纯函数、`now` 注入、同输入三次结果一致 |
 | 第 4 轮 | 重排方案 | LLM 只出时间块 JSON，不参与裁决；本地校验不通过即丢弃；方案未消除的冲突**不许隐藏**；应用前快照入栈，回滚 = 整体替换 |
 | 第 5 轮 | 今日视图 + 数字分身 | 极简几何 + 进度环 + 三态（满血/疲惫/超载）+ 呼吸动效；不做 3D、不做人物立绘 |
