@@ -8,4 +8,5 @@
  */
 export * from "./local-adapter";
 export * from "./migrate";
+export * from "./seed";
 export * from "./storage";

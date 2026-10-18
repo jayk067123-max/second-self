@@ -54,7 +54,7 @@ export default defineConfig([
     },
   },
   {
-    // 纯函数层不许碰 React / IO
+    // 纯函数层不许碰 React / IO，也不许自己读时钟与随机数（ARCHITECTURE §2 铁律 3）
     files: ["src/domain/**/*.ts"],
     rules: {
       "no-restricted-imports": [
@@ -63,7 +63,26 @@ export default defineConfig([
           patterns: [
             { group: ["react", "react-dom", "next/*"], message: "domain 层必须是纯函数，不许依赖 React/Next。" },
             { group: ["node:fs", "node:path", "fs", "path"], message: "domain 层没有 IO。" },
+            {
+              group: ["@/ui", "@/ui/*", "@/data", "@/data/*", "@/ai", "@/ai/*", "@/app", "@/app/*", "@/store", "@/store/*"],
+              message: "domain 层不 import 任何其他层（铁律 3）。",
+            },
           ],
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message: "domain 层禁止 Date.now()：now 必须由调用方注入，否则单测不稳定（铁律 3）。",
+        },
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: "domain 层禁止 new Date()：时间必须由调用方注入（铁律 3）。",
+        },
+        {
+          selector: "CallExpression[callee.object.name='Math'][callee.property.name='random']",
+          message: "domain 层禁止 Math.random()：随机数必须由调用方注入（铁律 3）。",
         },
       ],
     },

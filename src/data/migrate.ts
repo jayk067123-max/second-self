@@ -4,6 +4,7 @@ import {
   type PlannerPayload,
   type Result,
 } from "./storage";
+import { adaptDemoSeed, isDemoSeed } from "./seed";
 
 /**
  * 数据版本迁移 —— 读取第三方/历史 JSON 时唯一的入口。
@@ -45,6 +46,12 @@ export function migrateImportedPayload(parsed: unknown): Result<PlannerPayload> 
   if (parsed === null || typeof parsed !== "object") {
     return { ok: false, error: "导入内容不是 JSON 对象" };
   }
+
+  // 演示种子（docs/demo-fixtures/demo-seed.json）：字段形状与 Task 契约不同，先转再校验
+  if (isDemoSeed(parsed)) {
+    return adaptDemoSeed(parsed);
+  }
+
   const record = parsed as Record<string, unknown>;
 
   // 带信封的导出文件
