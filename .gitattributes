@@ -1,0 +1,25 @@
+# 统一换行符：仓库内一律 LF，检出时也保持 LF
+# 理由：评委可能在 macOS / Linux 上复现，CRLF 会让 shell 脚本
+#       （含 shebang）直接报错，是真实的复现事故来源。
+* text=auto eol=lf
+
+# 二进制文件不要做行尾转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.mp4  binary
+*.mov  binary
+*.webm binary
+*.zip  binary
+*.woff  binary
+*.woff2 binary
+
+# Windows 批处理必须保留 CRLF，否则 cmd 解析异常
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+# PowerShell 脚本统一 LF，跨平台 pwsh 可正常执行
+*.ps1  text eol=lf

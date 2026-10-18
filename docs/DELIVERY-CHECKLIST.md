@@ -33,6 +33,7 @@
 - [ ] 无 `node_modules` / `dist` / 构建产物 / 大二进制
 - [ ] 无 `.env` / 密钥 / token（用 `git log -p -S "API_KEY"` 之类抽查一遍）
 - [ ] 无原始录屏素材与 `.mp4`（视频走 Release 或提交平台）
+- [ ] **已执行 §七 敏感信息扫描，提交内容无手机号 / 身份证 / 邮箱 / 密钥 / `.env` 内容**
 - [ ] `docs/prompts/` 有编号快照，`INDEX.md` 里每条能对应到 commit
 - [ ] README 含 10 分钟复现指南（环境、启动命令、依赖版本）
 - [ ] `.gitignore` 与本次实际改动无冲突
@@ -73,3 +74,32 @@
 - [ ] README 含 10 分钟复现指南，他人可照做跑起来
 - [ ] 演示视频 MP4，1080p，5–8 分钟
 - [ ] 技术文档 PDF，≤ 30 页
+
+## 七、提交前敏感信息扫描（硬规则）
+
+**任何要进公开仓库的文件，提交前必须扫一遍：手机号（11 位）、身份证号、个人邮箱、API 密钥/token、`.env` 内容。** 一次误提交进了历史，清理成本比扫描高一个数量级。
+
+标准动作（在仓库根目录执行）：
+
+```powershell
+# 1. 看这次到底改了什么，确认没有意外文件
+git status --short
+git diff --cached --stat
+
+# 2. 扫暂存区内容：手机号 / 身份证 / 邮箱 / 密钥关键字
+git diff --cached | Select-String -Pattern '\b1[3-9]\d{9}\b'
+git diff --cached | Select-String -Pattern '\b[1-9]\d{5}(19|20)\d{2}(0[1-9]|1[0-2])\d{2}\b'
+git diff --cached | Select-String -Pattern '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+git diff --cached | Select-String -Pattern '(api[_-]?key|secret|token|password|passwd)\s*[:=]\s*\S+'
+git diff --cached | Select-String -Pattern '(ghp_[A-Za-z0-9]{20,}|github_pat_|sk-[A-Za-z0-9]{20,})'
+
+# 3. 扫文件名：密钥、环境变量、数据库、大二进制
+git diff --cached --name-only | Select-String -Pattern '(\.env|\.key|\.pem|\.p12|\.db|\.sqlite|\.mp4|\.zip)$'
+```
+
+判定标准：
+- 手机号、身份证、个人邮箱 → **脱敏后才提交**（如 `139****6598`、`y****@xx.com`），并在文件里注明"提交表单时按原值填写"。
+- 命中密钥/token → **不提交**，改为读环境变量。
+- 命中 `.env` 文件名 → 立刻 `git rm --cached`，把真实值移到本地 `.env`。
+
+已知白名单（这些邮箱不算个人信息泄露）：`*@users.noreply.github.com`、`@example.com`、依赖锁文件里的包作者邮箱、`.env.example` 里的空值占位。扫描命中白名单时在回报里注明"已核对为白名单"即可通过。
