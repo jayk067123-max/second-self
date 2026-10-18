@@ -1,10 +1,5 @@
 import { z } from "zod";
-import {
-  DEFAULT_CONFLICT_OPTIONS,
-  dailyTotals,
-  timedTasksOf,
-  type ConflictOptions,
-} from "./conflicts";
+import { DEFAULT_CONFLICT_OPTIONS, dailyTotals, timedTasksOf } from "./conflicts";
 import type { Task } from "./schemas/task";
 import { MS_MINUTE, formatClock, formatDuration, msFromDayKey, parseIsoToMs } from "./time";
 
@@ -46,18 +41,14 @@ export const AiReplanOutputSchema = z.object({
 });
 export type AiReplanOutput = z.infer<typeof AiReplanOutputSchema>;
 
-export const PlanOptionsSchema = ConflictOptionsSchemaShape();
+export const PlanOptionsSchema = z.object({
+  bufferMin: z.number().int().min(0).max(120),
+  dailyLimitMin: z.number().int().min(60).max(24 * 60),
+  /** 作息窗口：当天允许安排任务的起止分钟 */
+  dayStartMin: z.number().int().min(0).max(24 * 60),
+  dayEndMin: z.number().int().min(0).max(24 * 60),
+});
 export type PlanOptions = z.infer<typeof PlanOptionsSchema>;
-
-function ConflictOptionsSchemaShape() {
-  return z.object({
-    bufferMin: z.number().int().min(0).max(120),
-    dailyLimitMin: z.number().int().min(60).max(24 * 60),
-    /** 作息窗口：当天允许安排任务的起止分钟 */
-    dayStartMin: z.number().int().min(0).max(24 * 60),
-    dayEndMin: z.number().int().min(0).max(24 * 60),
-  });
-}
 
 export const DEFAULT_PLAN_OPTIONS: PlanOptions = {
   ...DEFAULT_CONFLICT_OPTIONS,
@@ -155,10 +146,7 @@ export function validatePlan(
   // 当日总量：方案块的时长 + 当天未被方案覆盖的任务时长
   const plannedMin = intervals.reduce((sum, x) => sum + Math.round((x.e - x.s) / MS_MINUTE), 0);
   const untouched = tasks.filter((t) => !seen.has(t.id));
-  const untouchedDayMin = dailyTotals(
-    timedTasksOf(untouched).filter((t) => t.task.id !== undefined),
-  ).get(dayKey) ?? 0;
-  // 上面的 timedTasksOf 会包含其他天的任务，这里只取当天份额 —— dailyTotals 已按天切分
+  const untouchedDayMin = dailyTotals(timedTasksOf(untouched)).get(dayKey) ?? 0;
   const total = plannedMin + untouchedDayMin;
   if (total > options.dailyLimitMin) {
     issues.push(
