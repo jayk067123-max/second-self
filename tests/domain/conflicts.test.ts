@@ -11,7 +11,8 @@ import {
   timedTasksOf,
 } from "@/domain/conflicts";
 import type { Conflict, ConflictType, DetectConfig } from "@/domain/conflicts";
-import { TaskSchema, type Task } from "@/domain/schemas/task";
+import { AiTaskDraftSchema, RepeatRuleSchema, TaskSchema, type Task } from "@/domain/schemas/task";
+import { expandOccurrences, isoWeekdayOf } from "@/domain/time";
 import { DAY, DEMO_NOW, NEXT_DAY, block, ddl, hhmm, overnight, point } from "./support/tasks";
 
 /**
@@ -467,5 +468,159 @@ describe("任务契约", () => {
 
   it("零时长任务合法（只有 DDL 的任务 durationMin 可以为 0）", () => {
     expect(TaskSchema.safeParse(ddl("2026-10-19")).success).toBe(true);
+  });
+
+  it("已经落盘的旧记录（只有 10 个基础字段）仍能通过校验，缺省补成默认值", () => {
+    const legacy = {
+      id: "old-1",
+      title: "旧任务",
+      start: null,
+      end: null,
+      durationMin: 30,
+      deadline: null,
+      priority: 2,
+      source: "manual",
+      done: false,
+      rawTextOrigin: null,
+    };
+    const parsed = TaskSchema.parse(legacy);
+    expect(parsed.locked).toBe(false);
+    expect(parsed.repeat).toBeNull();
+    expect(parsed.needsReview).toBe(false);
+  });
+
+  it("repeat 的 byDay 用 ISO 星期（1=周一…7=周日），0 和 8 都非法", () => {
+    expect(RepeatRuleSchema.safeParse({ kind: "weekly", byDay: [2] }).success).toBe(true);
+    expect(RepeatRuleSchema.safeParse({ kind: "weekly", byDay: [0] }).success).toBe(false);
+    expect(RepeatRuleSchema.safeParse({ kind: "weekly", byDay: [8] }).success).toBe(false);
+    expect(RepeatRuleSchema.safeParse({ kind: "weekly", byDay: [] }).success).toBe(false);
+    expect(isoWeekdayOf(Date.parse(hhmm("2026-10-20", 21, 0)))).toBe(2); // 2026-10-20 是周二
+  });
+
+  it("AI 草稿可以带 repeat、但不能自己设 locked（模型无权）", () => {
+    const draft = {
+      title: "社团例会",
+      start: hhmm(DAY, 21, 0),
+      end: hhmm(DAY, 22, 0),
+      durationMin: 60,
+      deadline: null,
+      priority: 2,
+      rawTextOrigin: "每周二晚9点例会",
+      needsReview: false,
+      repeat: { kind: "weekly", byDay: [2] },
+      locked: true,
+    };
+    const parsed = AiTaskDraftSchema.parse(draft);
+    expect(parsed.repeat).toEqual({ kind: "weekly", byDay: [2] });
+    expect(parsed).not.toHaveProperty("locked");
+  });
+});
+
+describe("expandOccurrences · 重复任务展开", () => {
+  const weeklyTue = { kind: "weekly" as const, byDay: [2] };
+  const windowStart = new Date(hhmm("2026-10-19", 0, 0));
+  const windowEnd = new Date(hhmm("2026-11-02", 0, 0));
+
+  it("单次任务原样返回，不按窗口过滤（窗口外的历史任务不能被静默丢掉）", () => {
+    const task = block(DAY, 9, 0, 10, 0, { id: "single" });
+    const farWindow = [new Date(hhmm("2027-01-01", 0, 0)), new Date(hhmm("2027-01-08", 0, 0))] as const;
+    const occurrences = expandOccurrences(task, farWindow[0], farWindow[1]);
+    expect(occurrences).toHaveLength(1);
+    expect(occurrences[0]?.start).toBe(task.start);
+  });
+
+  it("weekly 任务在两周窗口内展开出两个周二，时刻与时长取自任务本身", () => {
+    const task = block(DAY, 21, 0, 22, 0, { id: "weekly", repeat: weeklyTue });
+    const occurrences = expandOccurrences(task, windowStart, windowEnd);
+    expect(occurrences).toHaveLength(2);
+    expect(occurrences[0]?.start).toBe(hhmm("2026-10-20", 21, 0));
+    expect(occurrences[0]?.end).toBe(hhmm("2026-10-20", 22, 0));
+    expect(occurrences[1]?.start).toBe(hhmm("2026-10-27", 21, 0));
+    // 数据里始终只有一条任务
+    expect(task.repeat).toEqual(weeklyTue);
+  });
+
+  it("展开只看窗口、不看今天：换一个更远的窗口照样能展开", () => {
+    const task = block(DAY, 21, 0, 22, 0, { repeat: weeklyTue });
+    const later = expandOccurrences(task, new Date(hhmm("2026-11-05", 0, 0)), new Date(hhmm("2026-11-20", 0, 0)));
+    expect(later.map((occurrence) => occurrence.start)).toEqual([
+      hhmm("2026-11-10", 21, 0),
+      hhmm("2026-11-17", 21, 0),
+    ]);
+  });
+
+  it("byDay 多天时逐个展开（周一 + 周三 → 两周 4 次）", () => {
+    const task = block(DAY, 8, 0, 9, 0, { repeat: { kind: "weekly", byDay: [1, 3] } });
+    const occurrences = expandOccurrences(task, windowStart, windowEnd);
+    expect(occurrences).toHaveLength(4);
+  });
+
+  it("没有具体时段的重复安排不展开（交给截止规则，硬造时段只会造假冲突）", () => {
+    const task = ddl(hhmm("2026-10-20", 23, 59), { repeat: weeklyTue });
+    expect(expandOccurrences(task, windowStart, windowEnd)).toEqual([]);
+  });
+
+  it("窗口倒置返回空，窗口非法抛错（不让坏参数悄悄变成空结果）", () => {
+    const task = block(DAY, 21, 0, 22, 0, { repeat: weeklyTue });
+    expect(expandOccurrences(task, windowEnd, windowStart)).toEqual([]);
+    expect(() => expandOccurrences(task, new Date(Number.NaN), windowEnd)).toThrow(TypeError);
+  });
+});
+
+describe("detectConflicts · 重复任务（数据一行，判定按每次发生）", () => {
+  const weeklyTue = { kind: "weekly" as const, byDay: [2] };
+
+  it("周二 21:00 的例会能撞上下周二 21:00 结束的会（视频里那条镜头不能丢）", () => {
+    const meeting = block(DAY, 21, 0, 22, 0, { id: "r", title: "社团例会", repeat: weeklyTue });
+    const clash = block("2026-10-20", 20, 30, 21, 0, { id: "m", title: "部门会议" });
+    const buffers = only(detect([meeting, clash]), "buffer");
+    expect(buffers).toHaveLength(1);
+    expect(buffers[0]?.date).toBe("2026-10-20");
+    expect(buffers[0]?.conflictId).toContain("@2026-10-20");
+    // 冲突指向的是"那一条任务"，不是展开出来的临时对象
+    expect(buffers[0]?.involvedTaskIds).toContain("r");
+  });
+
+  it("两周都撞 → 两条冲突、id 不同（不会被去重吞成一条）", () => {
+    const meeting = block(DAY, 21, 0, 22, 0, { id: "r", title: "社团例会", repeat: weeklyTue });
+    const clashA = block("2026-10-20", 20, 30, 21, 0, { id: "ma", title: "部门会议" });
+    const clashB = block("2026-10-27", 20, 30, 21, 0, { id: "mb", title: "部门会议" });
+    const buffers = only(detect([meeting, clashA, clashB]), "buffer");
+    expect(buffers).toHaveLength(2);
+    expect(buffers.map((conflict) => conflict.date)).toEqual(["2026-10-20", "2026-10-27"]);
+    expect(new Set(buffers.map((conflict) => conflict.conflictId)).size).toBe(2);
+  });
+
+  it("已经写死的单次任务不受影响：id 形状不变（兼容既有 UI key）", () => {
+    const a = block(DAY, 9, 0, 10, 0, { id: "a" });
+    const b = block(DAY, 9, 30, 10, 30, { id: "b" });
+    const [conflict] = detect([a, b]);
+    expect(conflict?.conflictId).toBe(`overlap:${[a.id, b.id].sort().join("+")}`);
+    expect(conflict?.conflictId).not.toContain("@");
+  });
+
+  it("窗口之外（14 天以后）的撞车不算今天要处理的事", () => {
+    const meeting = block(DAY, 21, 0, 22, 0, { id: "r", repeat: weeklyTue });
+    const far = block("2026-11-10", 20, 30, 21, 0, { id: "far" });
+    expect(only(detect([meeting, far]), "buffer")).toHaveLength(0);
+  });
+
+  it("重复任务也参与单日超载计算（那一周真的排满了）", () => {
+    const venue = { location: "教室A" };
+    const meeting = block("2026-10-20", 21, 0, 22, 0, {
+      id: "r",
+      repeat: weeklyTue,
+      ...venue,
+    });
+    const tasks = [
+      block("2026-10-20", 8, 0, 13, 0, venue),
+      block("2026-10-20", 14, 0, 19, 0, venue),
+      meeting,
+    ];
+    const overloads = only(detect(tasks), "overload");
+    expect(overloads).toHaveLength(1);
+    // 300 + 300 + 60 = 660，超出上限 60 分钟
+    expect(overloads[0]?.evidence.usedMin).toBe(660);
+    expect(overloads[0]?.date).toBe("2026-10-20");
   });
 });

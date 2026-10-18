@@ -83,6 +83,10 @@ export function demoParseTasks(text: string, dayKey: string): TaskDraft[] {
       deadline,
       priority: URGENT_RE.test(line) ? 1 : FLEX_RE.test(line) ? 3 : 2,
       rawTextOrigin: line.slice(0, 500),
+      // 原文没给明确时段 → 需要人工确认（修正表里会高亮）
+      needsReview: start === null,
+      // 规则版解析不识别周期安排，一律单次（模型版才可能给 repeat）
+      repeat: null,
     });
   }
 
@@ -108,9 +112,14 @@ function cleanTitle(line: string): string {
     .replace(SINGLE_TIME_RE, " ")
     .replace(DURATION_MIN_RE, " ")
     .replace(DURATION_HOUR_RE, " ")
+    .replace(/\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{1,2}/g, " ")
+    .replace(/\d{1,2}\s*[月/-]\s*\d{1,2}\s*[日号]?/g, " ")
+    .replace(/(截止|DDL|ddl|之前|前完成|前交|前发)/g, " ")
     .replace(/^(今天|明天|后天|今晚|明晚)[,，:：]?\s*/, "")
     .replace(/^[-*·•\d.、)\s]+/, "")
+    .replace(/[（(]\s*[)）]/g, " ")
     .replace(/\s{2,}/g, " ")
+    .replace(/^[\s:：,，、-]+|[\s:：,，、-]+$/g, "")
     .trim();
 }
 

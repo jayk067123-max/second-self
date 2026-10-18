@@ -2,17 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { create } from "zustand";
-import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
-import { z } from "zod";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { TaskListSchema, TaskSchema, type Task, type TaskDraft } from "@/domain/schemas/task";
 import { applyPlan, type ReplanPlan } from "@/domain/planner";
+import {
+  buildExportEnvelope,
+  createBrowserAdapter,
+  exportFileName,
+  migrateImportedPayload,
+  migrateStoredPayload,
+  serializeExport,
+} from "@/data";
 
 /**
- * 客户端状态层（store）—— 只依赖 domain，不碰数据访问层与 AI 层。
+ * 客户端状态层（store）—— 依赖 domain（契约与纯函数）与 data（持久化适配层），
+ * 不碰 AI 层、不发起任何网络请求。
  *
- * 两条硬规则：
+ * 三条硬规则：
  * 1. 任何写入都先过 zod（写入前校验，失败即拒绝并给出可读原因）
- * 2. 从 localStorage 读回来的数据同样过 zod（读取也不信任）
+ * 2. 从 localStorage 读回来的数据先走 data/migrate（版本迁移 + zod），脏数据回落空状态
+ * 3. 导入导出都经过同一个信封契约，不认"随便一个 JSON"
  */
 
 interface PlannerState {
@@ -28,18 +37,13 @@ interface PlannerState {
   undo: () => void;
   clearAll: () => void;
   dismissError: () => void;
+  /** 导出：返回文件文本与建议文件名（下载动作留给 UI） */
+  exportJson: () => { ok: boolean; text?: string; filename?: string; error?: string };
+  /** 导入：校验通过后整体替换，并把替换前的数据存进快照以便撤销 */
+  importJson: (text: string) => { ok: boolean; error?: string; imported?: number };
 }
 
-const PersistedSchema = z.object({
-  tasks: TaskListSchema,
-  snapshot: z.array(TaskSchema).nullable(),
-});
-
-const memoryStorage: StateStorage = {
-  getItem: () => null,
-  setItem: () => undefined,
-  removeItem: () => undefined,
-};
+const browserAdapter = createBrowserAdapter();
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -61,6 +65,8 @@ export const usePlannerStore = create<PlannerState>()(
             id: newId(),
             source,
             done: false,
+            // locked 是"用户权威标记"，解析结果一律 false，只有用户能钉死
+            locked: false,
           };
           const parsed = TaskSchema.safeParse(task);
           if (!parsed.success) {
@@ -122,19 +128,58 @@ export const usePlannerStore = create<PlannerState>()(
 
       clearAll: () => set({ tasks: [], snapshot: null, lastError: null }),
       dismissError: () => set({ lastError: null }),
+
+      exportJson: () => {
+        const { tasks, snapshot } = get();
+        try {
+          const now = new Date();
+          const envelope = buildExportEnvelope({ tasks, snapshot }, now);
+          return { ok: true, text: serializeExport(envelope), filename: exportFileName(now) };
+        } catch {
+          return { ok: false, error: "生成导出文件失败" };
+        }
+      },
+
+      importJson: (text) => {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          const message = "导入失败：文件不是合法 JSON";
+          set({ lastError: message });
+          return { ok: false, error: message };
+        }
+
+        const migrated = migrateImportedPayload(parsed);
+        if (!migrated.ok) {
+          set({ lastError: `导入失败：${migrated.error}` });
+          return { ok: false, error: migrated.error };
+        }
+        if (migrated.value.tasks.length === 0) {
+          const message = "导入失败：文件里没有任何任务";
+          set({ lastError: message });
+          return { ok: false, error: message };
+        }
+
+        set({
+          tasks: migrated.value.tasks,
+          // 覆盖前留快照：导入也是一次"批量写"，必须可撤销
+          snapshot: get().tasks,
+          lastError: null,
+        });
+        return { ok: true, imported: migrated.value.tasks.length };
+      },
     }),
     {
       name: "vibe-coding-2026/planner",
-      version: 1,
-      storage: createJSONStorage(() =>
-        typeof window === "undefined" ? memoryStorage : window.localStorage,
-      ),
+      version: 2,
+      storage: createJSONStorage(() => browserAdapter),
       skipHydration: true,
       partialize: (state) => ({ tasks: state.tasks, snapshot: state.snapshot }),
       merge: (persisted, current) => {
-        const parsed = PersistedSchema.safeParse(persisted);
-        if (!parsed.success) return current;
-        return { ...current, tasks: parsed.data.tasks, snapshot: parsed.data.snapshot };
+        const migrated = migrateStoredPayload(persisted);
+        if (!migrated.ok) return current;
+        return { ...current, tasks: migrated.value.tasks, snapshot: migrated.value.snapshot };
       },
     },
   ),

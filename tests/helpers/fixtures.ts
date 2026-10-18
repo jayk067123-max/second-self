@@ -30,6 +30,10 @@ export function makeTask(patch: Partial<Task> = {}): Task {
     source: patch.source ?? "manual",
     done: patch.done ?? false,
     rawTextOrigin: patch.rawTextOrigin ?? null,
+    // schema 里这三个字段带默认值，类型上是必有的；夹具按"最普通的一条任务"补齐
+    locked: patch.locked ?? false,
+    repeat: patch.repeat ?? null,
+    needsReview: patch.needsReview ?? false,
   };
 }
 
