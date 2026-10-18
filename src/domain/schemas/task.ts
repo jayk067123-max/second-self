@@ -143,6 +143,8 @@ export const TaskSchema = z
     repeat: RepeatRuleSchema.nullable(),
     /** AI 自己标出的"不确定，请人工核对"；用户在修正表里改过就会清掉 */
     needsReview: z.boolean(),
+    /** 时长是默认值估出来的（原文只给开始时间）→ 界面显示「约 N 分钟 · 待确认」 */
+    durationInferred: z.boolean().optional(),
   })
   .superRefine(refineTimeBlock);
 export type Task = z.infer<typeof TaskSchema>;
@@ -159,8 +161,21 @@ export const TaskDraftSchema = z
     rawTextOrigin: z.string().max(500).nullable(),
     /** 解析时靠推测得到的条目（原文没给明确时段/时长）→ 修正表里高亮 */
     needsReview: z.boolean(),
+    /**
+     * 时长是**估出来的**（原文只给了开始时间、没给时长，按默认 90 分钟兜底）。
+     * 界面上必须显示成“约 N 分钟 · 待确认”——只把标记留在数据里、界面看不出来，
+     * 等于“猜了一个数还告诉用户这是确定的”，比留空更糟（主管chief 裁定）。
+     */
+    durationInferred: z.boolean().optional(),
     /** 「每周二晚 9 点」这种周期安排：一条草稿，不展开 */
     repeat: RepeatRuleSchema.nullable(),
+    /**
+     * 以下三项只允许**本地规则/用户**给出，模型契约（AiTaskDraftSchema）里没有：
+     * locked 是用户权威标记，AI 无权设置；location 影响缓冲规则，也由本地抽取。
+     */
+    location: z.string().trim().max(60).nullable().optional(),
+    locked: z.boolean().optional(),
+    flexible: z.boolean().optional(),
   })
   .superRefine(refineTimeBlock);
 export type TaskDraft = z.infer<typeof TaskDraftSchema>;

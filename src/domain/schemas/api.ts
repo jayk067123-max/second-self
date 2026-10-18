@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TaskDraftSchema, TaskSchema } from "./task";
 import { CoverageReportSchema } from "../completeness";
-import { ReplanPlanSchema } from "../planner";
+import { ReplanPlanSchema } from "../reflow";
 
 /**
  * API DTO 契约 —— 服务端返回什么、客户端接受什么，都从这里取。

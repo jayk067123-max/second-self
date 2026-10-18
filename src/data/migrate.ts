@@ -74,7 +74,29 @@ export function migrateImportedPayload(parsed: unknown): Result<PlannerPayload> 
   return migrateStoredPayload(parsed);
 }
 
+/**
+ * v2 → v3：`locked` / `repeat` / `needsReview` 从"可选+默认值"改成**必填**。
+ * 契约变严了，但旧数据不能因此整批判脏 —— 这里显式补齐一次（只在字段缺失时补，
+ * 已有的值一个都不覆盖）。补齐的语义：没标过 = 不是固定课、不是周期、不需要复核。
+ */
+function fillV3Defaults(task: unknown): unknown {
+  if (typeof task !== "object" || task === null) return task;
+  const record = task as Record<string, unknown>;
+  return {
+    locked: false,
+    repeat: null,
+    needsReview: false,
+    ...record,
+  };
+}
+
 function validate(candidate: unknown): Result<PlannerPayload> {
+  if (typeof candidate === "object" && candidate !== null) {
+    const record = candidate as Record<string, unknown>;
+    if (Array.isArray(record.tasks)) {
+      candidate = { ...record, tasks: record.tasks.map(fillV3Defaults) };
+    }
+  }
   const parsed = PlannerPayloadSchema.safeParse(candidate);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
