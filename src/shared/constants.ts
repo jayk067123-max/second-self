@@ -48,3 +48,17 @@ export const ARCHITECTURE_LAYERS = [
 ] as const;
 
 export type LayerKey = (typeof ARCHITECTURE_LAYERS)[number]["key"];
+
+/**
+ * 演示时钟（DEMO_NOW）。
+ *
+ * 为什么要有它：演示素材里写的是「这周六」「下周三」「本月底」这类相对表述，
+ * 如果产品按系统时钟算，同一段素材在任何另一天跑出来的结果都不一样——
+ * 录像、测试、评委复现三者会互相打架。
+ *
+ * 所以本项目的"今天"由这个常量注入，界面上也会显式标出「演示时钟」，
+ * 让观众一眼看出时间基准是可控的、可复现的。
+ */
+export const DEMO_NOW_ISO = "2026-10-19T09:00:00+08:00";
+/** 演示时钟对应的日期键（dayKey），供解析与冲突检测使用 */
+export const DEMO_DAY_KEY = "2026-10-19";

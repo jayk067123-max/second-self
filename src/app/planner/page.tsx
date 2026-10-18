@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { computeAvatarSummary, tasksOnDay } from "@/domain/avatar";
 import { DEFAULT_DETECT_CONFIG, conflictedTaskIds, detectConflicts } from "@/domain/conflicts";
-import { todayKey, weekdayLabel } from "@/domain/time";
+import { weekdayLabel } from "@/domain/time";
+import { DEMO_DAY_KEY, DEMO_NOW_ISO } from "@/shared/constants";
 import { usePlannerHydration, usePlannerStore } from "@/store/planner";
 import { Badge, Button } from "@/ui/primitives";
 import { AvatarCard } from "@/ui/composites/AvatarCard";
@@ -29,9 +30,10 @@ export default function PlannerPage() {
   const clearAll = usePlannerStore((s) => s.clearAll);
   const dismissError = usePlannerStore((s) => s.dismissError);
 
-  const [dayKey] = useState(() => todayKey());
+  // 演示时钟注入：日期与"现在"都取 DEMO_NOW，不读系统时钟（见 shared/constants 的说明）
+  const [dayKey] = useState(() => DEMO_DAY_KEY);
   // 冲突规则要求 now 由调用方注入（函数内不读时钟），这里挂载时定一次，保证渲染稳定
-  const [now] = useState(() => new Date());
+  const [now] = useState(() => new Date(DEMO_NOW_ISO));
 
   const todayTasks = useMemo(() => tasksOnDay(tasks, dayKey), [tasks, dayKey]);
   const conflicts = useMemo(
@@ -60,6 +62,10 @@ export default function PlannerPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* 演示时钟角标：录像硬要求，说明"今天"是注入的、与运行机器时钟无关 */}
+          <Badge tone="neutral" aria-label="演示时钟">
+            演示时钟 {dayKey} 09:00
+          </Badge>
           <Badge tone="brand">选题 B · 个人效能</Badge>
           <Button variant="secondary" className="h-8 px-3 text-micro" onClick={undo} disabled={!hasSnapshot}>
             撤销上次写回

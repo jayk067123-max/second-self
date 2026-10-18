@@ -2,7 +2,7 @@
   "name": "second-self",
   "version": "0.1.0",
   "private": true,
-  "description": "鍏ㄥ浗楂樻牎 Vibe Coding 寮€鍙戞寫鎴樿禌鍙傝禌浣滃搧锛堢渷璧?B 缁勪釜浜鸿禌 路 鏉ㄥ鍑級",
+  "description": "第二自我 · 全国高校 Vibe Coding 开发挑战赛 B 组参赛作品",
   "engines": {
     "node": ">=22.11 <25"
   },
