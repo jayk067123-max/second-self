@@ -16,6 +16,20 @@ export const PRIORITY_LABEL: Record<1 | 2 | 3, string> = {
   3: "弹性",
 };
 
+/**
+ * 优先级三档映射。
+ * 为什么要有这层映射：SPEC 用 'high'|'medium'|'low' 描述提前预警窗口，
+ * 而落库的 Task 用 1/2/3 数字（数字好排序、好持久化）。
+ * 两套话术必须在一个地方对上，否则规则4的 leadHours 会各写一份、迟早漂移。
+ */
+export type PriorityBand = "high" | "medium" | "low";
+
+export const PRIORITY_BAND: Record<1 | 2 | 3, PriorityBand> = {
+  1: "high",
+  2: "medium",
+  3: "low",
+};
+
 const isoOrNull = z.string().nullable();
 const minutesField = z.number().int().min(0).max(24 * 60);
 const priorityField = z.number().int().min(1).max(3);
@@ -61,6 +75,23 @@ export const TaskSchema = z
     done: z.boolean(),
     /** 来自粘贴文本的原始行，用于人工修正时溯源 */
     rawTextOrigin: z.string().max(2000).nullable(),
+    /**
+     * 以下 6 个字段是 SPEC 冲突规则需要的约束信息，全部可选：
+     * 缺省即"不知道"，规则里按"不知道"降档处理，绝不替用户编造。
+     * 加可选而不是加必填，是为了不破坏已落库的旧数据与既有调用方。
+     */
+    /** 地点（'教室A' / '市区鼓楼'…）；null = 未知，缓冲规则会降为灰点 */
+    location: z.string().trim().max(60).nullable().optional(),
+    /** true = 固定块（课表/排班），重排不得移动 */
+    locked: z.boolean().optional(),
+    /** true = 可顺延/可压缩 */
+    flexible: z.boolean().optional(),
+    /** 同一父任务拆分出的片段（拆课/分段排班），互相之间不报重叠 */
+    parentId: z.string().min(1).nullable().optional(),
+    /** 0-1 进度；≥0.8 的截止提醒只出灰点 */
+    progress: z.number().min(0).max(1).optional(),
+    /** 完成该任务的估算工作量；缺省 = durationMin */
+    estateMin: z.number().int().min(0).max(24 * 60).optional(),
   })
   .superRefine(refineTimeBlock);
 export type Task = z.infer<typeof TaskSchema>;
