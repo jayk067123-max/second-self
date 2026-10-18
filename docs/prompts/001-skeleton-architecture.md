@@ -118,14 +118,14 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 **决策**：`data/` 层走**本地持久化适配层**（`StorageAdapter` + zustand persist + localStorage + JSON 导入导出），无服务端数据库、无迁移脚本、无 `db:push`。
 **理由（精确口径，与 `ARCHITECTURE.md` §1 第 39 行 / ADR-1 一致）**：`better-sqlite3` 确实提供预编译包，所以"装上它一定要编译"是错的；真正的风险是预编译产物与 Node 版本、运行平台强绑定，版本不匹配时安装会回退到本地编译，那时才需要 node-gyp + Visual Studio Build Tools，在评委机器上属于不可控失败。
 **理由（用户原始粗口径，保留于 `001b-data-layer-decision.md` §2，勿改）**：指令原话是"评委机器上没预编译包就要 node-gyp + Visual Studio Build Tools"——该措辞已于 2026-10-18 在 `ARCHITECTURE.md` ADR-1 中精化，指令原文不动。
-**当前状态（2026-10-18 16:10 复核）——依赖层已收敛，实现层未开始**：
+**当前状态（2026-10-18 复核）——依赖层、文档层、实现层均已落盘**：
 
 - ✅ 依赖层：四个依赖已删除（`npm install` 重跑 `removed 15 packages`），lock 已重生成，grep 无残留。
 - ✅ 文档层：`ARCHITECTURE.md` 定稿 v1.0 已写入 `StorageAdapter` + `local-adapter.ts` 方案；SQLite 仅作为 ADR-1 背景保留（第 157 行），属刻意留的演进痕迹。
 - ✅ 集成：`npm run verify` 通过（**以 `npm test` 输出为准**；撰写时 8 文件 / 149 项全绿，当日曾报 65、122 两值，均在涨，故不写死）。
-- ⬜ 实现层：`src/data/storage.ts` / `local-adapter.ts` 尚未创建，`src/data/index.ts` 仍是占位导出且注释仍写 SQLite。
+- ✅ 实现层（**已落盘，未提交**）：`src/data/storage.ts`（StorageAdapter 接口实现）、`local-adapter.ts`（localStorage + zustand persist）、`migrate.ts`（版本迁移）、`index.ts`、`README.md` 均已创建。§3.2 表里"适配层代码仍未落盘"的旧结论作废。
 
-> 结论口径：**技术选型已在依赖层与文档层收敛完成，实现层尚未开始**。可以证明"AI 给的 SQLite 方案被人类否决并从依赖里清掉"，**不能**声称"适配层已实现"。
+> 结论口径：**依赖层、文档层、实现层均已落盘**（实现层在工作区、未提交）。可以证明"AI 给的 SQLite 方案被人类否决、依赖清掉、适配层按新方案重写完成"，仍**不能**声称"已在 HEAD 上可复现"——那几个文件还没入库。
 
 ### 3.5 已闭环项
 
@@ -139,10 +139,11 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 | # | 现象（AI 写歪/报错/跑不通） | 我的判断 | 我下的指令（原文） | 结果 |
 |---|---|---|---|---|
 | 1（子步1·选型） | AI 给出的数据层方案是 `drizzle-orm + better-sqlite3` 单文件 SQLite | 方案本身能跑，但**评的是 10 分钟复现**：`better-sqlite3` 是原生模块，评委机器上需 node-gyp + VS Build Tools 编译，装不上就白屏，复现风险远大于收益 | 「砍掉 drizzle + better-sqlite3，`data/` 层改成本地持久化适配层（storage adapter + zustand persist + localStorage + JSON 导入导出），不要服务端数据库、不要迁移脚本、不要 `db:push`。」（**逐字原文已归档到 `001b-data-layer-decision.md` §2，含下发方/时间/渠道标注**） | **依赖层 + 文档层已落盘**；**适配层代码待落盘**（见 §3.4、001b §5） |
-| 2（子步5·AI 编排） | `npm run verify` 在 typecheck 阶段报 `src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.` | 工作区在 `e7bc43c` 之后又往前走了，新落盘的 `src/ai/*` 未过 typecheck；单测 54/54 仍绿，说明问题只在类型层，不影响逻辑正确性 | **事后补记 · 2026-10-18 · 由修复者本人回忆**（待回填：现象 / 定位 / 改法 三行） | **已修复**：16:10 复核 6 文件 65 项全绿，红→绿全过程记录在 §5.1 / §5.2 |
+| 2（子步5·AI 编排） | `npm run verify` 在 typecheck 阶段报 `src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.` | 工作区在 `e7bc43c` 之后又往前走了，新落盘的 `src/ai/*` 未过 typecheck；单测 54/54 仍绿，说明问题只在类型层，不影响逻辑正确性 | **事后补记 · 2026-10-18 · 由修复者本人回忆**（待回填：现象 / 定位 / 改法 三行） | **已修复**：16:10 复核 6 文件 65 项全绿，红→绿全过程记录在 §5.1 / §5.2（**16:10 时点快照**，当前用例数以 `npm test` 为准——撰写时 **162 项全绿**） |
 | 3（子步1-3·越界） | **「骨架轮不许写业务逻辑」这条被打破**：`cf1b37a` 同时含 `src/domain/conflicts.ts`（194 行）、`src/domain/planner.ts`（269 行）等业务纯函数，与目录骨架、设计令牌、落地页并成一个提交 | 本条是意图卡禁止事项①的违反。**不美化、不写成"骨架轮零业务"**——评委 `git show cf1b37a --stat` 一眼可见。原因：16:07 落地方先写了 domain，交付官 16:07 把骨架与 domain 一起提交，并行开发下提交边界没守住 | 未下发（无拦截指令留痕，属缺口） | **保留原禁止事项不改**，如实记为偏差；后续轮次按实际归属归链（conflicts→003、planner→004），不把这部分算作骨架轮成果 |
 | 4（并行冲突） | 逻辑手在 UI 开发期间重写 `src/domain/conflicts.ts`（4 类规则 + severity + evidence + ruleVersion + 注入 now），落地方的调用方全部失效：`ConflictPanel` 用的 `conflictType/severity/humanMessage` 不匹配、planner 页 `detectConflicts` 签名变化，并连带 3 处红（`resolveVenue` 写死 10/60/30 未读 config、`PRIORITY_BAND[task.priority]` TS7053、`scripts/parse.ts` 的 `arg` 可能 undefined） | 这是**并行写冲突**，不是单点 bug：两个 Bot 同时改同一契约。正确处置不是回滚自己的版本，而是**以新契约为准重写调用方** | 未下发（处置方式由全栈手自定，原文缺口） | 已收敛：修完 122 个单测全绿（当时值）。**建议作为 003 链的核心素材**，见下 |
-| 5-6 | 待 6 子步真实跑完后补 | | | |
+| 5（子步4·适配层） | `.gitignore` 里 `data/` 没锚定根，把 `src/data/` 和 `tests/data/` 一起忽略了——**新写的持久化层和单测对 git 完全不可见**，`git add` 会静默漏文件 | 这是最危险的一类 bug：不是代码错，是**版本控制把正确代码藏起来了**。后果是"本地全绿、评委 clone 后缺文件"，正好打在「10 分钟复现」上 | 纠正：改成 `/data/` `/uploads/` `/storage/` 锚定根目录，并用 `git check-ignore -v` 验证归零（来源：全栈手自述，2026-10-18） | **已修复**，`.gitignore` 第 68–72 行留了注释说明为什么不加锚点会连带忽略 |
+| 6（子步6·闭环） | 待 6 子步真实跑完后补 | | | |
 
 ## 5. 最终结果（可验证）
 
@@ -272,7 +273,15 @@ src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never
 | 类型 | 提交主题 | 说明 |
 |---|---|---|
 | 归档（先于代码） | `docs(prompts): 建立Prompt模板与留痕规范` | 本卡与规范文件同批落地，属"先立卡、后实现"的正常顺序 |
-| 实现（待提） | `chore: 锁定依赖与工程基线 [prompt:001]` | 骨架第 1 步工程基线：lock 已生成、eslint 配置已补、SQLite 四依赖已删、`npm run verify` 已通过 |
+| 实现·子步1 | `chore: 锁定依赖与工程基线 [prompt:001]` | lock 已生成、eslint 配置已补、SQLite 四依赖已删、`npm run verify` 通过 |
+| 实现·子步2+3 | `feat: 四层目录与领域契约占位骨架` | **与子步3 合并成一次提交**；且含 domain 纯函数（详见 §4 第 3 行越界记录） |
+| 实现·子步3 补 | `feat: 数字分身与冲突重排纯函数落地` | 纯函数与单测补齐 |
+| 实现·子步5 | `feat: AI 四道闸 + 任务契约 + 两个路由 + demo 兜底` | 与 §5 第 5 步一致 |
+| 实现·子步6 | `feat: 交互面板与状态视图` + `src/app/planner/`（**未提交**） | 端到端闭环靠今日编排页串起，该页尚未入库 |
+| 实现·子步4 | **尚未提交** | `src/data/{storage,local-adapter,migrate}.ts` 刚落地在工作区 |
+
+> **6 子步与实际提交的偏离（3 处，按事实记，不硬凑成一行一次提交）**：
+> ① 子步2 与子步3 **合并**为一次提交；② 子步3 的纯函数与单测由后一条提交补齐；③ 子步4（适配层）与子步6（闭环页）**至今未入库**。所以本卡不能表述为"6 步 6 提交一一对应"，正确表述是「6 子步落在 5 次已提交 + 2 处未提交」。
 
 > 口径说明：本卡真实归属提交是「实现」那条；「归档」那条只是卡的载体。
 > ⚠️ 历史变动留痕：本仓库 2026-10-18 发生过一次 `git reset` 重做提交，早前记录的 hash 已全部作废（架构文档一度回到未提交状态）。主Bot 已下历史冻结令：**从今往后禁止 reset / amend / rebase，只许往前加**。
