@@ -72,6 +72,30 @@
 | 提交前 | 先 `git status` / `git diff --stat` 看改动，排除无关文件 |
 | 禁止 | `git add .` / `git add -A` 一把梭、`--force` 覆盖历史、把密钥写进提交 |
 
+### git 权限归属（全队硬规矩）
+
+**写操作只有交付官能做。** 其他人（含主Bot、全栈手、Prompt官、选题官、文档官、映像官）在仓库里唯一允许执行的 git 命令是 `git status --short` 这类只读查询；`git add` / `git commit` / `git tag` / `git push` 一律由交付官执行。
+
+**禁止清单（能瞬间毁掉别人工作区或历史，任何人不得执行）：**
+
+| 命令 | 后果 |
+| --- | --- |
+| `git stash` / `git stash pop` | 会把别人未提交的改动整包收走，作者找不到自己的代码 |
+| `git checkout -- <file>` / `git restore <file>` | 未提交改动直接消失，无法恢复 |
+| `git clean -fd` | 未跟踪文件（新写的模块、新截图）全被删 |
+| `git reset` / `git rebase` / `git commit --amend` / `git filter-repo` / `git cherry-pick` | 改写已有提交，hash 变化，索引与记录全部悬空 |
+| `git push --force` | 覆盖远端历史 |
+
+**遇到"要不要改写历史"的犹豫，判断标准只有一条：能不能用一条新提交解决？能，就绝不改写。**
+
+### `index.lock` 处置（不是故障，别报障）
+
+`index.lock: File exists` 表示**这一刻**有另一个 git 进程在跑（审计用的 `git status` / `git log` / `git grep` 也会短暂持有锁，主Bot 做对账时就会撞上）。处置：
+
+1. **等 2 秒，重试同一个命令一次。**
+2. 连续两次失败，才向主Bot 报障；不要手删 `.git/index.lock`（真删会毁掉正在写入的索引）。
+3. 交付官提交时尽量避开别人的只读审计窗口，但不要求对方停手——只读命令本来就不该被当成冲突。
+
 ### 暂存区纪律（血的教训）
 
 工作区里常年有别人未完成的改动，`git add -A` / `git add .` 会把它们一起卷进你的提交，造成"提交人和作者不一致"、也破坏了细粒度历史。
