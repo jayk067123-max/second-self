@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=390, initial-scale=1" />
+    <title>B · 高信息密度</title>
+    <link rel="stylesheet" href="base.css" />
+    <style>
+      /* ============ 方案 B · 深色高密度 ============
+       * 语言：一块深色玻璃 + 等宽数字 + 发丝分隔。
+       * 一屏看完近三天 10 条与 3 处冲突，不滚动、不折叠。
+       * 负载与冲突用两套独立信号：横条=负载，红色注记=冲突。
+       */
+      :root {
+        --bg: #0a0c10;
+        --surface: #0f1218;
+        --surface-2: #151922;
+        --line: #1e242e;
+        --line-2: #272f3c;
+        --text: #e7eaf0;
+        --text-2: #9aa3b2;
+        --text-3: #767f8e;
+        --red: #ff7a85;
+        --amber: #ffcc66;
+        --green: #63d98a;
+        --brand: #7ba4ff;
+      }
+
+      body {
+        background: var(--bg);
+      }
+
+      .page {
+        position: absolute;
+        inset: 0;
+        padding: 16px 18px 0;
+        color: var(--text);
+        background: radial-gradient(
+          120% 60% at 0% 0%,
+          rgba(123, 164, 255, 0.07) 0%,
+          rgba(10, 12, 16, 0) 60%
+        );
+      }
+
+      /* ---------- 顶栏 ---------- */
+      .top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 26px;
+      }
+      .mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .mark i {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        background: linear-gradient(140deg, var(--brand), #3f6fe0);
+        display: inline-block;
+      }
+      .chips {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 20px;
+        padding: 0 7px;
+        border-radius: 6px;
+        font-size: 10.5px;
+        letter-spacing: 0.01em;
+        background: var(--surface-2);
+        color: var(--text-2);
+        border: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      .chip.red {
+        color: var(--red);
+        background: rgba(255, 122, 133, 0.1);
+        border-color: rgba(255, 122, 133, 0.32);
+        font-weight: 700;
+      }
+
+      /* ---------- 结论 ---------- */
+      .lede {
+        margin-top: 13px;
+      }
+      .lede h1 {
+        font-size: 17px;
+        line-height: 1.35;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .lede h1 b {
+        color: var(--red);
+      }
+      .lede p {
+        margin-top: 5px;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: var(--text-2);
+      }
+
+      /* ---------- 指标条 ---------- */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        margin-top: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .stat {
+        padding: 7px 9px 8px;
+        border-left: 1px solid var(--line);
+      }
+      .stat:first-child {
+        border-left: 0;
+      }
+      .stat .k {
+        font-size: 9.5px;
+        color: var(--text-3);
+        letter-spacing: 0.04em;
+        display: block;
+      }
+      .stat .v {
+        margin-top: 2px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        display: block;
+      }
+      .stat .v.warn {
+        color: var(--amber);
+      }
+      .stat .v.bad {
+        color: var(--red);
+      }
+
+      /* ---------- 视图切换 ---------- */
+      .bar {
+        display: flex;
+        align-items: center;
+        margin-top: 14px;
+        gap: 8px;
+      }
+      .seg {
+        display: inline-flex;
+        padding: 2px;
+        border-radius: 7px;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+      }
+      .seg span {
+        padding: 3px 10px;
+        font-size: 11px;
+        color: var(--text-3);
+        border-radius: 5px;
+      }
+      .seg span.on {
+        background: var(--line-2);
+        color: var(--text);
+        font-weight: 700;
+      }
+      .bar .hint {
+        margin-left: auto;
+        font-size: 10.5px;
+        color: var(--text-3);
+      }
+
+      /* ---------- 三天 ---------- */
+      .agenda {
+        margin-top: 8px;
+      }
+      .day {
+        padding-top: 9px;
+      }
+      .dayhead {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        height: 20px;
+        border-bottom: 1px solid var(--line-2);
+      }
+      .dname {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .ddate {
+        font-size: 10.5px;
+        color: var(--text-3);
+      }
+      .rail {
+        position: relative;
+        margin-left: auto;
+        width: 56px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--line-2);
+        overflow: hidden;
+      }
+      .rail i {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        display: block;
+        border-radius: 2px;
+      }
+      .load {
+        font-size: 10px;
+        color: var(--text-3);
+        width: 52px;
+        text-align: right;
+      }
+      .load.bad {
+        color: var(--red);
+        font-weight: 700;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      tr.r {
+        height: 31px;
+      }
+      tr.r td {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+        vertical-align: middle;
+      }
+      tr.r:last-child td {
+        border-bottom: 0;
+      }
+      td.t {
+        width: 42px;
+        font-size: 10.5px;
+        color: var(--text-3);
+        letter-spacing: -0.02em;
+      }
+      td.n {
+        font-size: 13px;
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 0;
+      }
+      td.p {
+        width: 54px;
+        text-align: right;
+      }
+
+      /* 优先级：形状 + 文字 */
+      .pri {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 10px;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+      }
+      .pri::before {
+        font-size: 8px;
+        line-height: 1;
+      }
+      .p1 {
+        color: var(--red);
+      }
+      .p1::before {
+        content: "▲";
+      }
+      .p2 {
+        color: var(--amber);
+      }
+      .p2::before {
+        content: "●";
+      }
+      .p3 {
+        color: var(--green);
+      }
+      .p3::before {
+        content: "○";
+      }
+
+      /* 冲突注记：贴着发生处，左侧红竖线 */
+      .cx {
+        display: flex;
+        gap: 6px;
+        align-items: flex-start;
+        margin: 3px 0 3px 0;
+        padding: 4px 8px 4px 8px;
+        border-left: 2px solid var(--red);
+        background: linear-gradient(
+          90deg,
+          rgba(255, 122, 133, 0.09),
+          rgba(255, 122, 133, 0) 78%
+        );
+        border-radius: 0 5px 5px 0;
+        font-size: 10.5px;
+        line-height: 1.5;
+        color: var(--red);
+      }
+      .cx.warn {
+        border-left-color: var(--amber);
+        background: linear-gradient(
+          90deg,
+          rgba(255, 204, 102, 0.09),
+          rgba(255, 204, 102, 0) 78%
+        );
+        color: var(--amber);
+      }
+      .cx .ico {
+        font-size: 8px;
+        margin-top: 3px;
+      }
+      .cx b {
+        font-weight: 700;
+      }
+
+      /* 重叠的一对：用红括号圈住 */
+      .pair {
+        border-left: 2px solid rgba(255, 122, 133, 0.5);
+        margin-left: -2px;
+        padding-left: 0;
+      }
+      .pair tr.r td.t {
+        color: var(--red);
+      }
+
+      /* ---------- 底部 ---------- */
+      .dock {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 18px 10px;
+        background: linear-gradient(
+          to bottom,
+          rgba(10, 12, 16, 0) 0,
+          var(--bg) 16px,
+          var(--bg) 100%
+        );
+        border-top: 1px solid var(--line);
+      }
+      .dock .seg span {
+        padding: 4px 11px;
+      }
+      .dock .icon {
+        width: 32px;
+        height: 30px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        color: var(--text-2);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        flex: none;
+      }
+      .dock .add {
+        flex: 1;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid rgba(123, 164, 255, 0.35);
+        background: rgba(123, 164, 255, 0.14);
+        color: var(--brand);
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="screen">
+      <div class="page">
+        <header class="top">
+          <span class="mark"><i></i>第二自我</span>
+          <div class="chips">
+            <span class="chip mono">10/19 周一 09:00</span>
+            <span class="chip red mono">▲ 3 处冲突</span>
+          </div>
+        </header>
+
+        <section class="lede">
+          <h1>今天 1 件，明后天 <b>3 处撞车</b>。</h1>
+          <p>周三 19:00 两件事完全重叠 · 周二排满 11 小时 10 分，超上限 1 小时 10 分</p>
+        </section>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="k">近三天</span>
+            <span class="v mono">10 件</span>
+          </div>
+          <div class="stat">
+            <span class="k">冲突</span>
+            <span class="v bad mono">3 处</span>
+          </div>
+          <div class="stat">
+            <span class="k">待处理</span>
+            <span class="v bad mono">2 处</span>
+          </div>
+          <div class="stat">
+            <span class="k">固定课</span>
+            <span class="v mono">9 件</span>
+          </div>
+        </div>
+
+        <div class="bar">
+          <span class="seg"><span class="on">近三天</span><span>一周</span></span>
+          <span class="hint mono">每格 1 条 · 点行看原文</span>
+        </div>
+
+        <div class="agenda">
+          <!-- 今天 -->
+          <section class="day">
+            <div class="dayhead">
+              <span class="dname">今天</span>
+              <span class="ddate mono">10/19 周一</span>
+              <span class="rail"><i style="width: 17%; background: var(--green)"></i></span>
+              <span class="load mono">1:40 / 10:00</span>
+            </div>
+            <table>
+              <tr class="r">
+                <td class="t mono">08:00</td>
+                <td class="n">线性代数</td>
+                <td class="p"><span class="pri p2">常规</span></td>
+              </tr>
+            </table>
+          </section>
+
+          <!-- 明天 -->
+          <section class="day">
+            <div class="dayhead">
+              <span class="dname">明天</span>
+              <span class="ddate mono">10/20 周二</span>
+              <span class="rail"><i style="width: 100%; background: var(--red)"></i></span>
+              <span class="load bad mono">11:10 / 10:00</span>
+            </div>
+            <table>
+              <tr class="r">
+                <td class="t mono">08:00</td>
+                <td class="n">马克思主义基本原理</td>
+                <td class="p"><span class="pri p2">常规</span></td>
+              </tr>
+              <tr class="r">
+                <td class="t mono">10:00</td>
+                <td class="n">线性代数</td>
+                <td class="p"><span class="pri p2">常规</span></td>
+              </tr>
+              <tr class="r">
+                <td class="t mono">13:30</td>
+                <td class="n">大学物理</td>
+                <td class="p"><span class="pri p2">常规</span></td>
+              </tr>
+              <tr class="r">
+                <td class="t mono">15:30</td>
+                <td class="n">程序设计实验</td>
+                <td class="p"><span class="pri p2">常规</span></td>
+              </tr>
+              <tr class="r">
+                <td class="t mono">18:30</td>
+                <td class="n">社团负责人会议</td>
+                <td class="p"><span class="pri p1">紧急</span></td>
+              </tr>
+              <tr class="r">
+                <td colspan="3" style="padding: 0">
+                  <div class="cx">
+                    <span class="ico">▲</span>
+                    <span><b>零缓冲</b>：会议 21:00 散场、例会 21:00 开场，需留 30 分钟。</span>
+                  </div>
+                </td>
+              </tr>
+              <tr class="r">
+                <td class="t mono">21:00</td>
+                <td class="n">线上例会</td>
+                <td class="p"><span class="pri p2">常规</span></td>
+              </tr>
+              <tr class="r">
+                <td class="t mono">22:00</td>
+                <td class="n">大创讨论</td>
+                <td class="p"><span class="pri p3">弹性</span></td>
+              </tr>
+            </table>
+          </section>
+
+          <!-- 后天 -->
+          <section class="day">
+            <div class="dayhead">
+              <span class="dname">后天</span>
+              <span class="ddate mono">10/21 周三</span>
+              <span class="rail"><i style="width: 40%; background: var(--green)"></i></span>
+              <span class="load mono">4:00 / 10:00</span>
+            </div>
+            <table>
+              <tr class="r">
+                <td colspan="3" style="padding: 0">
+                  <div class="cx">
+                    <span class="ico">▲</span>
+                    <span><b>完全重叠 120 分</b>：两件事同时 19:00–21:00，不可能都去。</span>
+                  </div>
+                </td>
+              </tr>
+            </table>
+            <table class="pair">
+              <tr class="r">
+                <td class="t mono">19:00</td>
+                <td class="n">实验室例会</td>
+                <td class="p"><span class="pri p1">紧急</span></td>
+              </tr>
+              <tr class="r">
+                <td class="t mono">19:00</td>
+                <td class="n">答辩准备</td>
+                <td class="p"><span class="pri p1">紧急</span></td>
+              </tr>
+            </table>
+          </section>
+        </div>
+      </div>
+
+      <div class="dock">
+        <span class="seg"
+          ><span class="on">三天</span><span>全部</span><span>已排</span></span
+        >
+        <span class="icon">⌕</span>
+        <span class="add">+ 随手记一条</span>
+      </div>
+    </div>
+  </body>
+</html>

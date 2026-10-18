@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=390, initial-scale=1" />
+    <title>A · 极简留白</title>
+    <link rel="stylesheet" href="base.css" />
+    <style>
+      /* ============ 方案 A · 纸感留白 ============
+       * 语言：白纸 + 一根发丝线 + 只用一种黑。
+       * 信息分层靠字号与留白，不靠卡片、不靠阴影。
+       * 唯一的高饱和色是"必须现在看"的红。
+       */
+      :root {
+        --paper: #faf8f4;
+        --card: #ffffff;
+        --ink: #16181d;
+        --ink-2: #555b67;
+        --ink-3: #6b717c;
+        --hair: #e5e1d8;
+        --red: #b4232c;
+        --red-bg: #fbeceb;
+        --amber: #8a5a00;
+        --amber-bg: #fbf2e1;
+        --green: #1f6b45;
+      }
+
+      body {
+        background: var(--paper);
+      }
+
+      .page {
+        position: absolute;
+        inset: 0;
+        padding: 18px 22px 0;
+        color: var(--ink);
+      }
+
+      /* ---------- 顶栏 ---------- */
+      .top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        font-size: 12px;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .brand::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        background: var(--ink);
+        border-radius: 1px;
+      }
+      .stamp {
+        color: var(--ink-3);
+        letter-spacing: 0.01em;
+      }
+
+      /* ---------- 结论 ---------- */
+      .lede {
+        margin-top: 26px;
+      }
+      .lede h1 {
+        font-size: 27px;
+        line-height: 1.36;
+        letter-spacing: -0.022em;
+        font-weight: 700;
+      }
+      .lede h1 em {
+        font-style: normal;
+        background: linear-gradient(transparent 64%, rgba(180, 35, 44, 0.13) 64%);
+        padding-bottom: 1px;
+      }
+      .lede .sub {
+        margin-top: 11px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--ink-2);
+        letter-spacing: 0.005em;
+      }
+
+      .rule {
+        height: 1px;
+        background: var(--hair);
+        margin-top: 22px;
+      }
+
+      /* ---------- 三天 ---------- */
+      .day {
+        padding-top: 17px;
+      }
+      .dayhead {
+        display: flex;
+        align-items: baseline;
+        gap: 7px;
+        padding-bottom: 5px;
+      }
+      .dname {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+      .dweek {
+        font-size: 11.5px;
+        color: var(--ink-3);
+      }
+      .dmeta {
+        margin-left: auto;
+        font-size: 11.5px;
+        color: var(--ink-3);
+      }
+      .dmeta.hot {
+        color: var(--amber);
+        font-weight: 700;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+        height: 38px;
+        border-bottom: 1px solid var(--hair);
+      }
+      .day ul li:last-child {
+        border-bottom: 0;
+      }
+      .t {
+        font-size: 11px;
+        color: var(--ink-3);
+        letter-spacing: -0.02em;
+      }
+      .ttl {
+        font-size: 14.5px;
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .live {
+        margin-left: 6px;
+        font-size: 11px;
+        color: var(--red);
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+
+      /* 优先级：形状 + 文字，颜色只是第三重信号 */
+      .pri {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .pri::before {
+        font-size: 9px;
+        line-height: 1;
+      }
+      .p1 {
+        color: var(--red);
+      }
+      .p1::before {
+        content: "▲";
+      }
+      .p2 {
+        color: var(--amber);
+      }
+      .p2::before {
+        content: "●";
+      }
+      .p3 {
+        color: var(--green);
+      }
+      .p3::before {
+        content: "○";
+      }
+
+      /* 冲突注记：贴在发生的那一行下面，不另开面板 */
+      .note {
+        display: flex;
+        gap: 7px;
+        margin: 6px 0 4px 55px;
+        padding: 7px 9px 7px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        line-height: 1.45;
+        letter-spacing: 0.005em;
+      }
+      .note .ico {
+        font-size: 10px;
+        margin-top: 3px;
+      }
+      .note.red {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .note.amber {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .note b {
+        font-weight: 700;
+      }
+
+      .allbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 14px;
+        padding-top: 13px;
+        border-top: 1px solid var(--hair);
+        font-size: 12.5px;
+        color: var(--ink-2);
+      }
+      .allbar .go {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      /* ---------- 底部随手记 ---------- */
+      .dock {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 12px 22px 26px;
+        background: linear-gradient(to bottom, rgba(250, 248, 244, 0) 0, var(--paper) 18px);
+      }
+      .dock .field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 46px;
+        padding: 0 8px 0 15px;
+        background: var(--card);
+        border: 1px solid var(--hair);
+        border-radius: 23px;
+        box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
+      }
+      .dock .ph {
+        flex: 1;
+        font-size: 13.5px;
+        color: var(--ink-3);
+      }
+      .dock .plus {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: var(--paper);
+        display: grid;
+        place-items: center;
+        font-size: 17px;
+        line-height: 1;
+        padding-bottom: 1px;
+      }
+      .dock .hint {
+        margin-top: 8px;
+        text-align: center;
+        font-size: 10.5px;
+        color: var(--ink-3);
+        letter-spacing: 0.01em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="screen">
+      <div class="page">
+        <header class="top">
+          <span class="brand">第二自我</span>
+          <span class="stamp mono">周一 10/19 · 09:00</span>
+        </header>
+
+        <section class="lede">
+          <h1>今天只有一节课，<em>真正撞车的是明后天</em>。</h1>
+          <p class="sub">近三天 10 件事、3 处时间冲突，其中 2 处要你今晚前决定。</p>
+        </section>
+
+        <div class="rule"></div>
+
+        <section class="day">
+          <div class="dayhead">
+            <span class="dname">今天</span>
+            <span class="dweek">周一</span>
+            <span class="dmeta mono">1 件</span>
+          </div>
+          <ul>
+            <li class="row">
+              <span class="t mono">08:00</span>
+              <span class="ttl">线性代数<span class="live">进行中 · 还剩 40 分</span></span>
+              <span class="pri p2">常规</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="day">
+          <div class="dayhead">
+            <span class="dname">明天</span>
+            <span class="dweek">周二</span>
+            <span class="dmeta hot mono">▲ 11 小时 10 分 / 上限 10 小时</span>
+          </div>
+          <ul>
+            <li class="row">
+              <span class="t mono">08:00</span>
+              <span class="ttl">马克思主义基本原理</span>
+              <span class="pri p2">常规</span>
+            </li>
+            <li class="row">
+              <span class="t mono">10:00</span>
+              <span class="ttl">线性代数</span>
+              <span class="pri p2">常规</span>
+            </li>
+            <li class="row">
+              <span class="t mono">13:30</span>
+              <span class="ttl">大学物理</span>
+              <span class="pri p2">常规</span>
+            </li>
+            <li class="row">
+              <span class="t mono">15:30</span>
+              <span class="ttl">程序设计实验</span>
+              <span class="pri p2">常规</span>
+            </li>
+            <li class="row">
+              <span class="t mono">18:30</span>
+              <span class="ttl">社团负责人会议</span>
+              <span class="pri p1">紧急</span>
+            </li>
+            <li class="note red">
+              <span class="ico">▲</span>
+              <span><b>21:00 零缓冲</b>：会议刚散场例会就开场，至少要留 30 分钟。</span>
+            </li>
+            <li class="row">
+              <span class="t mono">21:00</span>
+              <span class="ttl">线上例会</span>
+              <span class="pri p2">常规</span>
+            </li>
+            <li class="row">
+              <span class="t mono">22:00</span>
+              <span class="ttl">大创讨论</span>
+              <span class="pri p3">弹性</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="day">
+          <div class="dayhead">
+            <span class="dname">后天</span>
+            <span class="dweek">周三</span>
+            <span class="dmeta mono">2 件</span>
+          </div>
+          <ul>
+            <li class="note red">
+              <span class="ico">▲</span>
+              <span><b>19:00 完全重叠</b>：这两件事你被安排了两次，120 分钟重合。</span>
+            </li>
+            <li class="row">
+              <span class="t mono">19:00</span>
+              <span class="ttl">实验室例会</span>
+              <span class="pri p1">紧急</span>
+            </li>
+            <li class="row">
+              <span class="t mono">19:00</span>
+              <span class="ttl">答辩准备</span>
+              <span class="pri p1">紧急</span>
+            </li>
+          </ul>
+        </section>
+
+        <div class="allbar">
+          <span class="mono">全部 18 件 · 含 3 个截止日</span>
+          <span class="go">去看看 →</span>
+        </div>
+      </div>
+
+      <div class="dock">
+        <div class="field">
+          <span class="ph">贴一段群通知，或者记一句</span>
+          <span class="plus">+</span>
+        </div>
+        <p class="hint">只存在这台设备 · 不上传原文</p>
+      </div>
+    </div>
+  </body>
+</html>
