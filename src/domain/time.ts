@@ -3,6 +3,8 @@
  * 不使用 Intl 以外的时间库，避免第三方依赖。
  */
 
+import type { Task } from "./schemas/task";
+
 export const MS_MINUTE = 60_000;
 export const MS_DAY = 24 * 60 * MS_MINUTE;
 
@@ -68,4 +70,86 @@ export function weekdayLabel(dayKey: string): string {
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * 重复任务的展开
+ * ───────────────────────────────────────────────────────────── */
+
+/** 重复任务在某个窗口内展开出的一个具体时段（start/end 与 Task 同格式：ISO 字符串） */
+export interface TaskOccurrence {
+  taskId: string;
+  start: string;
+  end: string;
+}
+
+/** ISO 星期：1=周一 … 7=周日。`Date.getDay()` 是 0=周日，换算只在这里做一次 */
+export function isoWeekdayOf(ms: number): number {
+  const day = new Date(ms).getDay();
+  return day === 0 ? 7 : day;
+}
+
+/** 窗口最多向前看多少天（防御性上限：调用方给错窗口也不至于跑飞） */
+const MAX_EXPAND_DAYS = 400;
+
+/**
+ * 把任务在 `[rangeStart, rangeEnd)` 窗口内展开成具体时段 —— **纯函数**。
+ *
+ * 为什么窗口必须由调用方传入：这个项目里"现在"永远是注入的
+ * （`DEMO_NOW = 2026-10-19T09:00+08:00`），函数内部一旦读系统时间，
+ * 录视频那天同一份数据算出来的冲突就会和排练时不一样。
+ *
+ * 两种任务的处理刻意不同：
+ * - **单次任务**（`repeat === null`）：原样返回它自己的时间块，**不按窗口过滤**。
+ *   冲突检测拿到的是"全部任务"，如果在这里按窗口剪掉，就会把窗口外的历史任务
+ *   静默丢掉，用户会以为冲突消失了。
+ * - **重复任务**：只返回窗口内的发生时段，算完即丢，数据里始终只有一行。
+ */
+export function expandOccurrences(task: Task, rangeStart: Date, rangeEnd: Date): TaskOccurrence[] {
+  const rangeStartMs = rangeStart.getTime();
+  const rangeEndMs = rangeEnd.getTime();
+  if (!Number.isFinite(rangeStartMs) || !Number.isFinite(rangeEndMs)) {
+    throw new TypeError("expandOccurrences 需要有效的窗口起止时间");
+  }
+  if (rangeEndMs <= rangeStartMs) return [];
+
+  const startMs = parseIsoToMs(task.start);
+  const endMs = parseIsoToMs(task.end);
+  if (startMs === null || endMs === null || endMs <= startMs) {
+    // 没有具体时段的重复安排（例如"每周交一次作业"）不展开成时间块，
+    // 它该由截止规则负责，硬造一个时段只会制造假冲突
+    return [];
+  }
+
+  const own: TaskOccurrence = {
+    taskId: task.id,
+    start: new Date(startMs).toISOString(),
+    end: new Date(endMs).toISOString(),
+  };
+  if (task.repeat === null) return [own];
+
+  const byDay = new Set(task.repeat.byDay);
+  if (byDay.size === 0) return [];
+
+  // 重复时段的"时刻"与"时长"取自任务自己的那一行：08:00–09:40 每周二
+  const minuteOfDay = minutesFromLocalMidnight(startMs);
+  const durationMs = endMs - startMs;
+  const firstDayKey = dayKeyOf(rangeStartMs);
+
+  const occurrences: TaskOccurrence[] = [];
+  for (let offset = 0; offset < MAX_EXPAND_DAYS; offset += 1) {
+    const dayStartMs = msFromDayKey(addDaysToKey(firstDayKey, offset), 0);
+    if (dayStartMs >= rangeEndMs) break;
+    if (!byDay.has(isoWeekdayOf(dayStartMs))) continue;
+    const occurrenceStartMs = dayStartMs + minuteOfDay * MS_MINUTE;
+    const occurrenceEndMs = occurrenceStartMs + durationMs;
+    // 与窗口求交：跨窗口边界的时段只要碰到窗口就保留
+    if (occurrenceStartMs >= rangeEndMs || occurrenceEndMs <= rangeStartMs) continue;
+    occurrences.push({
+      taskId: task.id,
+      start: new Date(occurrenceStartMs).toISOString(),
+      end: new Date(occurrenceEndMs).toISOString(),
+    });
+  }
+  return occurrences;
 }

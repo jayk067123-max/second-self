@@ -75,6 +75,12 @@ export const DetectConfigSchema = z.object({
   minOverlapMin: z.number().int().min(0).max(60),
   /** 卡片区最多展示条数，其余折叠 */
   maxCards: z.number().int().min(1).max(20),
+  /**
+   * 重复任务向前展开的窗口（天）。
+   * 冲突检测只看这个窗口内的发生时段：一个"每周二晚 9 点"的例会如果不在窗口内，
+   * 就不该参与判定；窗口太短又会漏掉下周的撞车，默认两周覆盖一次完整的周循环。
+   */
+  repeatHorizonDays: z.number().int().min(1).max(60),
 });
 export type DetectConfig = z.infer<typeof DetectConfigSchema>;
 
@@ -86,6 +92,7 @@ export const DEFAULT_DETECT_CONFIG: DetectConfig = {
   leadHours: { high: 72, medium: 48, low: 24 },
   minOverlapMin: 5,
   maxCards: 5,
+  repeatHorizonDays: 14,
 };
 
 /**

@@ -30,9 +30,39 @@ export const PRIORITY_BAND: Record<1 | 2 | 3, PriorityBand> = {
   3: "low",
 };
 
+/**
+ * 把落库的 1/2/3 映射成三档。
+ * 为什么不用 PRIORITY_BAND 直接下标：schema 里 priority 的类型是 number（受
+ * min(1).max(3) 约束），外部脏数据仍可能越界；这里收敛成"越界取最近档"，
+ * 规则4 就不会因为一个坏字段整条崩掉。
+ */
+export function priorityBandOf(priority: number): PriorityBand {
+  if (priority <= 1) return "high";
+  if (priority === 2) return "medium";
+  return "low";
+}
+
 const isoOrNull = z.string().nullable();
 const minutesField = z.number().int().min(0).max(24 * 60);
 const priorityField = z.number().int().min(1).max(3);
+
+/**
+ * 重复规则。
+ *
+ * 关键决定：**"每周二晚 9 点"必须是一条 Task，不许展开成多条。**
+ * 理由是数据层的：展开成多条之后，用户改一次时间要改十几条、删一次要删十几条，
+ * "这周三改到周四"这种临时调整还会变成一堆孤立记录。
+ * 展开只发生在**冲突检测计算的那一刻**（`time.ts` 的 `expandOccurrences`），
+ * 算完即丢、不落盘。
+ *
+ * `byDay` 用 ISO 星期：1=周一 … 7=周日。`Date.getDay()` 是 0=周日，
+ * 换算只在 `expandOccurrences` 里做一次 —— 别在业务代码里到处 +1。
+ */
+export const RepeatRuleSchema = z.object({
+  kind: z.literal("weekly"),
+  byDay: z.array(z.number().int().min(1).max(7)).min(1),
+});
+export type RepeatRule = z.infer<typeof RepeatRuleSchema>;
 
 /** 时间块合法性：要么都没有，要么成对且结束不早于开始 */
 function refineTimeBlock(
@@ -76,14 +106,17 @@ export const TaskSchema = z
     /** 来自粘贴文本的原始行，用于人工修正时溯源 */
     rawTextOrigin: z.string().max(2000).nullable(),
     /**
-     * 以下 6 个字段是 SPEC 冲突规则需要的约束信息，全部可选：
+     * 以下字段是 SPEC 冲突规则需要的约束信息。
+     * `locked` / `repeat` / `needsReview` 三项给默认值（false / null / false）而不是
+     * 必填，是为了让**已经落盘的旧数据**照样能通过校验 —— localStorage 里没有这三个
+     * 字段的历史记录不应该在升级后被判为脏数据整批丢掉。解析之后它们是必有值。
+     * location / flexible / parentId / progress / estateMin 仍然可选：
      * 缺省即"不知道"，规则里按"不知道"降档处理，绝不替用户编造。
-     * 加可选而不是加必填，是为了不破坏已落库的旧数据与既有调用方。
      */
     /** 地点（'教室A' / '市区鼓楼'…）；null = 未知，缓冲规则会降为灰点 */
     location: z.string().trim().max(60).nullable().optional(),
-    /** true = 固定块（课表/排班），重排不得移动 */
-    locked: z.boolean().optional(),
+    /** true = 固定块（课表/排班），重排不得移动。用户权威标记，AI 无权设置 */
+    locked: z.boolean().default(false),
     /** true = 可顺延/可压缩 */
     flexible: z.boolean().optional(),
     /** 同一父任务拆分出的片段（拆课/分段排班），互相之间不报重叠 */
@@ -92,6 +125,10 @@ export const TaskSchema = z
     progress: z.number().min(0).max(1).optional(),
     /** 完成该任务的估算工作量；缺省 = durationMin */
     estateMin: z.number().int().min(0).max(24 * 60).optional(),
+    /** 重复规则；null = 单次。一条重复安排只存一行，展开只在检测时发生 */
+    repeat: RepeatRuleSchema.nullable().default(null),
+    /** AI 自己标出的"不确定，请人工核对"；用户在修正表里改过就会清掉 */
+    needsReview: z.boolean().default(false),
   })
   .superRefine(refineTimeBlock);
 export type Task = z.infer<typeof TaskSchema>;
@@ -106,6 +143,10 @@ export const TaskDraftSchema = z
     deadline: isoOrNull,
     priority: priorityField,
     rawTextOrigin: z.string().max(500).nullable(),
+    /** 解析时靠推测得到的条目（原文没给明确时段/时长）→ 修正表里高亮 */
+    needsReview: z.boolean().default(false),
+    /** 「每周二晚 9 点」这种周期安排：一条草稿，不展开 */
+    repeat: RepeatRuleSchema.nullable().default(null),
   })
   .superRefine(refineTimeBlock);
 export type TaskDraft = z.infer<typeof TaskDraftSchema>;
@@ -113,7 +154,7 @@ export type TaskDraft = z.infer<typeof TaskDraftSchema>;
 export const TaskListSchema = z.array(TaskSchema);
 export const TaskDraftListSchema = z.array(TaskDraftSchema).min(1).max(60);
 
-/** AI 结构化输出契约：只允许这 7 个字段，多一个都不要 */
+/** AI 结构化输出契约：只允许这 9 个字段，多一个都不要 */
 export const AiTaskDraftSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
@@ -123,6 +164,15 @@ export const AiTaskDraftSchema = z
     deadline: isoOrNull,
     priority: priorityField,
     rawTextOrigin: z.string().max(500).nullable(),
+    /** 模型必须自评：这一条是不是靠猜的 */
+    needsReview: z.boolean().default(false),
+    /**
+     * 周期安排：「每周二晚 9 点」→ { kind:'weekly', byDay:[2] }，不许展开成多条。
+     * 这里刻意留成 optional 而不是 default(null)：AI 契约里"没说"和"明确说不重复"
+     * 在解析结果是同一个意思，强制模型给每条单次任务都吐一个 `"repeat": null`
+     * 只会白烧 token、还会提高一次就过的失败率；缺省即单次。
+     */
+    repeat: RepeatRuleSchema.nullable().optional(),
   })
   .superRefine(refineTimeBlock);
 export type AiTaskDraft = z.infer<typeof AiTaskDraftSchema>;
