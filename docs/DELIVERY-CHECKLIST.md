@@ -69,7 +69,23 @@
 | 每个功能模块自测通过 | 交付官提交一次，信息带模块名 + 本轮 Prompt 编号 |
 | 关键节点 | 打 tag：`v0.1-mvp`、`v0.5-prompt-complete`、`v1.0-submit` |
 | 提交前 | 先 `git status` / `git diff --stat` 看改动，排除无关文件 |
-| 禁止 | `git add .` 盲加、`--force` 覆盖历史、把密钥写进提交 |
+| 禁止 | `git add .` / `git add -A` 一把梭、`--force` 覆盖历史、把密钥写进提交 |
+
+### 暂存区纪律（血的教训）
+
+工作区里常年有别人未完成的改动，`git add -A` / `git add .` 会把它们一起卷进你的提交，造成"提交人和作者不一致"、也破坏了细粒度历史。
+
+**规范动作，每次照做：**
+
+```powershell
+git add <具体文件路径>              # 只 add 本次负责的文件，逐个小步走
+git status --short                  # 复核：暂存区（左列）只应有你该提交的东西
+git diff --cached --name-only       # 再确认一次文件名清单
+# 万一多加了，立刻撤出暂存区（保留工作区改动）：
+git restore --staged <误加的文件>
+```
+
+真实案例：执行 `git add --renormalize .` 统一换行符时，把 Prompt官 正在改的 `docs/prompts/INDEX.md` 一起拉进了暂存区，靠 `git restore --staged` 才撤出来。**带 `.` 或 `-A` 的命令在这份清单里一律视为违规操作。**
 
 ## 六、双节点提交清单：10-31 预指导 / 11-18 最终
 
