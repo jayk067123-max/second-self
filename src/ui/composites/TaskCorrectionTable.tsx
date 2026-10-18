@@ -85,9 +85,14 @@ export function TaskCorrectionTable({
                     className="h-8"
                   />
                   {draft.needsReview ? (
-                    <span className="shrink-0 rounded-pill bg-warn-500/15 px-1.5 py-0.5 text-[10px] text-warn-400">
-                      待确认
-                    </span>
+                    <button
+                      type="button"
+                      title="点一下表示「我核对过这条，可以入库」"
+                      onClick={() => onChange(index, { needsReview: false })}
+                      className="shrink-0 rounded-pill bg-warn-500/15 px-1.5 py-0.5 text-[10px] text-warn-400 transition-colors hover:bg-warn-500/25"
+                    >
+                      待确认 ✓
+                    </button>
                   ) : null}
                 </div>
                 <Input
