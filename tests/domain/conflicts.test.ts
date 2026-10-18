@@ -151,6 +151,42 @@ describe("detectConflicts · 规则2 缓冲不足（buffer）", () => {
     expect(only(detect([a, tight]), "buffer")).toHaveLength(1);
   });
 
+  it("【本项目补充定义】同校区不同楼：间隔 20 分钟不报（三教105 → 三教201）", () => {
+    // SPEC A2 只有 同地点10 / 跨校区60 / 默认30 三档；按默认 30 会把正常课间全刷黄，
+    // 所以补了第四档"同校区不同楼 = 20 分钟"，判据来自 demo-seed 的真实课表。
+    const a = block(DAY, 8, 0, 9, 40, { location: "三教105" });
+    const b = block(DAY, 10, 0, 11, 40, { location: "三教201" });
+    expect(only(detect([a, b]), "buffer")).toHaveLength(0);
+    expect(
+      only(
+        detect([a, b], {
+          ...DEFAULT_DETECT_CONFIG,
+          gapMin: { ...DEFAULT_DETECT_CONFIG.gapMin, sameCampus: 40 },
+        }),
+        "buffer",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("【本项目补充定义】线上地点按默认 30 分钟算，不按同地点 10 分钟算", () => {
+    // 线上会没有通勤成本，但也不该被当成"同一间屋子"：
+    // 两头都是线上、间隔 30 分钟 → 达标不报（按同地点 10 分钟就只剩 30≥5 也达标，
+    // 真正的差别在下面那条：线上 接 线下，gap=0 时必须判 high 而不是 low）。
+    const online1 = block(DAY, 21, 0, 21, 30, { location: "线上" });
+    const online2 = block(DAY, 22, 0, 23, 30, { location: "线上" });
+    expect(only(detect([online1, online2]), "buffer")).toHaveLength(0);
+  });
+
+  it("【本项目补充定义】线上 接 线下、gap=0 → high（seed 里那条 buffer 的判据）", () => {
+    const meeting = block(DAY, 18, 30, 21, 0, { location: "学院楼301" });
+    const online = block(DAY, 21, 0, 21, 30, { location: "线上" });
+    const buffers = only(detect([meeting, online]), "buffer");
+    expect(buffers).toHaveLength(1);
+    expect(buffers[0]?.severity).toBe("high");
+    expect(buffers[0]?.evidence.requiredMin).toBe(30);
+    expect(buffers[0]?.evidence.venue).toBe("virtual");
+  });
+
   it("地点未知时降为灰点（信息不足不替用户假设）", () => {
     const a = block(DAY, 9, 0, 10, 0);
     const b = block(DAY, 10, 5, 11, 0);
