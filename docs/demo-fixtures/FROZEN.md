@@ -19,8 +19,12 @@ Get-ChildItem docs/demo-fixtures -File | Sort-Object Name | ForEach-Object {
 | `03-DDL轰炸.txt` | 1,123 | `A3B7DD26BD41` | 纯截止时间补充测试集 | ❌ |
 | `EXPECTED-2026-10-19.md` | 9,674 | `5EECA1DABFF8` | 期望结果表（**对齐目标，尚未验证**） | — |
 | `README.md` | 6,989 | `DA944E270C90` | 素材说明与口径 | — |
-| `variants/A-相对时间歧义.txt` | 413 | — | 解析歧义备选（默认不进录像） | ❌ |
-| `variants/B-条件顺延歧义.txt` | 380 | — | 解析歧义备选（默认不进录像） | ❌ |
+| `variants/A-相对时间歧义.txt` | 413 | `B4E5B8056A2F` | 解析歧义备选（默认不进录像） | ❌ |
+| `variants/B-条件顺延歧义.txt` | 380 | `5DA5E6760B6B` | 解析歧义备选（默认不进录像） | ❌ |
+| `variants/README.md` | 1,945 | `C1AB06F7421C` | 备选素材启用流程（四步，含"覆盖前须整表重算 EXPECTED"） | — |
+| `FROZEN.md` | 本文件 | — | 冻结记录（本表即口径） | — |
+
+> **2026-10-18 16:55 复核**：全表哈希与磁盘一致；`git status docs/demo-fixtures` 为空（无未提交改动）。
 
 ## 两条并行路径（口径，不再变）
 
