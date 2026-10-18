@@ -62,3 +62,13 @@ export type LayerKey = (typeof ARCHITECTURE_LAYERS)[number]["key"];
 export const DEMO_NOW_ISO = "2026-10-19T09:00:00+08:00";
 /** 演示时钟对应的日期键（dayKey），供解析与冲突检测使用 */
 export const DEMO_DAY_KEY = "2026-10-19";
+
+/**
+ * 学期第 1 周周一（演示口径）。
+ *
+ * 为什么必须有它：`Task.repeat.weeks` 里的"第 K 周"是**学期周**，不是日历年周。
+ * 没有开学日，`dayInWeekSpec` 无法判断某天是第几周，周次过滤会被整段跳过——
+ * 表现就是"单测绿、真实调用不生效"（2026-10-18 评审 WO-03 实测确认）。
+ * 演示素材的周次口径以此为准：2026-09-07 是周一。
+ */
+export const TERM_START_DAY_KEY = "2026-09-07";
