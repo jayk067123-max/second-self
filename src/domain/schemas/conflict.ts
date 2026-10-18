@@ -54,6 +54,8 @@ export const DetectConfigSchema = z.object({
     default: z.number().int().min(0).max(240),
     /** 同地点：走两步就到，要求低 */
     sameVenue: z.number().int().min(0).max(240),
+    /** 同校区不同楼（三教→二教）：校内步行，介于同地点与跨校区之间 */
+    sameCampus: z.number().int().min(0).max(240),
     /** 跨校区/校外：真实通勤成本 */
     crossCampus: z.number().int().min(0).max(240),
     /** 容差：差距 ≥ 所需-容差 就不报（差 2 分钟不算，避免过度敏感） */
@@ -85,7 +87,7 @@ export const DetectConfigSchema = z.object({
 export type DetectConfig = z.infer<typeof DetectConfigSchema>;
 
 export const DEFAULT_DETECT_CONFIG: DetectConfig = {
-  gapMin: { default: 30, sameVenue: 10, crossCampus: 60, tolerance: 5 },
+  gapMin: { default: 30, sameVenue: 10, sameCampus: 20, crossCampus: 60, tolerance: 5 },
   dayCapacityMin: 600,
   classLoadWarnMin: 480,
   overloadMinTasks: 3,
@@ -94,6 +96,29 @@ export const DEFAULT_DETECT_CONFIG: DetectConfig = {
   maxCards: 5,
   repeatHorizonDays: 14,
 };
+
+/**
+ * 「线上/远程」地点标签。
+ * 为什么单独一类：线上会议没有通勤成本，但也没有"同一间屋子"这种确定性，
+ * 所以既不能按同地点 10 分钟算（会导致"21:00 线上会接 21:30 线上会"被报），
+ * 也不能按跨校区 60 分钟算（会把正常安排全刷红）。按默认 30 分钟保守处理。
+ */
+export const VIRTUAL_VENUE_TAGS: readonly string[] = [
+  "线上",
+  "网络",
+  "远程",
+  "腾讯会议",
+  "钉钉",
+  "飞书",
+  "zoom",
+  "Zoom",
+  "直播",
+];
+
+export function isVirtualLocation(location: string | null | undefined): boolean {
+  if (!location) return false;
+  return VIRTUAL_VENUE_TAGS.some((tag) => location.includes(tag));
+}
 
 /**
  * 「跨校区/校外」地点标签表。

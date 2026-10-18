@@ -87,6 +87,8 @@ export interface ProposalRejection {
 
 /** 全局校验的一条违规：必须带 taskIds，才能反查是哪个动作闯的祸 */
 interface Violation {
+  /** 违规的种类：调用方据此决定措辞（裁决器给人看，旧校验器给日志/测试看） */
+  kind: "overlap" | "capacity" | "locked" | "duration" | "deadline";
   reason: string;
   taskIds: string[];
 }
@@ -131,10 +133,6 @@ function blockOfTask(task: Task): Block | null {
   return blockOf(parseIsoToMs(task.start), parseIsoToMs(task.end));
 }
 
-function titleOf(tasks: readonly Task[], id: string): string {
-  return tasks.find((task) => task.id === id)?.title ?? id;
-}
-
 // ─────────────────────────────────────────────────────────────
 // 动作闸：单条 op 的硬约束
 // ─────────────────────────────────────────────────────────────
@@ -153,32 +151,6 @@ function windowViolation(block: Block, config: ReflowConfig): string | null {
     return `超出作息窗口 ${formatClock(windowStart)}–${formatClock(windowEnd)}`;
   }
   return null;
-}
-
-/** 与其余任务的时间重叠检查（半开区间，首尾相接合法） */
-function overlapViolation(
-  candidateId: string,
-  block: Block,
-  tasks: readonly Task[],
-  titleOfId: (id: string) => string,
-): string | null {
-  for (const other of tasks) {
-    if (other.id === candidateId) continue;
-    const otherBlock = blockOfTask(other);
-    if (!otherBlock) continue;
-    const overlap = block.startMs < otherBlock.endMs && block.endMs > otherBlock.startMs;
-    if (overlap) {
-      return `与「${titleOfId(other.id)}」时间重叠`;
-    }
-  }
-  return null;
-}
-
-/** 当日容量检查：跨天切分后按归属日累计 */
-function capacityViolation(tasks: readonly Task[], dayKey: string, capacityMin: number): string | null {
-  const used = dailyTotals(timedTasksOf(tasks)).get(dayKey) ?? 0;
-  if (used <= capacityMin) return null;
-  return `${dayKey} 累计 ${formatDuration(used)}，超过每日上限 ${formatDuration(capacityMin)}`;
 }
 
 /** deadline 前置：任务不能排到自己的截止时间之后 */
@@ -223,7 +195,6 @@ function applyOp(
   op: ReflowOp,
   opIndex: number,
   config: ReflowConfig,
-  detect: DetectConfig,
 ): ApplyResult {
   switch (op.type) {
     case "move":
@@ -258,9 +229,9 @@ function applyOp(
       const deadlineIssue = deadlineViolation(target, block.endMs);
       if (deadlineIssue) return REJECT(`「${target.title}」${deadlineIssue}`, tasks);
 
-      const overlapIssue = overlapViolation(target.id, block, tasks, (id) => titleOf(tasks, id));
-      if (overlapIssue) return REJECT(`「${target.title}」${overlapIssue}`, tasks);
-
+      // 注意：不重叠与日容量**不在这里判**。
+      // 它们是"全局"性质：C 方案要把两件重叠的事一起挪开，中间态必然还是重叠的，
+      // 逐条判会把合法方案错杀。这两道闸放在整体校验里，对全部动作落地后的状态判。
       const next = tasks.map((task) =>
         task.id === target.id
           ? {
@@ -271,9 +242,6 @@ function applyOp(
             }
           : task,
       );
-
-      const capacityIssue = capacityViolation(next, dayKeyOf(block.startMs), detect.dayCapacityMin);
-      if (capacityIssue) return REJECT(`「${target.title}」落地后 ${capacityIssue}`, tasks);
 
       const baselineStartMs = parseIsoToMs(target.start);
       return {
@@ -299,9 +267,6 @@ function applyOp(
 
       const windowIssue = windowViolation(block, config);
       if (windowIssue) return REJECT(`新增时间块${windowIssue}`, tasks);
-
-      const overlapIssue = overlapViolation(taskId, block, tasks, (id) => titleOf(tasks, id));
-      if (overlapIssue) return REJECT(`新增时间块${overlapIssue}`, tasks);
 
       const deadlineMs = parseIsoToMs(op.deadline ?? null);
       if (deadlineMs !== null && block.endMs > deadlineMs) {
@@ -329,9 +294,6 @@ function applyOp(
       };
 
       const next = [...tasks, created];
-      const capacityIssue = capacityViolation(next, dayKeyOf(block.startMs), detect.dayCapacityMin);
-      if (capacityIssue) return REJECT(`新增时间块落地后 ${capacityIssue}`, tasks);
-
       return {
         ok: true,
         tasks: next,
@@ -373,12 +335,24 @@ function applyOp(
 // ─────────────────────────────────────────────────────────────
 
 /**
- * 整体校验。
- * 为什么逐条过了闸还要再全校验一次：逐条只能保证"这一步之后还合法"，
- * 挡不住"A 挪到 14:00、B 挪到 14:30"这种两条单独都合法、合起来重叠的情况
- * （后一条会被逐条闸挡下，但如果模型给的是 remove + add 组合，仍可能漏）。
+ * 整体校验 —— 所有动作落地**之后**才判的那几道闸。
+ *
+ * 为什么"不重叠/日容量"必须放到这里而不是逐条判：
+ * 方案常常要成套地动。seed 里的 C 方案把 19:00 撞在一起的两件事拆成 18:30 与 21:00，
+ * 第一步挪完的**中间态仍然是重叠的**——逐条判会把正确方案直接错杀。
+ * 所以逐条闸只管"这条动作自己"的硬约束（存在性/固定块/时长/窗口/截止），
+ * 依赖别人的性质一律等全部落地后一次性判。
+ *
+ * 同时这里只判**方案自己造成的**违规：
+ * 现状本来就有的重叠、本来就超的容量，不算到方案头上（否则基线一超标，
+ * 所有方案都会被判死，用户永远拿不到建议）。
  */
-function validateWhole(after: readonly Task[], baseline: readonly Task[], detect: DetectConfig): Violation[] {
+function validateWhole(
+  after: readonly Task[],
+  baseline: readonly Task[],
+  touchedIds: ReadonlySet<string>,
+  detect: DetectConfig,
+): Violation[] {
   const violations: Violation[] = [];
 
   // 1) 固定块未被移动/删除：信任指标 lockedTouched 必须为 0
@@ -386,57 +360,77 @@ function validateWhole(after: readonly Task[], baseline: readonly Task[], detect
     if (!before.locked) continue;
     const current = after.find((task) => task.id === before.id);
     if (!current) {
-      violations.push({ reason: `固定块「${before.title}」被方案删除`, taskIds: [before.id] });
+      violations.push({
+        kind: "locked",
+        reason: `固定块「${before.title}」被方案删除`,
+        taskIds: [before.id],
+      });
       continue;
     }
     if (current.start !== before.start || current.end !== before.end) {
-      violations.push({ reason: `固定块「${before.title}」被方案移动`, taskIds: [before.id] });
-    }
-  }
-
-  // 2) 两两不重叠（半开区间）
-  const timed = timedTasksOf(after).sort((a, b) => a.startMs - b.startMs);
-  for (let i = 1; i < timed.length; i += 1) {
-    const previous = timed[i - 1];
-    const current = timed[i];
-    if (!previous || !current) continue;
-    if (current.startMs < previous.endMs) {
       violations.push({
-        reason: `落地后「${previous.task.title}」与「${current.task.title}」仍然重叠`,
-        taskIds: [previous.task.id, current.task.id],
+        kind: "locked",
+        reason: `固定块「${before.title}」被方案移动`,
+        taskIds: [before.id],
       });
     }
   }
 
-  // 3) 每日容量
+  // 2) 两两不重叠（半开区间）：只追究"方案动过的任务"参与到的新重叠
+  const timed = timedTasksOf(after).sort((a, b) => a.startMs - b.startMs);
+  for (let i = 0; i < timed.length; i += 1) {
+    for (let j = i + 1; j < timed.length; j += 1) {
+      const a = timed[i];
+      const b = timed[j];
+      if (!a || !b) continue;
+      if (a.endMs <= b.startMs) break; // 已按开始时间排序，后面的不可能与 a 重叠
+      const touched = touchedIds.has(a.task.id) || touchedIds.has(b.task.id);
+      if (!touched) continue; // 现状就有的重叠不归方案负责
+      violations.push({
+        kind: "overlap",
+        reason: `落地后「${a.task.title}」与「${b.task.title}」仍然重叠`,
+        taskIds: [a.task.id, b.task.id],
+      });
+    }
+  }
+
+  // 3) 每日容量：只有方案把某天**变得更满**且越过上限，才算它的问题
+  const baselineTotals = dailyTotals(timedTasksOf(baseline));
   const totals = dailyTotals(timedTasksOf(after));
   for (const [dayKey, used] of totals) {
-    if (used > detect.dayCapacityMin) {
-      const ids = after
-        .filter((task) => {
-          const block = blockOfTask(task);
-          return block !== null && dayKeyOf(block.startMs) === dayKey;
-        })
-        .map((task) => task.id);
-      violations.push({
-        reason: `${dayKey} 累计 ${formatDuration(used)}，超过每日上限 ${formatDuration(detect.dayCapacityMin)}`,
-        taskIds: ids,
-      });
-    }
+    if (used <= detect.dayCapacityMin) continue;
+    const before = baselineTotals.get(dayKey) ?? 0;
+    if (used <= before) continue; // 没有更糟
+    const ids = after
+      .filter((task) => {
+        const block = blockOfTask(task);
+        return block !== null && dayKeyOf(block.startMs) === dayKey && touchedIds.has(task.id);
+      })
+      .map((task) => task.id);
+    violations.push({
+      kind: "capacity",
+      reason: `${dayKey} 累计 ${formatDuration(used)}，超过每日上限 ${formatDuration(detect.dayCapacityMin)}`,
+      taskIds: ids,
+    });
   }
 
-  // 4) 时长 > 0 与 deadline 前置
+  // 4) 时长 > 0 与 deadline 前置：只查方案动过的任务
   for (const task of after) {
+    if (!touchedIds.has(task.id)) continue;
     const startMs = parseIsoToMs(task.start);
     const endMs = parseIsoToMs(task.end);
     if (startMs === null || endMs === null) continue;
     if (endMs <= startMs) {
-      violations.push({ reason: `「${task.title}」的时长为 0 或负`, taskIds: [task.id] });
+      violations.push({ kind: "duration", reason: `「${task.title}」的时长为 0 或负`, taskIds: [task.id] });
       continue;
     }
     const deadlineMs = parseIsoToMs(task.deadline);
     if (deadlineMs !== null && endMs > deadlineMs) {
-      violations.push({ reason: `「${task.title}」被排到截止时间之后`, taskIds: [task.id] });
+      violations.push({
+        kind: "deadline",
+        reason: `「${task.title}」被排到截止时间之后`,
+        taskIds: [task.id],
+      });
     }
   }
 
@@ -467,14 +461,13 @@ function gateOps(
   baseline: readonly Task[],
   ops: readonly { op: ReflowOp; opIndex: number }[],
   config: ReflowConfig,
-  detect: DetectConfig,
 ): GateResult {
   let current: Task[] = [...baseline];
   const applied: AppliedOp[] = [];
   const dropped: OpRejection[] = [];
 
   for (const { op, opIndex } of ops) {
-    const result = applyOp(current, op, opIndex, config, detect);
+    const result = applyOp(current, op, opIndex, config);
     if (!result.ok) {
       dropped.push({
         opIndex,
@@ -578,7 +571,7 @@ export function adjudicateProposal(
   const conflictsBefore = detectConflicts(baseline, detect, inputs.now);
   const indexed = candidate.ops.map((op, opIndex) => ({ op, opIndex }));
 
-  const gate1 = gateOps(baseline, indexed, config, detect);
+  const gate1 = gateOps(baseline, indexed, config);
   if (gate1.applied.length === 0) {
     return {
       ok: false,
@@ -590,31 +583,38 @@ export function adjudicateProposal(
     };
   }
 
-  const violations1 = validateWhole(gate1.tasks, baseline, detect);
+  const touched1 = new Set(gate1.applied.map((applied) => applied.taskId));
+  const violations1 = validateWhole(gate1.tasks, baseline, touched1, detect);
   let finalGate = gate1;
   const dropped = [...gate1.dropped];
 
   if (violations1.length > 0) {
-    // 重试一次：把违规任务牵连的动作也丢掉，重新逐条过闸
+    // 重试一次：把违规任务牵连的动作也丢掉，重新过闸
     const offending = new Set(violations1.flatMap((violation) => violation.taskIds));
     const survivors = gate1.applied.filter((applied) => !offending.has(applied.taskId));
     const retry = gateOps(
       baseline,
       survivors.map((applied) => ({ op: applied.op, opIndex: applied.opIndex })),
       config,
-      detect,
     );
     for (const applied of gate1.applied) {
       if (offending.has(applied.taskId)) {
+        // 把"为什么被丢"写成具体原因而不是一句"校验不通过"：
+        // 这句话会被回灌给 AI 层做定向修复，含糊的原因等于没给。
+        const reason = violations1
+          .filter((violation) => violation.taskIds.includes(applied.taskId))
+          .map((violation) => violation.reason)
+          .join("；");
         dropped.push({
           opIndex: applied.opIndex,
           opType: applied.op.type,
           taskId: applied.taskId,
-          reason: "该动作导致整体校验不通过，重试时被丢弃",
+          reason: reason.length > 0 ? reason : "该动作导致整体校验不通过，重试时被丢弃",
         });
       }
     }
-    const violations2 = validateWhole(retry.tasks, baseline, detect);
+    const touched2 = new Set(retry.applied.map((applied) => applied.taskId));
+    const violations2 = validateWhole(retry.tasks, baseline, touched2, detect);
     if (retry.applied.length === 0 || violations2.length > 0) {
       return {
         ok: false,
@@ -773,54 +773,19 @@ export interface PlanValidationResult {
   issues: string[];
 }
 
-/** 单个时间块的硬约束（旧校验器用；新代码走 applyOp 的逐条闸） */
-function checkBlock(
-  block: PlanBlock,
-  task: Task | undefined,
-  dayKey: string,
-  options: PlanOptions,
-  issues: string[],
-): void {
-  if (!task) {
-    issues.push(`方案里出现了不存在的任务 id：${block.taskId}`);
-    return;
-  }
-  const startMs = parseIsoToMs(block.start);
-  const endMs = parseIsoToMs(block.end);
-  if (startMs === null || endMs === null) {
-    issues.push(`「${task.title}」的时间格式不合法`);
-    return;
-  }
-  if (endMs <= startMs) {
-    issues.push(`「${task.title}」结束时间不晚于开始时间`);
-    return;
-  }
-
-  const dayStartMs = msFromDayKey(dayKey, options.dayStartMin);
-  const dayEndMs = msFromDayKey(dayKey, options.dayEndMin);
-  if (startMs < dayStartMs || endMs > dayEndMs) {
-    issues.push(
-      `「${task.title}」超出作息窗口 ${formatClock(dayStartMs)}–${formatClock(dayEndMs)}`,
-    );
-  }
-
-  const minutes = Math.round((endMs - startMs) / MS_MINUTE);
-  const required = task.durationMin > 0 ? task.durationMin : 15;
-  if (minutes < required) {
-    issues.push(
-      `「${task.title}」被压缩到 ${formatDuration(minutes)}，不少于原定 ${formatDuration(required)}`,
-    );
-  }
-
-  const deadlineMs = parseIsoToMs(task.deadline);
-  if (deadlineMs !== null && endMs > deadlineMs) {
-    issues.push(`「${task.title}」被排到截止时间之后`);
-  }
-}
-
 /**
- * @deprecated 用 `adjudicateProposal` 取代。保留它只是因为 AI 兜底层与
- * `tests/ai/demo.test.ts` 还在引用；等那两处切过去后本函数删除。
+ * 旧方案校验器 —— **现在只是裁决器的一层适配，不再是第二套判定**。
+ *
+ * 为什么必须收口（主Bot 裁决 4）：如果这里再独立实现一遍"不重叠/日容量/作息窗口"，
+ * 同一套 AI 提议会在两处得到不同结论，评委一眼就能看出架构漏洞。
+ * 所以：
+ * - 单块约束（存在性 / 时长 / 窗口 / 截止）复用 `windowViolation`、`deadlineViolation`；
+ * - 全局约束（不重叠 / 日容量 / 固定块）复用 `validateWhole`，与 `adjudicateProposal` 同一份代码。
+ *
+ * 保留它只为兼容 `src/ai/demo.ts` 与 `tests/ai/demo.test.ts`；新代码请用
+ * `adjudicateProposal`（它还多了"冲突数没变好不许上桌"这一道）。
+ *
+ * @deprecated 用 `adjudicateProposal` 取代；调用方切完后本函数与 `PlanValidationResult` 一并删除。
  */
 export function validatePlan(
   plan: ReplanPlan,
@@ -831,40 +796,66 @@ export function validatePlan(
   const issues: string[] = [];
   if (plan.blocks.length === 0) issues.push("方案没有任何时间块");
 
+  const config: ReflowConfig = { dayStartMin: options.dayStartMin, dayEndMin: options.dayEndMin };
+  const detect: DetectConfig = { ...DEFAULT_DETECT_CONFIG, dayCapacityMin: options.dailyLimitMin };
+  const titleOf = (id: string): string => tasks.find((task) => task.id === id)?.title ?? id;
+
   const seen = new Set<string>();
   for (const block of plan.blocks) {
     if (seen.has(block.taskId)) {
       issues.push(`同一任务在方案里出现了两次：${block.taskId}`);
     }
     seen.add(block.taskId);
-    checkBlock(block, tasks.find((t) => t.id === block.taskId), dayKey, options, issues);
-  }
 
-  // 方案内部两两不重叠
-  const intervals = plan.blocks
-    .map((b) => ({ id: b.taskId, s: parseIsoToMs(b.start), e: parseIsoToMs(b.end) }))
-    .filter((x): x is { id: string; s: number; e: number } => x.s !== null && x.e !== null)
-    .sort((a, b) => a.s - b.s);
-
-  for (let i = 1; i < intervals.length; i += 1) {
-    const prev = intervals[i - 1];
-    const cur = intervals[i];
-    if (!prev || !cur) continue;
-    if (cur.s < prev.e) {
-      const nameOf = (id: string): string => tasks.find((t) => t.id === id)?.title ?? id;
-      issues.push(`方案内部重叠：「${nameOf(prev.id)}」与「${nameOf(cur.id)}」`);
+    const task = tasks.find((candidate) => candidate.id === block.taskId);
+    if (!task) {
+      issues.push(`方案里出现了不存在的任务 id：${block.taskId}`);
+      continue;
     }
+    const shape = blockOf(parseIsoToMs(block.start), parseIsoToMs(block.end));
+    if (!shape) {
+      issues.push(`「${task.title}」的起止时间不合法（时长必须 > 0）`);
+      continue;
+    }
+
+    // 方案是"某一天的重排"：块落到别的日子说明模型算错位了
+    const blockDay = dayKeyOf(shape.startMs);
+    if (blockDay !== dayKey) {
+      issues.push(`「${task.title}」被排到了 ${blockDay}，不在 ${dayKey}`);
+    }
+
+    const minutes = Math.round((shape.endMs - shape.startMs) / MS_MINUTE);
+    // 旧口径"不许缩水"；新裁决器按 SPEC 0.1 放宽到"只有 flexible 才能缩水"
+    const required = task.durationMin > 0 ? task.durationMin : 15;
+    if (minutes < required) {
+      issues.push(
+        `「${task.title}」被压缩到 ${formatDuration(minutes)}，不少于原定 ${formatDuration(required)}`,
+      );
+    }
+
+    const windowIssue = windowViolation(shape, config);
+    if (windowIssue) issues.push(`「${task.title}」${windowIssue}`);
+
+    const deadlineIssue = deadlineViolation(task, shape.endMs);
+    if (deadlineIssue) issues.push(`「${task.title}」${deadlineIssue}`);
   }
 
-  // 当日总量：方案块的时长 + 当天未被方案覆盖的任务时长
-  const plannedMin = intervals.reduce((sum, x) => sum + Math.round((x.e - x.s) / MS_MINUTE), 0);
-  const untouched = tasks.filter((t) => !seen.has(t.id));
-  const untouchedDayMin = dailyTotals(timedTasksOf(untouched)).get(dayKey) ?? 0;
-  const total = plannedMin + untouchedDayMin;
-  if (total > options.dailyLimitMin) {
-    issues.push(
-      `方案落地后当日累计 ${formatDuration(total)}，超过上限 ${formatDuration(options.dailyLimitMin)}`,
-    );
+  // 全局两眼：与 adjudicateProposal 共用同一份实现，措辞按旧调用方习惯翻译
+  const after = applyPlan(tasks, plan);
+  const touched = new Set(after.map((task) => task.id));
+  for (const violation of validateWhole(after, tasks, touched, detect)) {
+    switch (violation.kind) {
+      case "overlap": {
+        const [first, second] = violation.taskIds;
+        issues.push(`方案内部重叠：「${titleOf(first ?? "")}」与「${titleOf(second ?? "")}」`);
+        break;
+      }
+      case "capacity":
+        issues.push(violation.reason.replace("超过每日上限", "超过上限"));
+        break;
+      default:
+        issues.push(violation.reason);
+    }
   }
 
   return { ok: issues.length === 0, issues };

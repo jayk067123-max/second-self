@@ -6,6 +6,7 @@ import {
   type DetectConfig,
   type Severity,
   isCrossCampusLocation,
+  isVirtualLocation,
 } from "./schemas/conflict";
 import { priorityBandOf, type Task } from "./schemas/task";
 import {
@@ -29,7 +30,9 @@ export {
   DEFAULT_DETECT_CONFIG,
   DetectConfigSchema,
   SeveritySchema,
+  VIRTUAL_VENUE_TAGS,
   isCrossCampusLocation,
+  isVirtualLocation,
 } from "./schemas/conflict";
 export type { Conflict, ConflictType, DetectConfig, Severity } from "./schemas/conflict";
 
@@ -51,7 +54,14 @@ const MINUTE = MS_MINUTE;
 /** 微任务阈值：短于 15 分钟且没有地点的安排（买饭、回消息），不占日容量 */
 const MICRO_TASK_MIN = 15;
 
-/** locked 集中日的判定线：固定块占当日负荷一半以上即视为"不可抗" */
+/**
+ * locked 集中日的判定线：固定块占当日负荷一半以上即视为"不可抗"。
+ *
+ * 【本项目补充定义】SPEC 只写了"考试日/活动日等 locked 集中日，超载只出 medium"，
+ * 没给"什么叫集中"。50% 这个判据是我们补的，已同步进 SPEC 并由主Bot 裁决采纳。
+ * 补这条的理由：课表是学校排的，把它标成红点等于让用户去处理一件他处理不了的事；
+ * 但没有判据就等于这条规则永远不生效，所以必须给一个可测、可解释的线。
+ */
 const LOCKED_CONCENTRATED_RATIO = 0.5;
 
 const SEVERITY_RANK: Record<Severity, number> = { high: 0, medium: 1, low: 2 };
@@ -404,25 +414,39 @@ function detectBuffers(occurrences: readonly Occurrence[], config: DetectConfig,
 }
 
 interface Venue {
-  kind: "same-venue" | "cross-campus" | "default";
+  kind: "same-venue" | "same-campus" | "cross-campus" | "virtual" | "unknown";
   requiredMin: number;
 }
 
 /**
  * 按地点表取所需间隔。
- * 顺序很重要：先判同地点。同一个教室的两节课，哪怕地点字符串里恰好带了
- * "市区"（比如"市区楼A"），也应该走 10 分钟的宽松线，而不是 60 分钟。
+ *
+ * 取值顺序是有讲究的，直接对着 demo-seed 的真实数据校过：
+ * 1. **线上/远程**【本项目补充定义】优先判：线上会没有通勤成本，但也不该按
+ *    "同一间屋子"的 10 分钟算，否则"21:00 线上会 → 21:30 线上会"会被刷成冲突；
+ *    按默认 30 分钟保守处理。
+ * 2. **跨校区/校外**：真实通勤成本，60 分钟（SPEC 原文）。
+ * 3. **同一地点**：10 分钟（SPEC 原文）。
+ * 4. **同校区不同楼**【本项目补充定义】（三教105 → 三教201）：校内步行十几分钟，
+ *    给 20 分钟。SPEC 只有 同地点/跨校区/默认 三档，直接落到默认 30 会把
+ *    seed 里 09:40→10:00 这种正常课间全刷成黄点。
+ * 5. 其余（含任一地点为空）：默认 30 分钟，属于"信息不足"，判灰点。
  */
 function resolveVenue(a: Task, b: Task, config: DetectConfig): Venue {
   const locA = a.location ?? null;
   const locB = b.location ?? null;
-  if (locA !== null && locA === locB) {
-    return { kind: "same-venue", requiredMin: config.gapMin.sameVenue };
+  if (isVirtualLocation(locA) || isVirtualLocation(locB)) {
+    return { kind: "virtual", requiredMin: config.gapMin.default };
   }
   if (isCrossCampusLocation(locA) || isCrossCampusLocation(locB)) {
     return { kind: "cross-campus", requiredMin: config.gapMin.crossCampus };
   }
-  return { kind: "default", requiredMin: config.gapMin.default };
+  if (locA !== null && locB !== null) {
+    return locA === locB
+      ? { kind: "same-venue", requiredMin: config.gapMin.sameVenue }
+      : { kind: "same-campus", requiredMin: config.gapMin.sameCampus };
+  }
+  return { kind: "unknown", requiredMin: config.gapMin.default };
 }
 
 /**
@@ -529,6 +553,8 @@ function detectOverloads(
             anchorMin: 0,
           },
           nowIso,
+          // 按天成立的冲突用日期当 id 键：任务进进出出不该让卡片 key 抖动
+          idKey: load.dayKey,
         }),
       );
     }
@@ -553,7 +579,8 @@ function detectOverloads(
             anchorMin: 0,
           },
           nowIso,
-          idSuffix: "@class",
+          idKey: load.dayKey,
+          idSuffix: "#class",
         }),
       );
     }
@@ -702,12 +729,19 @@ function buildConflict(input: {
   date: string;
   evidence: Record<string, number | string>;
   nowIso: string;
+  /**
+   * 自定义 id 键。缺省用「排序后的任务 id 用 + 连起来」（SPEC §0.3 的口径）。
+   * 按天成立的规则（超载）例外：用日期当键 —— 一屋子任务进进出出时，
+   * id 跟着变会让前端的卡片 key 一直抖，而「周二超载」这件事本身是不变的。
+   */
+  idKey?: string;
   idSuffix?: string;
 }): Conflict {
   const ids = input.tasks.map((task) => task.id).sort((a, b) => a.localeCompare(b));
   const suffix = input.idSuffix ?? "";
+  const key = input.idKey ?? ids.join("+");
   return {
-    conflictId: `${input.conflictType}:${ids.join("+")}${suffix}`,
+    conflictId: `${input.conflictType}:${key}${suffix}`,
     conflictType: input.conflictType,
     involvedTaskIds: ids,
     severity: input.severity,
@@ -762,8 +796,16 @@ export function detectConflicts(
   const rangeEndMs = rangeStartMs + config.repeatHorizonDays * MS_DAY;
   const occurrences = occurrencesOf(tasks, rangeStartMs, rangeEndMs);
 
-  const overlaps = detectOverlaps(occurrences, config, nowIso);
-  const buffers = detectBuffers(occurrences, config, nowIso);
+  const overlaps = detectOverlaps(
+    occurrences.filter((occurrence) => !occurrence.task.done),
+    config,
+    nowIso,
+  );
+  const buffers = detectBuffers(
+    occurrences.filter((occurrence) => !occurrence.task.done),
+    config,
+    nowIso,
+  );
   const { conflicts: overloads, highOverloadDays } = detectOverloads(
     occurrences,
     tasks,

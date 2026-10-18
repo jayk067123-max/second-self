@@ -149,7 +149,7 @@ describe("adjudicateProposal · 非法动作逐条丢弃", () => {
     expect(result.rejection.reasons.join()).toContain("固定块");
   });
 
-  it("挪到别人身上（重叠）被拒", () => {
+  it("挪到别人身上（落地后仍重叠）被拒", () => {
     const result = adjudicateProposal(
       candidate([{ type: "move", taskId: "b", start: hhmm(DAY, 9, 30), end: hhmm(DAY, 10, 30) }]),
       baseline(),
@@ -157,7 +157,8 @@ describe("adjudicateProposal · 非法动作逐条丢弃", () => {
     );
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.rejection.reasons.join()).toContain("时间重叠");
+    // 重叠是"全局"性质，在整体闸判：措辞是"落地后仍然重叠"
+    expect(result.rejection.reasons.join()).toContain("仍然重叠");
   });
 
   it("move 不得改变时长（改了就该用 resize）", () => {
@@ -247,11 +248,14 @@ describe("adjudicateProposal · 非法动作逐条丢弃", () => {
   });
 
   it("坏动作被丢、好动作照常执行（丢弃并重试一次的可见行为）", () => {
-    const tasks = baseline();
+    const tasks = [
+      block(DAY, 9, 0, 10, 0, { id: "a", title: "高等数学", location: "教室A", locked: true }),
+      block(DAY, 10, 0, 11, 0, { id: "b", title: "社团例会", location: "教室A" }),
+    ];
     const result = adjudicateProposal(
       candidate([
-        { type: "move", taskId: "a", start: hhmm(DAY, 10, 0), end: hhmm(DAY, 11, 0) },
-        { type: "remove", taskId: "b" },
+        { type: "remove", taskId: "a" }, // 删固定块 → 该 op 被丢
+        { type: "move", taskId: "b", start: hhmm(DAY, 11, 0), end: hhmm(DAY, 12, 0) }, // 好动作
       ]),
       tasks,
       inputs,
@@ -259,8 +263,33 @@ describe("adjudicateProposal · 非法动作逐条丢弃", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.droppedOps).toHaveLength(1);
-    expect(result.value.droppedOps[0]?.reason).toContain("时间重叠");
-    expect(result.value.proposal.rejected?.[0]?.reason).toContain("时间重叠");
+    // 被丢的原因要具体：这句会回灌给 AI 层做定向修复
+    expect(result.value.droppedOps[0]?.reason).toContain("固定块");
+    expect(result.value.proposal.rejected?.[0]?.reason).toContain("固定块");
+    expect(result.value.proposal.ops).toHaveLength(1);
+    expect(result.value.proposal.ops[0]?.type).toBe("move");
+    expect(result.value.proposal.conflictsAfter).toBe(0);
+  });
+
+  it("成套动作允许穿过中间重叠态：两个 move 一起挪开，整体闸只看落地结果", () => {
+    // 这是 seed 里 C 方案的形态：19:00 撞在一起的两件事要一起拆开，
+    // 第一步挪完的中间态必然还重叠着，逐条判会把正确方案错杀。
+    const tasks = [
+      block(DAY, 9, 0, 10, 0, { id: "a", title: "实验室例会", location: "实验楼B305" }),
+      block(DAY, 9, 0, 10, 0, { id: "b", title: "答辩准备", location: "图书馆研讨室" }),
+    ];
+    const result = adjudicateProposal(
+      candidate([
+        { type: "move", taskId: "a", start: hhmm(DAY, 8, 30), end: hhmm(DAY, 9, 30) },
+        { type: "move", taskId: "b", start: hhmm(DAY, 10, 0), end: hhmm(DAY, 11, 0) },
+      ]),
+      tasks,
+      inputs,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.droppedOps).toHaveLength(0);
+    expect(result.value.proposal.movedCount).toBe(2);
     expect(result.value.proposal.conflictsAfter).toBe(0);
   });
 });

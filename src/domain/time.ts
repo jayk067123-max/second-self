@@ -26,7 +26,13 @@ export function dayKeyOf(ms: number): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-export function todayKey(now: number = Date.now()): string {
+/**
+ * 某一天的 dayKey。
+ * `now` 必须由调用方显式传入 —— 这里曾经有个 `= Date.now()` 的默认值，
+ * 那等于在 domain 内部偷偷读了系统时钟（ARCHITECTURE §2 铁律3 明令禁止），
+ * 后果是录视频那天同一份数据算出来的结果和排练时不一样。默认值已删除。
+ */
+export function todayKey(now: number): string {
   return dayKeyOf(now);
 }
 
