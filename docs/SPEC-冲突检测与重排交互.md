@@ -405,7 +405,7 @@ interface Proposal {
 
 见 `docs/demo-fixtures/`：
 
-- **解析演示素材**：`docs/demo-fixtures/notice.txt`（15 条，含【更正】行），用于 S3 镜头① 的粘贴解析演示；
+- **解析演示素材**：`docs/demo-fixtures/notice.txt`（436 字节 / 8 行；任务条数与期望值见 `EXPECTED-2026-10-19.md` 第一节，以冻结版实测为准，本文件不重复登记条数），用于 S3 镜头① 的粘贴解析演示；
 - **冲突与方案演示数据**：`docs/demo-fixtures/demo-seed.json`（18 条 / 3 冲突），用于 S2 冲突画面、方案对比与固定块不被移动的验收；
 - **回归素材**：`docs/demo-fixtures/04-排班混合-回归用.txt`（独立回归素材 · 15 条版，与当前 notice.txt 正文**不同**，带注释头），仅回归测试用，**禁止入镜**；
 - **补充测试集**：`02-相对时间表达.txt`、`03-DDL轰炸.txt`，只给开发与回归；
