@@ -14,6 +14,7 @@
   --color-ink-800: #111a2b;
   --color-ink-700: #1b2740;
   --color-ink-600: #2a3a58;
+  --color-ink-500: #41506b;
   --color-ink-400: #6b7f9e;
   --color-ink-300: #93a5bf;
   --color-ink-200: #b9c6d8;
@@ -41,13 +42,15 @@
   --color-danger-400: #ff7a85;
   --color-danger-500: #e84b5c;
 
-  /* ---- 优先级三档（FR-18）----
-   * 与冲突严重度**刻意用不同色相**：冲突=红/黄语义色系，优先级=青/蓝/灰中性档。
-   * 同一屏上「这颗很急」和「这里有冲突」不能靠同一种红去表达。
+  /* ---- 优先级三档（用户口径：重要红 · 一般黄 · 低绿）----
+   * 铁律：**颜色从不单独承载信息**，三档各配一个形状 + 两个字的文字
+   * （▲ 重要 / ● 一般 / ○ 低），色盲模式下仍可读。
+   * 冲突不靠"再一个红"表达：冲突永远是「▲/● 图标 + 冲突字样 + 红色底带」的三重信号，
+   * 与优先级在同一屏上共存也不会混。
    */
-  --color-prio-high-400: #ff9f7a;
-  --color-prio-mid-400: #7ba4ff;
-  --color-prio-low-400: #93a5bf;
+  --color-prio-high-400: #ff7a85;
+  --color-prio-mid-400: #ffcc66;
+  --color-prio-low-400: #63d98a;
 
   /* ---- 圆角 ---- */
   --radius-xs: 0.375rem;
@@ -65,6 +68,10 @@
   --text-display: 3.25rem;
   --text-display--line-height: 1.06;
   --text-display--letter-spacing: -0.03em;
+  /* 首屏那句人话结论：手机上一行放得下 12–14 个汉字，两行读完 */
+  --text-headline: 1.3125rem;
+  --text-headline--line-height: 1.5;
+  --text-headline--letter-spacing: -0.012em;
   --text-title: 1.75rem;
   --text-title--line-height: 1.22;
   --text-title--letter-spacing: -0.02em;
@@ -78,7 +85,15 @@
   --text-micro--line-height: 1.45;
 
   /* ---- 布局 ---- */
-  --spacing-gutter: 1.5rem;
+  --spacing-gutter: 1.25rem;
+
+  /* ---- 动效：只用两条曲线，保证全站手感一致 ----
+   * soft    = 进场 / 展开（快起慢收，像东西被"放"下来）
+   * standard= 悬停 / 变色（近乎线性，不抢注意力）
+   * 全站有意义动效上限：每页两处。
+   */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* ---- 字体：只用系统字体栈，构建期不联网 ---- */
   --font-sans: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
@@ -94,6 +109,14 @@
 
   body {
     background-color: var(--color-ink-950);
+    /* 一层极浅的顶光：深色底不至于像一块死黑，也不抢内容 */
+    background-image: radial-gradient(
+      120% 72% at 50% -12%,
+      #131d31 0%,
+      #0a1120 42%,
+      var(--color-ink-950) 78%
+    );
+    background-attachment: fixed;
     color: var(--color-ink-100);
     font-family: var(--font-sans);
     font-size: var(--text-body);
