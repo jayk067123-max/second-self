@@ -32,7 +32,16 @@
 
 **落盘进度（2026-10-18 16:20 复核）**：`src/domain/schemas/task.ts` 已加 `locked: z.boolean().optional()`（第 86 行），`repeat` 与 `needsReview` 尚未加入。⚠️ 两处待对齐：①裁定的 `locked` 是**必填 boolean**，落地是 `.optional()`，会让缺失字段静默通过，建议改必填；②`AiTaskDraftSchema`（LLM 输出契约）也应带上 `repeat` / `needsReview`，否则模型即便输出也无处承接。
 
-⚠️ **还有一处命名冲突要定**：本卡按裁定用 `needsReview`，但 `ARCHITECTURE.md` §6 第 2 轮写的是「相对时间不确定时输出 `needsConfirmation`」，验收③也沿用了 `needsConfirmation`。**同一语义两个名字，schema 只能选一个**。建议统一为 `needsReview`（与 EXPECTED 真值表一致），把 `needsConfirmation` 降级为"人工修正确认"这个动作的说法——但需裁定后才改，不要两边各写一个。
+### 1.1b 命名统一记录（2026-10-18 裁定）
+
+| 项 | 内容 |
+|---|---|
+| 冲突 | 同一语义曾有两个名字：`needsReview`（EXPECTED 真值表、`TaskDraft` 代码、本卡 §1）与 `needsConfirmation`（早期草案 `ARCHITECTURE.md` §6 第 2 轮、本卡验收③旧稿） |
+| 裁定 | **统一用 `needsReview`，`needsConfirmation` 全面弃用**，此后只能作为历史命名出现，且必须带"曾写作"三字 |
+| 理由 | schema 字段只能有一个名字；`needsReview` 已在代码（`TaskDraft.needsReview`）与真值表落地，改名成本最低 |
+| 落盘 | 本卡验收③ 已改为 `needsReview`；`ARCHITECTURE.md` §6 已改为「输出 `needsReview: true`（早期草案曾写作 `needsConfirmation`，已统一为 `needsReview`，勿两处并用）」 |
+
+> 这条和第 13 字段的扩充一样，是**真实的演进痕迹**：先有两个名字并存，再被裁定收敛，旧名保留一次并标明来历。不磨掉。
 
 ### 1.2 偏离归因清单（**预置，未发生**；真实踩到才回填 §4）
 
@@ -60,6 +69,8 @@
 ### 3.1 脚本已就绪（2026-10-18 复核）
 
 `package.json` 已加 `"parse": "tsx scripts/parse.ts"`，`scripts/parse.ts` 存在。命令形式改为读 `docs/demo-fixtures/notice.txt`。
+
+> **入库状态**：截至 2026-10-18，`scripts/` 仍在改造中，`parse` 脚本**尚未进入 git 历史**（工作区已可运行）。交付官待收口后提 `feat: 文本解析CLI（npm run parse）`。故验收①当前口径是「可运行、未入库」。
 
 > ⚠️ **素材路径已变更**：原 `docs/demo-fixtures/01-课表与社团排班混合.txt` **已不存在**（`demo-fixtures/README.md` §七：已并入 `04-排班混合-回归用.txt`）。按 README §二·五「唯一路径原则」，主演示素材唯一路径为 `docs/demo-fixtures/notice.txt`（436 B / 8 行），故本卡验收①的命令已改为后者。
 
