@@ -1,40 +1,138 @@
-# dependencies
+# ============================================================
+# 全国高校 Vibe Coding 开发挑战赛 —— 提交物仓库
+# 原则：可复现的源码与文档必须进仓库；密钥、依赖、构建产物、
+#       大体积原始素材一律不进。
+# ============================================================
+
+# ---------- 依赖 ----------
 node_modules/
 .pnpm-store/
+.yarn/cache/
+.yarn/install-state.gz
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 .venv*/
+*.egg-info/
+.eggs/
 
-# build output
+# ---------- 构建产物 ----------
 dist/
+dist-*/
 build/
 .next/
+.nuxt/
+.output/
+.svelte-kit/
 out/
+storybook-static/
 *.tsbuildinfo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.turbo/
+.parcel-cache/
+.vite/
 
-# env & secrets —— 严禁提交
+# ---------- 测试与覆盖率报告 ----------
+coverage/
+.nyc_output/
+htmlcov/
+.coverage
+.coverage.*
+test-results/
+playwright-report/
+blob-report/
+
+# ---------- 环境变量与密钥（严禁提交）----------
+# 除 .env.example 外，所有 .env 变体全部忽略
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.key
 *.pem
+*.p12
+*.pfx
+*.crt
+*.jks
 secrets.json
+credentials.json
+.npmrc
+.netrc
+id_rsa*
+# 说明：如确需提交 .npmrc 的 registry 配置，请先确认其中不含 token
 
-# logs & temp
+# ---------- 本地数据库 / 运行时数据 ----------
+# .env.example 里 DATABASE_URL=file:./data/app.db，数据文件不入库
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+uploads/
+storage/
+
+# ---------- 模型权重（体积大，不入库）----------
+*.gguf
+*.onnx
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.h5
+models/
+model_weights/
+
+# ---------- 日志与临时文件 ----------
 *.log
 logs/
 tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*.rej
 .DS_Store
 Thumbs.db
+Desktop.ini
 
-# editor
+# ---------- 压缩包 / 安装包（走 Release 或提交平台）----------
+*.zip
+*.7z
+*.rar
+*.tar.gz
+*.tgz
+*.exe
+*.msi
+*.dmg
+
+# ---------- 编辑器 ----------
 .vscode/*
 !.vscode/extensions.json
 .idea/
+*.swp
 
-# media raw material（原始录屏素材体积大，只提交成品）
+# ---------- 媒体素材 ----------
+# 原始录屏/剪辑工程体积大，只交付成品
 media/raw/
+raw/
+recording/
 *.mp4
 *.mov
+*.webm
+*.mkv
+*.avi
+*.flv
+*.psd
+*.aep
+*.prproj
+# 注意：演示视频成品 MP4 请放 GitHub/Gitee Releases 或提交平台，
+#       不要为了"进仓库"而 force add（会把仓库撑到几百 MB）。
+#       若最终视频 < 30MB 且希望随仓库分发，确认后再单独放开规则。
+
+# ---------- 部署平台本地状态 ----------
+.vercel/
+.netlify/
+.firebase/
