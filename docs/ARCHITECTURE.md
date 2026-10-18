@@ -131,11 +131,11 @@ vibe-coding-2026/
 
 | # | 提交信息 | 落地文件 | 验收 |
 |---|---|---|---|
-| 1 | `chore: 锁定依赖与工程基线` | `package.json` `package-lock.json` `.nvmrc` `tsconfig.json` `next.config.ts` `postcss.config.mjs` `eslint.config.mjs` `vitest.config.ts` `.env.example` | `npm ci` 干净装完，`npm run verify` 通过 |
+| 1 | `chore: 锁定依赖与工程基线` | `package.json` `package-lock.json` `.nvmrc` `tsconfig.json` `next.config.ts` `postcss.config.mjs` `eslint.config.mjs` `vitest.config.mts` `.env.example` | `npm ci` 干净装完，`npm run verify` 通过 |
 | 2 | `feat: 应用外壳与设计令牌` | `src/app/*` `src/ui/primitives/*` `src/shared/*` | `npm run dev` 首页不报错，令牌变量化 |
 | 3 | `feat: 领域契约与纯函数骨架` | `src/domain/schemas/*` `src/domain/*.ts` `tests/domain/*` | `npm test` 通过 |
-| 4 | `feat: 本地持久化适配层` | `src/data/storage.ts` `local-adapter.ts` `migrate.ts` | 刷新页面数据不丢；导出 JSON 能被自己导入回来 |
-| 5 | `feat: AI 编排四道闸` | `src/ai/*` `src/app/api/ai/[task]/route.ts` `tests/ai/*` | 无 key 走 demo；mock 坏响应断言重试 3 次后返回 `needs_repair` |
+| 4 | `feat: 本地持久化适配层 - 引导AI实现storage adapter与JSON导入导出` | `src/data/storage.ts` `local-adapter.ts` `migrate.ts` | 刷新页面数据不丢；导出 JSON 能被自己导入回来 |
+| 5 | `feat: AI 编排四道闸` | `src/ai/*` `src/app/api/ai/[task]/route.ts` `tests/ai/*` | 无 key 走 demo 模式；mock 坏响应后重试 1 次（`AI_MAX_RETRIES=1`），仍不合格则返回 `ok:false` + 可读错误，前端给重试入口 |
 | 6 | `feat: 端到端最小闭环` | 输入 → 解析 → 草稿 → 可视修复 一条线打通 | 手点全流程，故意注入坏数据能看到修复入口 |
 
 **统一验收命令**：`npm run verify` = `typecheck && lint && test`。
@@ -146,7 +146,7 @@ vibe-coding-2026/
 
 | 轮次 | 功能 | 关键约束 |
 |---|---|---|
-| 第 1 轮 | 数据模型与 store | Task 实体：`id / title / start / end / durationMin / deadline / priority(1-3) / source(text\|manual) / done / rawTextOrigin`，字段名与类型**不得变更** |
+| 第 1 轮 | 数据模型与 store | Task **核心字段**：`id / title / start / end / durationMin / deadline / priority(1-3) / source(text\|manual) / done / rawTextOrigin / repeat / needsReview / locked`，这些字段名与类型**不得变更**；另允许**可选约束扩展字段** `location / flexible / parentId / progress / estateMin`，缺省时按"未知"降档处理（如缓冲规则回落到默认 30 分钟档）。新增可选字段无需重开意图卡评审；改动或删除既有字段必须评审 |
 | 第 2 轮 | 文本 → 任务结构化 | `now` 必须注入；重复规则单独字段；相对时间不确定时输出 `needsReview: true`（早期草案曾写作 `needsConfirmation`，已统一为 `needsReview`，勿两处并用），禁止硬猜；前端必须有人工修正表格 |
 | 第 3 轮 | 冲突检测 | 照 `docs/SPEC-冲突检测与重排交互.md`；区间半开 `[a,b)`；`detectConflicts` 纯函数、`now` 注入、同输入三次结果一致 |
 | 第 4 轮 | 重排方案 | LLM 只出时间块 JSON，不参与裁决；本地校验不通过即丢弃；方案未消除的冲突**不许隐藏**；应用前快照入栈，回滚 = 整体替换 |

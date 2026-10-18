@@ -51,7 +51,7 @@
 
 | 环节 | 证据 |
 |---|---|
-| 依赖移除 | `package.json` 中 `better-sqlite3 13.0.3`、`drizzle-orm 0.45.4`、`drizzle-kit 0.31.11`、`@types/better-sqlite3 7.6.13` 四个依赖删除；`npm install` 重跑 `removed 15 packages`；全仓库 grep 无残留 |
+| 依赖口径（**修正过的准确表述**） | **初版方案为 drizzle + better-sqlite3，在被否决前、落地之前即被否掉；过渡依赖从未进入提交历史。** 依据：`git log -S "better-sqlite3" -- package.json` 无输出；`package.json` 全部历史仅 3 次提交（基线 `c5ac80d` / `parse` CLI `27935e9` / BOM 修正 `21f41aa`）；当前 `Select-String package.json,package-lock.json -Pattern "better-sqlite3|drizzle"` **0 命中**。<br>**不要写"砍掉了依赖"**——那样与 `package.json` 一比就露馅，正确写法是"被否决、未落地"。（来源：全栈手实测，2026-10-18） |
 | lock 同步 | `package-lock.json` 已重生成 |
 | 文档同步 | `ARCHITECTURE.md` 定稿 v1.0：数据层改为 `StorageAdapter`（save/load/export/import）+ `local-adapter.ts`（localStorage 实现、zustand persist 挂载点）；ADR-1 记录决策与代价 |
 | 集成 | `npm run verify` 通过（2026-10-18 16:10 复核：6 文件 65 项全绿） |

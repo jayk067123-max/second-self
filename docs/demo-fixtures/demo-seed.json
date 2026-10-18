@@ -1,10 +1,10 @@
 {
   "seedVersion": "v1",
-  "purpose": "可选演示 / 回滚备份：① 验收「导入 JSON」功能本身；② 10-22 检查点若解析链不稳，作为兜底画面。主演示冲突来自 notice.txt，本文件不再承担主素材。",
+  "purpose": "S2 冲突与重排演示的主数据：18 条任务 / 3 冲突（周三 19:00 完全重合、周二 gap=0、周二超载），由界面「导入 JSON」载入；与 notice.txt 的解析链互不混用。",
   "demoNow": "2026-10-19T09:00:00+08:00",
   "timezone": "Asia/Shanghai",
-  "howToLoad": "界面右上角「导入 JSON」→ 选择本文件 → 弹确认「将覆盖当前任务」→ 确认。仅在兜底/自检时使用，不要在录制主流程里触发，否则会与 notice.txt 的解析链混淆。",
-  "relationToNoticeTxt": "notice.txt 是主演示素材（15 条任务、自带 3 条冲突，粘贴即出红标）；本文件是 18 条任务的不同数据集，只在兜底或验证导入功能时使用，两者不得混用或互相覆盖。",
+  "howToLoad": "界面右上角「导入 JSON」→ 选择本文件 → 弹确认「将覆盖当前任务」→ 确认。录制主流程 S2 会用到这里的数据；导入后不要再触发「解析这段话」，避免两条路径混用。",
+  "relationToNoticeTxt": "notice.txt 是解析演示素材（436 B / 8 行 / 7 条 / 0 硬冲突），走「粘贴 → AI 解析」；本文件是 18 条任务的冲突演示数据，走「导入 JSON」；两者不得混用或互相覆盖。",
   "tasks": [
     { "id": "t_lin_mon",  "title": "线性代数",       "date": "2026-10-19", "start": "08:00", "end": "09:40", "durationMin": 100, "deadline": null, "priority": "medium", "location": "三教201",     "locked": true,  "flexible": false, "status": "todo" },
     { "id": "t_marx",     "title": "马克思主义基本原理", "date": "2026-10-20", "start": "08:00", "end": "09:40", "durationMin": 100, "deadline": null, "priority": "medium", "location": "三教105",     "locked": true,  "flexible": false, "status": "todo" },
