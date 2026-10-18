@@ -83,6 +83,13 @@ export const DetectConfigSchema = z.object({
    * 就不该参与判定；窗口太短又会漏掉下周的撞车，默认两周覆盖一次完整的周循环。
    */
   repeatHorizonDays: z.number().int().min(1).max(60),
+  /**
+   * 学期第 1 周周一的 dayKey（'YYYY-MM-DD'）。
+   * 用来把 `repeat.weeks` 的单双周/排除周换算成"学期第几周"——
+   * 单双周以学期周为基准，不以日历年周为准，所以这个锚点必须由调用方给。
+   * null = 未设置：带 weeks 的重复任务会按"每周都上"展开（不藏课）。
+   */
+  termStartDayKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
 });
 export type DetectConfig = z.infer<typeof DetectConfigSchema>;
 
@@ -95,6 +102,7 @@ export const DEFAULT_DETECT_CONFIG: DetectConfig = {
   minOverlapMin: 5,
   maxCards: 5,
   repeatHorizonDays: 14,
+  termStartDayKey: null,
 };
 
 /**

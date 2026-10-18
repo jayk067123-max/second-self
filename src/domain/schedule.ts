@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WeekSpecSchema, type WeekSpec } from "./schemas/schedule";
 import { addDaysToKey, msFromDayKey } from "./time";
 
 /**
@@ -15,28 +16,16 @@ import { addDaysToKey, msFromDayKey } from "./time";
  *
  * 边界：本文件**不改**展开逻辑。重复任务怎么展开仍然只由
  * `time.ts` 的 `expandOccurrences` 决定；这里只回答"第 N 周到底上不上"。
+ *
+ * 契约搬家说明：`WeekSpecSchema` 与 `WeekSpec` 类型已移到 `schemas/schedule.ts`
+ * （因为 `Task.repeat.weeks` 也要用它，契约只能有一份）。这里原样再导出一次，
+ * 旧的 import 路径不用改。
  */
+
+export { WeekSpecSchema };
+export type { WeekSpec };
 
 /* ─────────────────────────── 周次范围 ─────────────────────────── */
-
-/**
- * 周次范围。
- * `parity` 处理「单周/双周」课（大学里非常常见：第 1-16 周单周上）；
- * `except` 处理调休/停课，比让人手工改 `from/to` 更安全 —— 排除周是显式记录，
- * 复课把那一周从数组里删掉即可，不会丢信息。
- */
-export const WeekSpecSchema = z
-  .object({
-    from: z.number().int().min(1).max(30),
-    to: z.number().int().min(1).max(30),
-    parity: z.enum(["all", "odd", "even"]).default("all"),
-    except: z.array(z.number().int().min(1).max(30)).default([]),
-  })
-  .refine((spec) => spec.to >= spec.from, {
-    message: "周次范围的结束周不能小于开始周",
-    path: ["to"],
-  });
-export type WeekSpec = z.infer<typeof WeekSpecSchema>;
 
 /** 上限：一学期不会超过 30 周，超出视为脏数据，不展开 */
 export const MAX_TERM_WEEKS = 30;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WeekSpecSchema } from "./schedule";
 
 /**
  * Task 实体契约 —— 全系统唯一的任务定义。
@@ -61,6 +62,12 @@ const priorityField = z.number().int().min(1).max(3);
 export const RepeatRuleSchema = z.object({
   kind: z.literal("weekly"),
   byDay: z.array(z.number().int().min(1).max(7)).min(1),
+  /**
+   * 学期周次范围（第几周到第几周 + 单双周 + 排除周）。
+   * 缺省 = 每周都上 —— 旧数据里没有这个字段，行为与加字段之前完全一致（零迁移）。
+   * 判定顺序固定为 范围 → 单双周 → 排除周，排除周是否决票（见 `isWeekActive`）。
+   */
+  weeks: WeekSpecSchema.nullable().optional(),
 });
 export type RepeatRule = z.infer<typeof RepeatRuleSchema>;
 
@@ -106,17 +113,24 @@ export const TaskSchema = z
     /** 来自粘贴文本的原始行，用于人工修正时溯源 */
     rawTextOrigin: z.string().max(2000).nullable(),
     /**
-     * 以下字段是 SPEC 冲突规则需要的约束信息。
-     * `locked` / `repeat` / `needsReview` 三项给默认值（false / null / false）而不是
-     * 必填，是为了让**已经落盘的旧数据**照样能通过校验 —— localStorage 里没有这三个
-     * 字段的历史记录不应该在升级后被判为脏数据整批丢掉。解析之后它们是必有值。
-     * location / flexible / parentId / progress / estateMin 仍然可选：
+     * 以下字段是冲突/重排规则需要的约束信息，分两类：
+     *
+     * **必填**：`locked` / `repeat` / `needsReview`。
+     * 理由（主Bot 裁决 2026-10-18）：可省略 = 缺失即静默通过，
+     * 那么 reflow 的信任指标 `lockedTouched === 0` 就没有可靠输入 ——
+     * "这条任务到底锁没锁"不能靠"没写就当没锁"来猜。
+     * 旧数据兼容不在这里做：`src/data/migrate.ts` 的 v2→v3 归一化会把缺失字段补成
+     * `locked:false / repeat:null / needsReview:false`，所以 localStorage 里的历史记录
+     * 照旧能读，而**domain 契约保持严格**——两层各管一件事，互不稀释。
+     *
+     * **可选**：`location` / `flexible` / `parentId` / `progress` / `estateMin`。
      * 缺省即"不知道"，规则里按"不知道"降档处理，绝不替用户编造。
      */
     /** 地点（'教室A' / '市区鼓楼'…）；null = 未知，缓冲规则会降为灰点 */
     location: z.string().trim().max(60).nullable().optional(),
-    /** true = 固定块（课表/排班），重排不得移动。用户权威标记，AI 无权设置 */
-    locked: z.boolean().default(false),
+    /** true = 固定块（课表/排班），重排不得移动。用户权威标记，AI 无权设置。
+     *  **必填**：可省略等于"静默通过"，reflow 判"固定课被挪 0 条"就没有可靠输入。 */
+    locked: z.boolean(),
     /** true = 可顺延/可压缩 */
     flexible: z.boolean().optional(),
     /** 同一父任务拆分出的片段（拆课/分段排班），互相之间不报重叠 */
@@ -126,9 +140,9 @@ export const TaskSchema = z
     /** 完成该任务的估算工作量；缺省 = durationMin */
     estateMin: z.number().int().min(0).max(24 * 60).optional(),
     /** 重复规则；null = 单次。一条重复安排只存一行，展开只在检测时发生 */
-    repeat: RepeatRuleSchema.nullable().default(null),
+    repeat: RepeatRuleSchema.nullable(),
     /** AI 自己标出的"不确定，请人工核对"；用户在修正表里改过就会清掉 */
-    needsReview: z.boolean().default(false),
+    needsReview: z.boolean(),
   })
   .superRefine(refineTimeBlock);
 export type Task = z.infer<typeof TaskSchema>;
@@ -144,9 +158,9 @@ export const TaskDraftSchema = z
     priority: priorityField,
     rawTextOrigin: z.string().max(500).nullable(),
     /** 解析时靠推测得到的条目（原文没给明确时段/时长）→ 修正表里高亮 */
-    needsReview: z.boolean().default(false),
+    needsReview: z.boolean(),
     /** 「每周二晚 9 点」这种周期安排：一条草稿，不展开 */
-    repeat: RepeatRuleSchema.nullable().default(null),
+    repeat: RepeatRuleSchema.nullable(),
   })
   .superRefine(refineTimeBlock);
 export type TaskDraft = z.infer<typeof TaskDraftSchema>;
@@ -164,15 +178,14 @@ export const AiTaskDraftSchema = z
     deadline: isoOrNull,
     priority: priorityField,
     rawTextOrigin: z.string().max(500).nullable(),
-    /** 模型必须自评：这一条是不是靠猜的 */
-    needsReview: z.boolean().default(false),
+    /** 模型必须自评：这一条是不是靠猜的（必填，不许省略） */
+    needsReview: z.boolean(),
     /**
      * 周期安排：「每周二晚 9 点」→ { kind:'weekly', byDay:[2] }，不许展开成多条。
-     * 这里刻意留成 optional 而不是 default(null)：AI 契约里"没说"和"明确说不重复"
-     * 在解析结果是同一个意思，强制模型给每条单次任务都吐一个 `"repeat": null`
-     * 只会白烧 token、还会提高一次就过的失败率；缺省即单次。
+     * **必填**：不填就等于"解析器根本没这个能力"，模型也无处承接（byDay 用 ISO 星期 1=周一…7=周日）。
+     * 单次任务必须显式给 null。
      */
-    repeat: RepeatRuleSchema.nullable().optional(),
+    repeat: RepeatRuleSchema.nullable(),
   })
   .superRefine(refineTimeBlock);
 export type AiTaskDraft = z.infer<typeof AiTaskDraftSchema>;

@@ -4,6 +4,7 @@
  */
 
 import type { Task } from "./schemas/task";
+import { dayInWeekSpec, termWeekOf } from "./schedule";
 
 export const MS_MINUTE = 60_000;
 export const MS_DAY = 24 * 60 * MS_MINUTE;
@@ -110,8 +111,24 @@ const MAX_EXPAND_DAYS = 400;
  *   冲突检测拿到的是"全部任务"，如果在这里按窗口剪掉，就会把窗口外的历史任务
  *   静默丢掉，用户会以为冲突消失了。
  * - **重复任务**：只返回窗口内的发生时段，算完即丢，数据里始终只有一行。
+ *
+ * 周次过滤（`repeat.weeks`）只加一道 if，不动循环结构：
+ *   1. 先用 `isoWeekdayOf` 筛星期（周二课只在周二出现）；
+ *   2. 再用 `dayInWeekSpec` 筛学期周次（第 1-16 周 / 单周 / 排除周）。
+ * 三条边界（需求定义书 v1.2 §4.1，已写成单测）：
+ * - 判定顺序固定 范围 → 单双周 → 排除周，**排除周是否决票**，被子规则救不回来；
+ * - 单双周以**学期第几周**为基准（第 1 周为单周），不是日历年周；
+ * - `termWeekOf ≤ 0`（开学前）**不产生 occurrence**，不假装第 1 周。
+ * 信息不足的取舍：带了 `weeks` 却没给开学日时，**按每周都上展开** ——
+ * 宁可多排一次让用户自己看，也不要因为缺一个设置让整门课从时间轴上消失
+ * （与需求 §4.1③「误报 vs 静默漏」的代价不对称判断一致）。
  */
-export function expandOccurrences(task: Task, rangeStart: Date, rangeEnd: Date): TaskOccurrence[] {
+export function expandOccurrences(
+  task: Task,
+  rangeStart: Date,
+  rangeEnd: Date,
+  termStartDayKey?: string | null,
+): TaskOccurrence[] {
   const rangeStartMs = rangeStart.getTime();
   const rangeEndMs = rangeEnd.getTime();
   if (!Number.isFinite(rangeStartMs) || !Number.isFinite(rangeEndMs)) {
@@ -141,12 +158,19 @@ export function expandOccurrences(task: Task, rangeStart: Date, rangeEnd: Date):
   const minuteOfDay = minutesFromLocalMidnight(startMs);
   const durationMs = endMs - startMs;
   const firstDayKey = dayKeyOf(rangeStartMs);
+  const weeks = task.repeat.weeks ?? null;
 
   const occurrences: TaskOccurrence[] = [];
   for (let offset = 0; offset < MAX_EXPAND_DAYS; offset += 1) {
-    const dayStartMs = msFromDayKey(addDaysToKey(firstDayKey, offset), 0);
+    const dayKey = addDaysToKey(firstDayKey, offset);
+    const dayStartMs = msFromDayKey(dayKey, 0);
     if (dayStartMs >= rangeEndMs) break;
     if (!byDay.has(isoWeekdayOf(dayStartMs))) continue;
+    if (weeks !== null && termStartDayKey) {
+      // 开学前的那几天不假装是第 1 周：课件表里根本没有这一节
+      if (termWeekOf(dayKey, termStartDayKey) <= 0) continue;
+      if (!dayInWeekSpec(dayKey, termStartDayKey, weeks)) continue;
+    }
     const occurrenceStartMs = dayStartMs + minuteOfDay * MS_MINUTE;
     const occurrenceEndMs = occurrenceStartMs + durationMs;
     // 与窗口求交：跨窗口边界的时段只要碰到窗口就保留

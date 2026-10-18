@@ -111,11 +111,17 @@ function occurrencesOf(
   tasks: readonly Task[],
   rangeStartMs: number,
   rangeEndMs: number,
+  termStartDayKey: string | null,
 ): Occurrence[] {
   const occurrences: Occurrence[] = [];
   for (const task of tasks) {
     if (task.repeat !== null) {
-      const expanded = expandOccurrences(task, new Date(rangeStartMs), new Date(rangeEndMs));
+      const expanded = expandOccurrences(
+        task,
+        new Date(rangeStartMs),
+        new Date(rangeEndMs),
+        termStartDayKey,
+      );
       for (const occurrence of expanded) {
         const startMs = parseIsoToMs(occurrence.start);
         const endMs = parseIsoToMs(occurrence.end);
@@ -794,7 +800,7 @@ export function detectConflicts(
   // 窗口从注入的 now 的本地零点起算，长 repeatHorizonDays 天 —— 全程没有系统时钟。
   const rangeStartMs = startOfLocalDay(nowMs);
   const rangeEndMs = rangeStartMs + config.repeatHorizonDays * MS_DAY;
-  const occurrences = occurrencesOf(tasks, rangeStartMs, rangeEndMs);
+  const occurrences = occurrencesOf(tasks, rangeStartMs, rangeEndMs, config.termStartDayKey);
 
   const overlaps = detectOverlaps(
     occurrences.filter((occurrence) => !occurrence.task.done),
