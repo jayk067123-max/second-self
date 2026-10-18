@@ -39,6 +39,7 @@
 - [ ] 无 `.env` / 密钥 / token（用 `git log -p -S "API_KEY"` 之类抽查一遍）
 - [ ] 无原始录屏素材与 `.mp4`（视频走 Release 或提交平台）
 - [ ] **已执行 §七 敏感信息扫描，提交内容无手机号 / 身份证 / 邮箱 / 密钥 / `.env` 内容**
+- [ ] **全仓 grep 绝对路径零命中**：无 `C:\Users\…`、`C:/Users/`、`/home/`、`/Users/`（规则见 §七·绝对路径）
 - [ ] `docs/prompts/` 有编号快照，`INDEX.md` 里每条能对应到 commit
 - [ ] README 含 10 分钟复现指南（环境、启动命令、依赖版本）
 - [ ] `.gitignore` 与本次实际改动无冲突
@@ -176,6 +177,32 @@ git diff --cached --name-only | Select-String -Pattern '(\.env|\.key|\.pem|\.p12
 - 命中 `.env` 文件名 → 立刻 `git rm --cached`，把真实值移到本地 `.env`。
 
 已知白名单（这些邮箱不算个人信息泄露）：`*@users.noreply.github.com`、`@example.com`、依赖锁文件里的包作者邮箱、`.env.example` 里的空值占位。扫描命中白名单时在回报里注明"已核对为白名单"即可通过。
+
+### 绝对路径（同属不合规，命中即拦截）
+
+绝对路径有两个问题：暴露本机用户名（如 `C:\Users\<用户名>`），以及**评审在自己机器上照做时路径对不上**——后者直接扣「可复现性」分。
+
+零命中的四种形式（跨平台都算违规）：
+
+```powershell
+# 全仓扫描，四条都要 0 命中
+# 注意：本清单自身含有本节规则文本，会命中自己，所以排除 DELIVERY-CHECKLIST.md
+git grep -n -E '[A-Za-z]:\\\\Users\\\\|[A-Za-z]:/Users/|/home/|/Users/' -- . ':(exclude)docs/DELIVERY-CHECKLIST.md'
+git ls-files | Where-Object { $_ -ne 'docs/DELIVERY-CHECKLIST.md' } | ForEach-Object { Select-String -Path $_ -Pattern '[A-Za-z]:\\Users\\','[A-Za-z]:/Users/','/home/','/Users/' }
+```
+
+> 命中排除项以外的任何一行 = 不合规，必须改成相对路径后才能提交。`git grep` 只扫已跟踪文件，未跟踪的新文件用第二条命令补扫。
+
+统一替换规范：
+
+| 场景 | 写成什么 |
+| --- | --- |
+| 项目内文件/目录 | **相对仓库根的相对路径**，如 `docs/prompts/`、`fixtures/notice.txt`、`./data/app.db` |
+| 交付总目录（仓库外的 00–06 目录） | 描述式：`桌面 DS-项目集 下的 03-演示视频`，不写盘符、不写用户名 |
+| `.ps1` / `.bat` / `.sh` 脚本里的可执行路径 | 必须用 `$PSScriptRoot`、`%~dp0` 或相对路径，**不许硬编码绝对路径** |
+| 示例数据、报错引用、日志片段 | 用 `<仓库根>/...` 或 `~/...` 占位，不填真实本机路径 |
+
+历史里出现过的绝对路径**同样会留在 `git log -p` 中**，改文件不等于清历史。推送到远端前必须确认历史无命中：`git log --all -p | Select-String 'C:\\Users'`。
 
 ## 八、待推送记录（远端冻结期间）
 
