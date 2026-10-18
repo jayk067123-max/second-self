@@ -204,6 +204,23 @@ git ls-files | Where-Object { $_ -ne 'docs/DELIVERY-CHECKLIST.md' } | ForEach-Ob
 
 历史里出现过的绝对路径**同样会留在 `git log -p` 中**，改文件不等于清历史。推送到远端前必须确认历史无命中：`git log --all -p | Select-String 'C:\\Users'`。
 
+### 提交后复扫（每批必做，不只提交前）
+
+**风险**：提交前你扫过一遍，提交后别人又改了工作区，下一批 `git add` 时可能把新的问题内容卷进去；或者提交本身把某个此前不在文件里的内容带了进来。所以扫描是**两个时点**，不是一次。
+
+| 时点 | 扫什么 | 命令 |
+| --- | --- | --- |
+| 提交前 | 暂存区内容 | `git diff --cached` + 上面四类正则 |
+| **提交后（新增）** | **刚提交进去的 blob** | `git show --stat HEAD`、`git show HEAD` + 同上四类正则 |
+
+```powershell
+# 提交后立即跑：直接扫刚入库的内容，绕开工作区干扰
+git show HEAD | Select-String -Pattern '\b1[3-9]\d{9}\b|ghp_[A-Za-z0-9]{20,}|github_pat_|sk-[A-Za-z0-9]{20,}|[A-Za-z]:\\Users\\|/home/|/Users/'
+# 无输出 = 通过；有输出 = 该提交含不合规内容，立刻报告，按 §七 处置
+```
+
+**为什么必须扫已提交的 blob 而不是工作区**：工作区随时被人改，扫它证明不了"库里是干净的"；只有 `git show HEAD` 才是评委实际会拿到的字节。
+
 ## 八、待推送记录（远端冻结期间）
 
 远端仓库尚未建立（GitHub token 未到位），期间所有提交**只落本地**。细粒度历史在本地就成立，不影响「过程可复现性」得分；token 到位后一次性 `git push -u origin main` 推全部历史，一条都不丢。
