@@ -57,11 +57,15 @@
 
 ## 四、种子数据规则（给全栈手）
 
-`data/` 与 `*.db` 已被忽略（`.env.example` 里 `DATABASE_URL=file:./data/app.db`），这意味着**仓库里不会包含运行时数据库文件**。为了让别人 10 分钟能复现出有内容的应用：
+**本项目不使用服务端数据库**：任务数据保存在浏览器 `localStorage`（经 `StorageAdapter` 适配层），`.env.example` 里已无任何数据库配置项，装完即可用。数据迁移与备份走**导出/导入 JSON**，不是 SQL 迁移。
 
-- 需要初始数据时，全栈手把种子写成脚本放 **`seed/`** 目录，格式用 `.json` 或 `.sql`，例如 `seed/001-demo-data.sql`、`seed/items.json`。
-- 提供一条初始化命令（如 `npm run seed`）写进 README 的复现指南，别人 clone 后跑一次就有数据。
-- **禁止**把 `.db` 文件、`data/` 下的内容当作"数据交付"提交上来——那既不可维护，也会因体积被判不合规。
+`data/` 与 `*.db`、`*.sqlite` 仍保留在 `.gitignore` 里，作为兜底防线——万一将来有人误引入本地库文件，也不会进仓库。
+
+为了让别人 10 分钟能复现出有内容的应用：
+
+- 演示与测试用的种子数据以 **JSON** 形式提交，放在 `docs/demo-fixtures/`（主素材目录）或 `seed/`，例如 `demo-seed.json`；由界面上的"导入 JSON"或启动时预置加载，**不依赖任何数据库初始化命令**。
+- 需要初始化命令时，用一条 npm script 写进 README 的复现指南（如 `npm run seed`），别人 clone 后跑一次就有数据。
+- **禁止**把 `.db` 文件、`data/` 下的内容当作"数据交付"提交上来——那既与架构定稿（否决 SQLite）矛盾，也会因体积被判不合规。
 
 ## 五、提交节奏（给全队的约定）
 
@@ -221,7 +225,7 @@ git ls-files | Where-Object { $_ -ne 'docs/DELIVERY-CHECKLIST.md' } | ForEach-Ob
 
 | 场景 | 写成什么 |
 | --- | --- |
-| 项目内文件/目录 | **相对仓库根的相对路径**，如 `docs/prompts/`、`fixtures/notice.txt`、`./data/app.db` |
+| 项目内文件/目录 | **相对仓库根的相对路径**，如 `docs/prompts/`、`docs/demo-fixtures/notice.txt`、`src/app/page.tsx` |
 | 交付总目录（仓库外的 00–06 目录） | 描述式：`桌面 DS-项目集 下的 03-演示视频`，不写盘符、不写用户名 |
 | `.ps1` / `.bat` / `.sh` 脚本里的可执行路径 | 必须用 `$PSScriptRoot`、`%~dp0` 或相对路径，**不许硬编码绝对路径** |
 | 示例数据、报错引用、日志片段 | 用 `<仓库根>/...` 或 `~/...` 占位，不填真实本机路径 |
