@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { migrateStoredPayload } from "@/data/migrate";
 import {
   CONFLICT_TYPE_LABEL,
   DEFAULT_DETECT_CONFIG,
@@ -11,6 +12,7 @@ import {
   timedTasksOf,
 } from "@/domain/conflicts";
 import type { Conflict, ConflictType, DetectConfig } from "@/domain/conflicts";
+import { isWeekActive, termWeekOf } from "@/domain/schedule";
 import { AiTaskDraftSchema, RepeatRuleSchema, TaskSchema, type Task } from "@/domain/schemas/task";
 import { expandOccurrences, isoWeekdayOf } from "@/domain/time";
 import { DAY, DEMO_NOW, NEXT_DAY, block, ddl, hhmm, overnight, point } from "./support/tasks";
@@ -506,7 +508,7 @@ describe("任务契约", () => {
     expect(TaskSchema.safeParse(ddl("2026-10-19")).success).toBe(true);
   });
 
-  it("已经落盘的旧记录（只有 10 个基础字段）仍能通过校验，缺省补成默认值", () => {
+  it("已经落盘的旧记录（只有 10 个基础字段）：严格契约下由 data/migrate 归一化补齐，不整批判脏", () => {
     const legacy = {
       id: "old-1",
       title: "旧任务",
@@ -519,10 +521,15 @@ describe("任务契约", () => {
       done: false,
       rawTextOrigin: null,
     };
-    const parsed = TaskSchema.parse(legacy);
-    expect(parsed.locked).toBe(false);
-    expect(parsed.repeat).toBeNull();
-    expect(parsed.needsReview).toBe(false);
+    // TaskSchema 已改为严格契约（locked / repeat / needsReview 必填，不允许静默通过），
+    // 旧数据的兼容职责挪到持久化适配层的 v2→v3 迁移里
+    const migrated = migrateStoredPayload({ tasks: [legacy], snapshot: null });
+    expect(migrated.ok).toBe(true);
+    if (!migrated.ok) return;
+    const parsed = migrated.value.tasks[0];
+    expect(parsed?.locked).toBe(false);
+    expect(parsed?.repeat).toBeNull();
+    expect(parsed?.needsReview).toBe(false);
   });
 
   it("repeat 的 byDay 用 ISO 星期（1=周一…7=周日），0 和 8 都非法", () => {
@@ -658,5 +665,133 @@ describe("detectConflicts · 重复任务（数据一行，判定按每次发生
     // 300 + 300 + 60 = 660，超出上限 60 分钟
     expect(overloads[0]?.evidence.usedMin).toBe(660);
     expect(overloads[0]?.date).toBe("2026-10-20");
+  });
+});
+
+describe("重复任务 · 周次过滤（需求定义书 v1.2 §4.1①）", () => {
+  /** 2026-09-14 是周一；它同时也是日历年 ISO 第 38 周（偶数），用来验证"以学期周为基准" */
+  const TERM_START = "2026-09-14";
+  const weeklyTue = { kind: "weekly" as const, byDay: [2] };
+
+  it("判定顺序固定 范围 → 单双周 → 排除周：排除周是否决票，救不回来", () => {
+    const spec = { from: 3, to: 9, parity: "odd" as const, except: [5] };
+    // 第 5 周既在范围内、又是单周 —— 但被显式排除，必须否决
+    expect(isWeekActive(5, spec)).toBe(false);
+    expect(isWeekActive(7, spec)).toBe(true);
+    // 第 4 周在范围内但是双周 → 被单双周否决
+    expect(isWeekActive(4, spec)).toBe(false);
+    // 第 11 周是单周但超出范围 → 被范围否决（范围最先）
+    expect(isWeekActive(11, spec)).toBe(false);
+  });
+
+  it("单双周以学期第几周为基准，不是日历年周", () => {
+    const task = block(TERM_START, 21, 0, 22, 0, {
+      id: "odd-week-class",
+      repeat: { ...weeklyTue, weeks: { from: 1, to: 16, parity: "odd", except: [] } },
+    });
+    const occurrences = expandOccurrences(
+      task,
+      new Date(hhmm("2026-09-14", 0, 0)),
+      new Date(hhmm("2026-10-12", 0, 0)),
+      TERM_START,
+    );
+    // 学期第 1、3 周的周二 → 09-15、09-29。
+    // 若按日历年周算（09-14 是第 38 周偶数），这里会错落在 09-22 / 10-06。
+    expect(occurrences.map((occurrence) => occurrence.start)).toEqual([
+      hhmm("2026-09-15", 21, 0),
+      hhmm("2026-09-29", 21, 0),
+    ]);
+    expect(termWeekOf("2026-09-14", TERM_START)).toBe(1);
+    expect(termWeekOf("2026-09-15", TERM_START)).toBe(1);
+    expect(termWeekOf("2026-09-22", TERM_START)).toBe(2);
+  });
+
+  it("termWeekOf ≤ 0（开学前）不产生 occurrence，不假装第 1 周", () => {
+    const task = block(TERM_START, 21, 0, 22, 0, {
+      id: "odd-week-class",
+      repeat: { ...weeklyTue, weeks: { from: 1, to: 16, parity: "all", except: [] } },
+    });
+    // 整段窗口都在开学前：09-01 是第 -1 周、09-08 是第 0 周
+    expect(
+      expandOccurrences(
+        task,
+        new Date(hhmm("2026-08-31", 0, 0)),
+        new Date(hhmm("2026-09-14", 0, 0)),
+        TERM_START,
+      ),
+    ).toEqual([]);
+    expect(termWeekOf("2026-09-01", TERM_START)).toBeLessThanOrEqual(0);
+    expect(termWeekOf("2026-09-08", TERM_START)).toBe(0);
+
+    // 跨开学日的窗口：只有开学后的周二留下
+    let mixed: Array<{ start: string }>;
+    mixed = expandOccurrences(
+      task,
+      new Date(hhmm("2026-09-07", 0, 0)),
+      new Date(hhmm("2026-09-22", 0, 0)),
+      TERM_START,
+    );
+    expect(mixed.map((occurrence) => occurrence.start)).toEqual([hhmm("2026-09-15", 21, 0)]);
+  });
+
+  it("排除周在展开层同样是否决票", () => {
+    const task = block(TERM_START, 21, 0, 22, 0, {
+      id: "except-week",
+      repeat: { ...weeklyTue, weeks: { from: 1, to: 16, parity: "all", except: [2] } },
+    });
+    const occurrences = expandOccurrences(
+      task,
+      new Date(hhmm("2026-09-14", 0, 0)),
+      new Date(hhmm("2026-10-12", 0, 0)),
+      TERM_START,
+    );
+    expect(occurrences.map((occurrence) => occurrence.start)).toEqual([
+      hhmm("2026-09-15", 21, 0),
+      hhmm("2026-09-29", 21, 0),
+      hhmm("2026-10-06", 21, 0),
+    ]);
+  });
+
+  it("没有 weeks 字段时行为与改动前完全一致（旧数据零迁移）", () => {
+    const task = block(TERM_START, 21, 0, 22, 0, { id: "plain-weekly", repeat: weeklyTue });
+    const occurrences = expandOccurrences(
+      task,
+      new Date(hhmm("2026-09-14", 0, 0)),
+      new Date(hhmm("2026-10-12", 0, 0)),
+      TERM_START,
+    );
+    expect(occurrences).toHaveLength(4);
+  });
+
+  it("带了 weeks 但没给开学日：按每周都上展开（宁可多排，不藏课）", () => {
+    const task = block(TERM_START, 21, 0, 22, 0, {
+      id: "no-term",
+      repeat: { ...weeklyTue, weeks: { from: 1, to: 16, parity: "odd", except: [] } },
+    });
+    const occurrences = expandOccurrences(
+      task,
+      new Date(hhmm("2026-09-14", 0, 0)),
+      new Date(hhmm("2026-10-12", 0, 0)),
+    );
+    expect(occurrences).toHaveLength(4);
+  });
+
+  it("端到端：单周课在双周那天不参与冲突判定", () => {
+    const config = { ...DEFAULT_DETECT_CONFIG, termStartDayKey: TERM_START };
+    const now = new Date(hhmm("2026-09-14", 9, 0));
+    const oddClass = block("2026-09-15", 21, 0, 22, 0, {
+      id: "odd",
+      title: "单周课",
+      location: "教室A",
+      repeat: { ...weeklyTue, weeks: { from: 1, to: 16, parity: "odd", except: [] } },
+    });
+
+    // 对撞任务放在"单周"那天（第 1 周周二 09-15）→ 报缓冲
+    const clashOnOdd = block("2026-09-15", 20, 30, 21, 0, { id: "c1", location: "教室A" });
+    expect(only(detect([oddClass, clashOnOdd], config, now), "buffer")).toHaveLength(1);
+
+    // 放在"双周"那天（第 2 周周二 09-22）→ 课根本不出现，不报
+    const clashOnEven = block("2026-09-22", 20, 30, 21, 0, { id: "c2", location: "教室A" });
+    expect(only(detect([oddClass, clashOnEven], config, now), "buffer")).toHaveLength(0);
   });
 });
