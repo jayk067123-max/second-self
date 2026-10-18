@@ -34,6 +34,8 @@
 | 同批指令 | 本卡 §1「约束」是同一批次下发的另一条指令（工程基线与分层约束），与本 Prompt 同时到达全栈手 |
 | 记录方式 | **逐字粘贴，未润色**。原文中的"四层分层"是当时措辞，与本项目最终口径「六层目录结构」不同，属真实演进痕迹，非笔误，保留原样（说明见 §6） |
 
+> **轮次说明**：本卡 §2 是**第一轮**指令。紧随其后还有**第二轮补充指令**（只修订数据层，砍掉 drizzle + better-sqlite3），已单独归档为 `001b-data-layer-decision.md`。两条不合并——合并会打乱先后顺序，也会抹掉"人类第一次说粗、后来被事实修正"的痕迹。
+
 ```text
 选题我拍了：B · 第二自我（方向8 个人效能与数字分身）—— 把你乱糟糟的课表/群通知/DDL 倒进去，它找冲突、给重排方案、写回时间轴，还有一个随完成度变化的极简数字分身。
 
@@ -114,12 +116,13 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 ### 3.4 选型收敛（技术文档第 3 章样本素材）
 
 **决策**：`data/` 层走**本地持久化适配层**（`StorageAdapter` + zustand persist + localStorage + JSON 导入导出），无服务端数据库、无迁移脚本、无 `db:push`。
-**理由（用户口径）**：SQLite 方案依赖 `better-sqlite3` 原生模块，评委机器上需 node-gyp + VS Build Tools 才能编译，会拖死「10 分钟复现」，因此否决。
+**理由（精确口径，与 `ARCHITECTURE.md` §1 第 39 行 / ADR-1 一致）**：`better-sqlite3` 确实提供预编译包，所以"装上它一定要编译"是错的；真正的风险是预编译产物与 Node 版本、运行平台强绑定，版本不匹配时安装会回退到本地编译，那时才需要 node-gyp + Visual Studio Build Tools，在评委机器上属于不可控失败。
+**理由（用户原始粗口径，保留于 `001b-data-layer-decision.md` §2，勿改）**：指令原话是"评委机器上没预编译包就要 node-gyp + Visual Studio Build Tools"——该措辞已于 2026-10-18 在 `ARCHITECTURE.md` ADR-1 中精化，指令原文不动。
 **当前状态（2026-10-18 16:10 复核）——依赖层已收敛，实现层未开始**：
 
 - ✅ 依赖层：四个依赖已删除（`npm install` 重跑 `removed 15 packages`），lock 已重生成，grep 无残留。
 - ✅ 文档层：`ARCHITECTURE.md` 定稿 v1.0 已写入 `StorageAdapter` + `local-adapter.ts` 方案；SQLite 仅作为 ADR-1 背景保留（第 157 行），属刻意留的演进痕迹。
-- ✅ 集成：`npm run verify` 通过（12 个单测全绿，输出见 §5）。
+- ✅ 集成：`npm run verify` 通过（2026-10-18 16:10 复核：6 文件 65 项全绿，输出见 §5.2）。
 - ⬜ 实现层：`src/data/storage.ts` / `local-adapter.ts` 尚未创建，`src/data/index.ts` 仍是占位导出且注释仍写 SQLite。
 
 > 结论口径：**技术选型已在依赖层与文档层收敛完成，实现层尚未开始**。可以证明"AI 给的 SQLite 方案被人类否决并从依赖里清掉"，**不能**声称"适配层已实现"。
@@ -135,8 +138,8 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 
 | # | 现象（AI 写歪/报错/跑不通） | 我的判断 | 我下的指令（原文） | 结果 |
 |---|---|---|---|---|
-| 1（子步1·选型） | AI 给出的数据层方案是 `drizzle-orm + better-sqlite3` 单文件 SQLite | 方案本身能跑，但**评的是 10 分钟复现**：`better-sqlite3` 是原生模块，评委机器上需 node-gyp + VS Build Tools 编译，装不上就白屏，复现风险远大于收益 | 「砍掉 drizzle + better-sqlite3，`data/` 层改成本地持久化适配层（storage adapter + zustand persist + localStorage + JSON 导入导出），不要服务端数据库、不要迁移脚本、不要 `db:push`。」（**原文待替换为逐字引用**） | **依赖层 + 文档层已落盘**；**适配层代码待落盘**（见 §3.4） |
-| 2（子步5·AI 编排） | `npm run verify` 在 typecheck 阶段报 `src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.` | 工作区在 `e7bc43c` 之后又往前走了，新落盘的 `src/ai/*` 未过 typecheck；单测 54/54 仍绿，说明问题只在类型层，不影响逻辑正确性 | （修复指令未留原文，属缺口；由落地方自行修正） | **已修复**：16:10 复核 6 文件 65 项全绿，红→绿全过程记录在 §5.1 / §5.2 |
+| 1（子步1·选型） | AI 给出的数据层方案是 `drizzle-orm + better-sqlite3` 单文件 SQLite | 方案本身能跑，但**评的是 10 分钟复现**：`better-sqlite3` 是原生模块，评委机器上需 node-gyp + VS Build Tools 编译，装不上就白屏，复现风险远大于收益 | 「砍掉 drizzle + better-sqlite3，`data/` 层改成本地持久化适配层（storage adapter + zustand persist + localStorage + JSON 导入导出），不要服务端数据库、不要迁移脚本、不要 `db:push`。」（**逐字原文已归档到 `001b-data-layer-decision.md` §2，含下发方/时间/渠道标注**） | **依赖层 + 文档层已落盘**；**适配层代码待落盘**（见 §3.4、001b §5） |
+| 2（子步5·AI 编排） | `npm run verify` 在 typecheck 阶段报 `src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.` | 工作区在 `e7bc43c` 之后又往前走了，新落盘的 `src/ai/*` 未过 typecheck；单测 54/54 仍绿，说明问题只在类型层，不影响逻辑正确性 | **事后补记 · 2026-10-18 · 由修复者本人回忆**（待回填：现象 / 定位 / 改法 三行） | **已修复**：16:10 复核 6 文件 65 项全绿，红→绿全过程记录在 §5.1 / §5.2 |
 | 3-6 | 待 6 子步真实跑完后补 | | | |
 
 ## 5. 最终结果（可验证）
