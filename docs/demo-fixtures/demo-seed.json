@@ -1,0 +1,93 @@
+{
+  "seedVersion": "v1",
+  "purpose": "演示初始状态：用于镜头②（冲突 → 三方案 → 落位）。不经过 AI 解析，由界面「导入 JSON」直接载入。",
+  "demoNow": "2026-10-19T09:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "howToLoad": "界面右上角「导入 JSON」→ 选择本文件 → 弹确认「将覆盖当前 18 条任务」→ 确认。导入后不得再触发「解析这段话」，否则会与 notice.txt 路径混淆。",
+  "relationToNoticeTxt": "与 docs/demo-fixtures/notice.txt 完全独立：notice.txt 走「粘贴 → AI 解析」路径（体检 AI 能力），本文件走「直接导入」路径（体检冲突检测与重排 UI）。两条路径的数据不得互相覆盖或混用。",
+  "tasks": [
+    { "id": "t_lin_mon",  "title": "线性代数",       "date": "2026-10-19", "start": "08:00", "end": "09:40", "durationMin": 100, "deadline": null, "priority": "medium", "location": "三教201",     "locked": true,  "flexible": false, "status": "todo" },
+    { "id": "t_marx",     "title": "马克思主义基本原理", "date": "2026-10-20", "start": "08:00", "end": "09:40", "durationMin": 100, "deadline": null, "priority": "medium", "location": "三教105",     "locked": true,  "flexible": false, "status": "todo" },
+    { "id": "t_lin_tue",  "title": "线性代数",       "date": "2026-10-20", "start": "10:00", "end": "11:40", "durationMin": 100, "deadline": null, "priority": "medium", "location": "三教201",     "locked": true,  "flexible": false, "status": "todo" },
+    { "id": "t_phys_tue", "title": "大学物理",       "date": "2026-10-20", "start": "13:30", "end": "15:10", "durationMin": 100, "deadline": null, "priority": "medium", "location": "二教304",     "locked": true,  "flexible": false, "status": "todo" },
+    { "id": "t_prog",     "title": "程序设计实验",    "date": "2026-10-20", "start": "15:30", "end": "17:10", "durationMin": 100, "deadline": null, "priority": "medium", "location": "实验楼B305",  "locked": true,  "flexible": false, "status": "todo" },
+    { "id": "t_meet",     "title": "社团负责人会议",   "date": "2026-10-20", "start": "18:30", "end": "21:00", "durationMin": 150, "deadline": null, "priority": "high",   "location": "学院楼301",   "locked": false, "flexible": false, "status": "todo" },
+    { "id": "t_weekly",   "title": "线上例会",       "date": "2026-10-20", "start": "21:00", "end": "21:30", "durationMin": 30,  "deadline": null, "priority": "medium", "location": "线上",        "locked": false, "flexible": true,  "status": "todo" },
+    { "id": "t_dachuang", "title": "大创讨论",       "date": "2026-10-20", "start": "22:00", "end": "23:30", "durationMin": 90,  "deadline": null, "priority": "medium", "location": "线上",        "locked": false, "flexible": true,  "status": "todo" },
+
+    { "id": "t_lab_meet","title": "实验室例会",      "date": "2026-10-21", "start": "19:00", "end": "21:00", "durationMin": 120, "deadline": null, "priority": "high",   "location": "实验楼B305",  "locked": false, "flexible": false, "status": "todo" },
+    { "id": "t_defense", "title": "答辩准备",        "date": "2026-10-21", "start": "19:00", "end": "21:00", "durationMin": 120, "deadline": null, "priority": "high",   "location": "图书馆研讨室", "locked": false, "flexible": false, "status": "todo", "estateMin": 120 },
+
+    { "id": "t_ds_thu",   "title": "数据结构",       "date": "2026-10-22", "start": "14:00", "end": "15:40", "durationMin": 100, "deadline": null, "priority": "medium", "location": "实验楼A201",  "locked": true,  "flexible": false, "status": "todo" },
+    { "id": "t_phys_fri", "title": "大学物理",       "date": "2026-10-23", "start": "10:00", "end": "11:40", "durationMin": 100, "deadline": null, "priority": "medium", "location": "二教304",     "locked": true,  "flexible": false, "status": "todo" },
+    { "id": "t_tutor",    "title": "高数补课",       "date": "2026-10-23", "start": "16:00", "end": "18:00", "durationMin": 120, "deadline": null, "priority": "high",   "location": "二教304",     "locked": true,  "flexible": false, "status": "todo" },
+
+    { "id": "t_volunteer","title": "校运会志愿者培训", "date": "2026-10-24", "start": "09:00", "end": "11:30", "durationMin": 150, "deadline": null, "priority": "medium", "location": "操场",        "locked": false, "flexible": true,  "status": "todo" },
+    { "id": "t_job",      "title": "启航兼职",       "date": "2026-10-25", "start": "13:00", "end": "18:00", "durationMin": 300, "deadline": null, "priority": "high",   "location": "鼓楼校区",     "locked": true,  "flexible": false, "status": "todo" },
+
+    { "id": "t_defense_ddl", "title": "组队项目中期答辩材料", "date": null, "start": null, "end": null, "durationMin": 0, "deadline": "2026-10-31T15:00", "priority": "high",   "location": null, "locked": false, "flexible": true, "status": "todo", "estateMin": 480 },
+    { "id": "t_scholar",     "title": "奖学金申请表签字",   "date": null, "start": null, "end": null, "durationMin": 0, "deadline": "2026-10-31T23:59", "priority": "high",   "location": "行政楼205", "locked": false, "flexible": true, "status": "todo", "estateMin": 60 },
+    { "id": "t_calc",        "title": "微积分作业",        "date": null, "start": null, "end": null, "durationMin": 0, "deadline": "2026-10-27T23:59", "priority": "medium", "location": null, "locked": false, "flexible": true, "status": "todo", "estateMin": 120 }
+  ],
+  "expectedConflicts": [
+    {
+      "conflictId": "overlap:t_defense+t_lab_meet",
+      "conflictType": "overlap",
+      "involvedTaskIds": ["t_lab_meet", "t_defense"],
+      "severity": "high",
+      "evidence": { "overlapMin": 120, "shorterTaskMin": 120, "ratio": 1.0 },
+      "humanMessage": "周三 19:00 的两件事完全重叠，你被安排了两次",
+      "note": "双方 flexible=false 且均非 locked，按规则不降档，出 high"
+    },
+    {
+      "conflictId": "buffer:t_meet+t_weekly",
+      "conflictType": "buffer",
+      "involvedTaskIds": ["t_meet", "t_weekly"],
+      "severity": "high",
+      "evidence": { "gapMin": 0, "requiredMin": 30, "tolerance": 5, "threshold": 15 },
+      "humanMessage": "会议 21:00 才结束，例会 21:00 就开始，至少要留 30 分钟",
+      "note": "首尾相接不计 overlap，只出 buffer——这条同时验证 A1 与 A2 的边界"
+    },
+    {
+      "conflictId": "overload:2026-10-20",
+      "conflictType": "overload",
+      "involvedTaskIds": ["t_marx", "t_lin_tue", "t_phys_tue", "t_prog", "t_meet", "t_weekly", "t_dachuang"],
+      "severity": "medium",
+      "evidence": { "date": "2026-10-20", "usedMin": 670, "capacityMin": 600, "overMin": 70, "taskCount": 7 },
+      "humanMessage": "周二已排 11 小时 10 分，超出每天 10 小时上限 1 小时 10 分"
+    }
+  ],
+  "expectedProposalTargets": {
+    "note": "三套方案由确定性策略生成，不经 LLM；LLM 只在「生成重排方案」按钮后给建议、并由本地校验器裁决。以下为演示必须成立的目标，验收时逐条对比。",
+    "A": {
+      "label": "最小改动之外的保截止日策略",
+      "reasonText": "先清 10-31 两个截止，10-26 只做答辩材料",
+      "mustHold": ["把 t_defense 从 10-21 19:00–21:00 移到 2026-10-26 09:00–11:00（10-26 全天无其他任务）", "t_defense_ddl 与 t_scholar 两个 10-31 截止的准备量被前置到 10-26 之后的工作日", "overlap 冲突消失，冲突数 3→2"],
+      "expectedDeviationMin": 600
+    },
+    "B": {
+      "label": "保精力策略",
+      "reasonText": "答辩准备挪到上午 9 点，避开晚间例会",
+      "mustHold": ["把 t_defense 移到 2026-10-22 09:00–11:00（周四上午为空）", "t_lab_meet 原地不动", "overlap 冲突消失，冲突数 3→2"],
+      "expectedDeviationMin": 300
+    },
+    "C": {
+      "label": "保缓冲策略",
+      "reasonText": "例会前移 30 分钟，之间留 30 分钟缓冲",
+      "mustHold": ["t_lab_meet 改为 18:30–20:30", "t_defense 改为 21:00–23:00", "两任务间隔 = 30 分钟 ≥ gapMin 30 − 容差 5", "overlap 冲突消失，冲突数 3→2"],
+      "expectedDeviationMin": 60,
+      "sacrifice": "周三 23:00 才结束，超出作息建议"
+    },
+    "allProposals": {
+      "lockedTouched": 0,
+      "lockedTaskIds": ["t_lin_mon", "t_marx", "t_lin_tue", "t_phys_tue", "t_prog", "t_ds_thu", "t_phys_fri", "t_tutor", "t_job"],
+      "note": "9 条 locked 任务一条都不许被移动，否则该方案作废，卡片摘要的「固定课被挪 0 条」必须显示绿色对勾"
+    }
+  },
+  "falsePositiveChecks": [
+    "周六 t_volunteer 11:30 结束 → t_job 13:00 开始（同为 10-24），gap=90 ≥ 60−5，不报缓冲不足",
+    "周一首尾只有 1 条任务，不判超载（任务数 < 3）",
+    "完成状态任务数为 0，不影响可用量计算",
+    "t_weekly 21:00–21:30 与 t_dachuang 22:00–23:30 间隔 30 ≥ 25，不报"
+  ]
+}
