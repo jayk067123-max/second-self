@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/* ============================================================
+ * 设计令牌（Design Tokens）
+ * ------------------------------------------------------------
+ * 全部通过 Tailwind v4 的 @theme 变量化，禁止在组件里写死色值/字号。
+ * 命名规则：--color-{域}-{阶}  --radius-*  --shadow-*  --text-*
+ * 换肤只需改本文件，不改任何组件。
+ * ============================================================ */
+@theme {
+  /* ---- 中性色：深色底，长时间阅读不刺眼 ---- */
+  --color-ink-950: #070b12;
+  --color-ink-900: #0b1220;
+  --color-ink-800: #111a2b;
+  --color-ink-700: #1b2740;
+  --color-ink-600: #2a3a58;
+  --color-ink-400: #6b7f9e;
+  --color-ink-300: #93a5bf;
+  --color-ink-200: #b9c6d8;
+  --color-ink-100: #dbe4f0;
+  --color-ink-50: #eef3fa;
+
+  /* ---- 品牌主色 ---- */
+  --color-brand-300: #a9c2ff;
+  --color-brand-400: #7ba4ff;
+  --color-brand-500: #5b8cff;
+  --color-brand-600: #3f6fe0;
+  --color-brand-700: #2f55b4;
+
+  /* ---- 强调色（状态、关键动作）---- */
+  --color-accent-300: #8bf0dc;
+  --color-accent-400: #4fe3c1;
+  --color-accent-500: #2fcfae;
+  --color-accent-600: #1ea88b;
+
+  /* ---- 语义色 ---- */
+  --color-ok-400: #63d98a;
+  --color-ok-500: #3fbf6a;
+  --color-warn-400: #ffcc66;
+  --color-warn-500: #f0a92e;
+  --color-danger-400: #ff7a85;
+  --color-danger-500: #e84b5c;
+
+  /* ---- 圆角 ---- */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-card: 1.25rem;
+  --radius-pill: 999px;
+
+  /* ---- 阴影 / 描边 ---- */
+  --shadow-card: inset 0 1px 0 0 rgb(255 255 255 / 0.05), 0 18px 40px -24px rgb(0 0 0 / 0.85);
+  --shadow-pop: 0 24px 60px -20px rgb(0 0 0 / 0.9);
+  --shadow-glow: 0 0 0 1px rgb(91 140 255 / 0.35), 0 12px 32px -16px rgb(91 140 255 / 0.55);
+
+  /* ---- 字号层级（名称即用途，避免正文各自定字号）---- */
+  --text-display: 3.25rem;
+  --text-display--line-height: 1.06;
+  --text-display--letter-spacing: -0.03em;
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.22;
+  --text-title--letter-spacing: -0.02em;
+  --text-section: 1.125rem;
+  --text-section--line-height: 1.4;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.65;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.5;
+  --text-micro: 0.75rem;
+  --text-micro--line-height: 1.45;
+
+  /* ---- 布局 ---- */
+  --spacing-gutter: 1.5rem;
+
+  /* ---- 字体：只用系统字体栈，构建期不联网 ---- */
+  --font-sans: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    system-ui, -apple-system, sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ink-950);
+    color: var(--color-ink-100);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-600);
+    color: var(--color-ink-50);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-400);
+    outline-offset: 2px;
+  }
+}
+
+/* 页面底纹：极浅的网格，避免大片纯色显得空 */
+@utility bg-grid {
+  background-image: linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
