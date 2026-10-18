@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TaskDraftSchema, TaskSchema } from "./task";
+import { CoverageReportSchema } from "../completeness";
 import { ReplanPlanSchema } from "../planner";
 
 /**
@@ -36,6 +37,11 @@ export const ParseTasksSuccessSchema = z.object({
   timings: z.array(PhaseTimingSchema),
   /** 被契约拦下的条目说明（部分成功时给用户看） */
   droppedIssues: z.array(z.string()),
+  /**
+   * 完整性校验报告：原文每一行有没有归属。
+   * 这是「不许静默丢弃」的**硬证据**——服务端拿原文重算，不采信模型自述。
+   */
+  coverage: CoverageReportSchema,
 });
 export type ParseTasksSuccess = z.infer<typeof ParseTasksSuccessSchema>;
 
@@ -55,6 +61,41 @@ export const ParseTasksResponseSchema = z.discriminatedUnion("ok", [
   ParseTasksFailureSchema,
 ]);
 export type ParseTasksResponse = z.infer<typeof ParseTasksResponseSchema>;
+
+/* ---------------- 图片 → 任务 ---------------- */
+
+/**
+ * 允许的图片类型。只收这三种：iPhone 默认 HEIC 浏览器不解码，
+ * 前端会先转成 JPEG 再上传（转换失败时明确报错，不悄悄失败）。
+ */
+export const ALLOWED_IMAGE_MIME = ["image/png", "image/jpeg", "image/webp"] as const;
+export type AllowedImageMime = (typeof ALLOWED_IMAGE_MIME)[number];
+
+/**
+ * base64 data URL 的长度上限（字符数）。
+ * 客户端会先把长边压到 1400px、JPEG 质量 0.8，正常截图约 200–600KB，
+ * 留到 3.2MB 是给"用户坚持传原图"的情形兜底，同时防止请求体被打爆。
+ */
+export const MAX_IMAGE_DATA_URL_LENGTH = 3_200_000;
+
+const IMAGE_DATA_URL_PREFIX_RE = /^data:(image\/(?:png|jpeg|webp));base64,/;
+
+export const ParseImageRequestSchema = z.object({
+  /** data:image/png;base64,... —— 客户端压缩后上传，服务端不再做解码 */
+  imageDataUrl: z
+    .string()
+    .min(64, "图片内容为空")
+    .max(MAX_IMAGE_DATA_URL_LENGTH, "图片太大，请压缩后再传（建议长边 ≤1400px）")
+    .refine((value) => IMAGE_DATA_URL_PREFIX_RE.test(value), "只支持 PNG / JPEG / WebP 的 base64 data URL"),
+  /** 客户端本地日期，模型据此换算"周三""下周一" */
+  dayKey: z.string().regex(DAY_KEY_RE, "dayKey 必须是 YYYY-MM-DD"),
+  /** 用户附带的半句话（可选）。有就比没有准，但没有也必须能跑 */
+  hint: z.string().trim().max(500).optional(),
+});
+export type ParseImageRequest = z.infer<typeof ParseImageRequestSchema>;
+
+/** 图片路径与文本路径共用同一个响应契约，前端只需一套渲染逻辑 */
+export type ParseImageResponse = ParseTasksResponse;
 
 /* ---------------- 重排 ---------------- */
 

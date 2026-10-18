@@ -127,9 +127,20 @@ async function main(): Promise<void> {
 
   if (result.ok) {
     const needReview = result.tasks.filter((task) => task.needsReview === true).length;
+    const coverage = result.coverage;
     process.stdout.write(
       `\n[summary] 解析出 ${result.tasks.length} 条任务，其中 ${needReview} 条待人工确认（needsReview）\n`,
     );
+    process.stdout.write(
+      coverage.verified
+        ? `[coverage] 原文 ${coverage.totalLines} 行 → 已归属 ${coverage.coveredCount} 行` +
+            `（${Math.round(coverage.ratio * 100)}%），日期上下文 ${coverage.contextLines.length} 行，` +
+            `没看懂 ${coverage.uncovered.length} 行\n`
+        : `[coverage] 图片路径：本地未复核原文（${coverage.uncovered.length} 条需人工核对）\n`,
+    );
+    for (const line of coverage.uncovered) {
+      process.stdout.write(`[coverage] 待确认 · 第 ${line.lineNo} 行：${line.text}（${line.reason}）\n`);
+    }
     if (options.outPath !== null) {
       process.stdout.write(`[summary] 结果已写入 ${options.outPath}\n`);
     }

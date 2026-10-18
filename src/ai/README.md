@@ -23,3 +23,21 @@
 ## 降级
 未配置 `LLM_API_KEY` 时自动进入 `demo` 模式：返回结构合法的固定响应，全链路照常走通。
 这条保证了「评委零密钥也能在 10 分钟内看到完整产品流程」。
+
+**但图片路径是例外**：demo 模式没有多模态能力，`parseTasksFromImage` 直接返回
+`ok:false` + 可读原因（"请把图里的文字打一句话发我"），绝不返回固定假任务。
+理由：假成功比失败更伤——用户会以为图里的内容已经进去了。
+
+## 两条录入路径（同一份契约）
+| 路径 | 入口 | 输入 | 完整性校验 |
+|---|---|---|---|
+| 文本 | `POST /api/ai/parse-tasks` | 粘贴原文 | `domain/completeness.checkCoverage` 用原文逐行重算（`verified:true`） |
+| 图片 | `POST /api/ai/parse-image` | base64 data URL（长边 1400px，客户端压好再传） | `unverifiedCoverage`（`verified:false`，本地没有原文可复核） |
+
+两条路径共用 `AiParseOutputSchema`、`validateDrafts`（逐条再过 Draft 契约）与重试逻辑，
+差别只在消息体（多模态消息见 `guarded.ts` 的 `imageDataUrl`）与完整性校验方式。
+
+## 完整性（`domain/completeness.ts`）
+解析是概率行为，模型可能跳过某一行而不报错。所以服务端**不采信模型自述**，
+拿原文重算一遍：每行要么有归属、要么进 `coverage.uncovered`（前端「没看懂，请你确认」），
+要么是纯日期/星期上下文。漏一行 DDL 比解析错更严重 —— 解析错能改，漏掉发现不了。

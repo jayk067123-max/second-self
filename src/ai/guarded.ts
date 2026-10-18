@@ -30,6 +30,11 @@ export interface StructuredCallOptions<T> {
   system: string;
   /** 第一次调用的 user 内容 */
   user: string;
+  /**
+   * 可选图片（data URL）。给了就走多模态消息：文本 + 图。
+   * 图片路径与文本路径共用同一份契约与同一套重试逻辑 —— 差别只在消息体。
+   */
+  imageDataUrl?: string;
   /** 修复轮：把上一次的失败原因拼进 user 内容 */
   buildRepairUser: (issues: string[]) => string;
   config: AiRuntimeConfig;
@@ -74,6 +79,14 @@ export async function callStructuredJson<T>(
     const t0 = now();
     let content: string;
     try {
+      const userContent = options.imageDataUrl
+        ? [
+            { type: "text" as const, text: attempt === 1 ? options.user : options.buildRepairUser(issues) },
+            { type: "image_url" as const, image_url: { url: options.imageDataUrl, detail: "high" as const } },
+          ]
+        : attempt === 1
+          ? options.user
+          : options.buildRepairUser(issues);
       const completion = await client.chat.completions.create({
         model: config.model,
         temperature: attempt === 1 ? 0.2 : 0,
@@ -81,10 +94,7 @@ export async function callStructuredJson<T>(
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: options.system },
-          {
-            role: "user",
-            content: attempt === 1 ? options.user : options.buildRepairUser(issues),
-          },
+          { role: "user", content: userContent },
         ],
       });
       content = completion.choices[0]?.message?.content ?? "";

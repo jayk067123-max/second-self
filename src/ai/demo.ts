@@ -34,6 +34,14 @@ const SHORT_DATE_RE = /(\d{1,2})\s*[月/-]\s*(\d{1,2})\s*[日号]?/;
 const WEEKDAY_RE = /(下下|下|本|这|每)?\s*(?:周|星期)\s*([一二三四五六日天])/;
 /** 更正行：「【更正】」「【再更正】」「（更正）」——应并入上一条任务，不新增 */
 const CORRECTION_RE = /^\s*[【（(]?\s*再?更正\s*[】）)]?/;
+/**
+ * 群消息抬头：「@全体成员 提醒几件事」「【通知】」这类行不是日程。
+ * 只有在整行不含任何时间信息时才按抬头处理 ——
+ * 「@全体成员 明天下午3点开班会」仍然必须变成任务，不能被杀掉。
+ * 注意：这里**跳过不等于丢掉**，跳过的行会被 domain/completeness 重算出来，
+ * 出现在「没看懂，请你确认」列表里，用户一眼能看到。
+ */
+const ANNOUNCEMENT_RE = /^\s*(?:@全体成员|@所有人|【通知】|【群公告】|群公告)/;
 
 const WEEKDAY_INDEX: Record<string, number> = {
   一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 0, 天: 0,
@@ -132,6 +140,16 @@ export function demoParseTasks(text: string, dayKey: string): TaskDraft[] {
 
     const title = cleanTitle(line);
     if (title.length === 0) continue;
+
+    // 群消息抬头且不含任何时间线索 → 不是任务，交给完整性校验报为"待确认"
+    if (
+      ANNOUNCEMENT_RE.test(line) &&
+      start === null &&
+      deadline === null &&
+      weekday === null
+    ) {
+      continue;
+    }
 
     // 更正行不新增任务：把时间/时长覆盖到上一条，并把它标成待确认（发生过更正＝不确定）
     if (isCorrection) {
