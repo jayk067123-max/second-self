@@ -38,8 +38,8 @@
 ### 2. 安装与启动（唯一启动命令）
 
 ```bash
-git clone <仓库地址待填>
-cd vibe-coding-2026
+git clone https://github.com/jayk067123-max/second-self.git
+cd second-self
 npm ci && npm run dev
 ```
 
@@ -73,7 +73,7 @@ npm ci && npm run dev
 - [ ] 首页返回 HTTP 200，浏览器控制台无红色报错
 - [ ] `curl http://localhost:3000/api/health` 返回 `200`，body 含 `"status":"ok"` 且 `"aiMode":"demo"`（未填 key 时）
 - [ ] 界面能见到 `[demo mode]` 标识
-- [ ] `npm run verify` 全绿（看到 `Tests  N passed` 全部通过即可；用例数以 `npm test` 实际输出为准，不以固定数字为准——干净副本实测为 6 文件 65 项）
+- [ ] `npm run verify` 全绿（看到 `Tests  N passed` 全部通过即可；**不以固定数字为准**，用例数以 `npm test` 实际输出为准，冻结日再刷新一次）
 - [ ] `npm run build` 通过
 
 > 说明：实测中可以看到 `/api/health` 的 `checks` 里仍有两句旧文案（`data.write` 提到 SQLite、各层 note 写"业务实现待选题确认"），属已知待修项，不影响复现；详见技术文档 4.6。
@@ -88,12 +88,15 @@ npm ci && npm run dev
 | 数据刷新后消失 | 浏览器隐私模式 / 禁用了 localStorage | 换普通窗口；用「导出 JSON」备份 |
 | `/api/health` 返回 `degraded` | 自检项未通过 | 看返回体里的 `checks` 哪一项 `ok:false` |
 
-### 6. 尚未批量交付的两步（会随功能落地补齐）
+### 6. 演示与自检命令（可选，不影响复现门槛）
 
-| 步骤 | 状态 |
+| 命令 | 用途 |
 |---|---|
-| `npm run parse` 文本解析命令 | 预计 10-21 到位 |
-| demo seed 数据导入（`demo-seed.json`） | 待选题定义书的 seed 文件交付后补本节 |
+| `npm run parse -- docs/demo-fixtures/notice.txt` | 走一遍「文本 → 结构化任务」全链路，把 JSON 打到终端；无 key 时首行打印 `[demo mode]`，第二行打印 `[clock] dayKey=2026-10-19`（演示时钟，不读系统时间） |
+| 界面「导入 JSON」→ `docs/demo-fixtures/demo-seed.json` | 导入 18 条演示数据（3 条冲突），用于看冲突检测、方案对比与「固定块被挪 0 条」 |
+| `npm run verify` | typecheck + lint + test，提交前自检 |
+
+> `docs/demo-fixtures/` 下的文件是**已冻结**的演示素材（见同目录 `FROZEN.md` 的字节与哈希），请勿修改；`04-排班混合-回归用.txt` 仅作回归测试，不用于演示。
 
 ---
 
