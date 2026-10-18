@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_PLAN_OPTIONS,
   DEFAULT_REFLOW_CONFIG,
   adjudicateProposal,
   applyPlan,
   applyProposal,
-  buildLocalPlans,
+  buildLocalProposals,
   judgeProposals,
   summarizePlan,
   summarizeProposal,
@@ -592,57 +591,48 @@ describe("applyPlan", () => {
   });
 });
 
-describe("buildLocalPlans · 本地兜底生成器", () => {
-  const tasks: Task[] = [
-    todo(120, { title: "紧急论文", priority: 1, deadline: hhmm(NEXT_DAY, 23, 0) }),
-    todo(90, { title: "常规复习", priority: 2 }),
-    todo(45, { title: "弹性整理", priority: 3 }),
-    todo(60, { title: "已完成的", priority: 1, done: true }),
-  ];
-
-  it("没有任何任务时返回空数组", () => {
-    expect(buildLocalPlans([], DAY)).toEqual([]);
+describe("buildLocalProposals · 无模型时的确定性兜底", () => {
+  it("没有冲突时不硬造方案", () => {
+    const tasks = [
+      block(DAY, 9, 0, 10, 0, { id: "a", location: "教室A" }),
+      block(DAY, 12, 0, 13, 0, { id: "b", location: "教室A" }),
+    ];
+    expect(buildLocalProposals(tasks, inputs)).toEqual([]);
   });
 
-  it("生成的每一套方案都通过本地校验（性质断言）", () => {
-    const plans = buildLocalPlans(tasks, DAY);
-    expect(plans.length).toBeGreaterThan(0);
-    for (const plan of plans) {
-      const result = validatePlan(plan, tasks, DAY, DEFAULT_PLAN_OPTIONS);
-      expect(result.issues).toEqual([]);
-      expect(result.ok).toBe(true);
+  it("有冲突时产出提案，且每一套都过了裁决器（冲突数下降、locked 未动）", () => {
+    const tasks = baseline();
+    const proposals = buildLocalProposals(tasks, inputs);
+    expect(proposals.length).toBeGreaterThan(0);
+    for (const proposal of proposals) {
+      expect(proposal.proposal.conflictsAfter).toBeLessThan(proposal.proposal.conflictsBefore);
+      expect(proposal.proposal.lockedTouched).toBe(0);
+      expect(proposal.proposal.ops.length).toBeGreaterThan(0);
+      expect(proposal.tasksAfter).toHaveLength(tasks.length);
     }
   });
 
-  it("完成的任务不会进入方案", () => {
-    const plans = buildLocalPlans(tasks, DAY);
-    const doneId = tasks.find((t) => t.done)?.id;
-    expect(doneId).toBeDefined();
-    for (const plan of plans) {
-      expect(plan.blocks.some((b) => b.taskId === doneId)).toBe(false);
-    }
+  it("候选全是固定块时返回空（挪不动就不提议）", () => {
+    const tasks = [
+      block(DAY, 9, 0, 10, 0, { id: "a", location: "教室A", locked: true }),
+      block(DAY, 10, 0, 11, 0, { id: "b", location: "教室A", locked: true }),
+    ];
+    expect(buildLocalProposals(tasks, inputs)).toEqual([]);
   });
 
-  it("结果确定：同样输入两次生成完全一致", () => {
-    expect(buildLocalPlans(tasks, DAY)).toEqual(buildLocalPlans(tasks, DAY));
+  it("确定性：同输入两次结果完全一致", () => {
+    const tasks = baseline();
+    expect(JSON.stringify(buildLocalProposals(tasks, inputs))).toBe(
+      JSON.stringify(buildLocalProposals(tasks, inputs)),
+    );
   });
 
-  it("时间块不越界、不重叠", () => {
-    const plans = buildLocalPlans(tasks, DAY);
-    for (const plan of plans) {
-      const ms = plan.blocks
-        .map((b) => ({ s: Date.parse(b.start), e: Date.parse(b.end) }))
-        .sort((x, y) => x.s - y.s);
-      for (let i = 1; i < ms.length; i += 1) {
-        expect(ms[i]?.s).toBeGreaterThanOrEqual(ms[i - 1]?.e ?? 0);
-      }
-      expect(ms[0]?.s).toBeGreaterThanOrEqual(Date.parse(hhmm(DAY, 7, 0)));
-      expect(ms[ms.length - 1]?.e).toBeLessThanOrEqual(Date.parse(hhmm(DAY, 23, 0)));
-    }
+  it("now 不合法时抛错", () => {
+    expect(() => buildLocalProposals(baseline(), { now: new Date(Number.NaN) })).toThrow(TypeError);
   });
 });
 
-describe("summarizePlan", () => {
+describe("summarizePlan · 旧方案摘要（ReplanPanel 当前还在读它）", () => {
   it("汇总覆盖项数、总时长与结束时间", () => {
     const a = todo(60);
     const b = todo(30);
