@@ -122,7 +122,7 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 
 - ✅ 依赖层：四个依赖已删除（`npm install` 重跑 `removed 15 packages`），lock 已重生成，grep 无残留。
 - ✅ 文档层：`ARCHITECTURE.md` 定稿 v1.0 已写入 `StorageAdapter` + `local-adapter.ts` 方案；SQLite 仅作为 ADR-1 背景保留（第 157 行），属刻意留的演进痕迹。
-- ✅ 集成：`npm run verify` 通过（2026-10-18 16:10 复核：6 文件 65 项全绿，输出见 §5.2）。
+- ✅ 集成：`npm run verify` 通过（**以 `npm test` 输出为准**；撰写时 8 文件 / 149 项全绿，当日曾报 65、122 两值，均在涨，故不写死）。
 - ⬜ 实现层：`src/data/storage.ts` / `local-adapter.ts` 尚未创建，`src/data/index.ts` 仍是占位导出且注释仍写 SQLite。
 
 > 结论口径：**技术选型已在依赖层与文档层收敛完成，实现层尚未开始**。可以证明"AI 给的 SQLite 方案被人类否决并从依赖里清掉"，**不能**声称"适配层已实现"。
@@ -140,7 +140,9 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 |---|---|---|---|---|
 | 1（子步1·选型） | AI 给出的数据层方案是 `drizzle-orm + better-sqlite3` 单文件 SQLite | 方案本身能跑，但**评的是 10 分钟复现**：`better-sqlite3` 是原生模块，评委机器上需 node-gyp + VS Build Tools 编译，装不上就白屏，复现风险远大于收益 | 「砍掉 drizzle + better-sqlite3，`data/` 层改成本地持久化适配层（storage adapter + zustand persist + localStorage + JSON 导入导出），不要服务端数据库、不要迁移脚本、不要 `db:push`。」（**逐字原文已归档到 `001b-data-layer-decision.md` §2，含下发方/时间/渠道标注**） | **依赖层 + 文档层已落盘**；**适配层代码待落盘**（见 §3.4、001b §5） |
 | 2（子步5·AI 编排） | `npm run verify` 在 typecheck 阶段报 `src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.` | 工作区在 `e7bc43c` 之后又往前走了，新落盘的 `src/ai/*` 未过 typecheck；单测 54/54 仍绿，说明问题只在类型层，不影响逻辑正确性 | **事后补记 · 2026-10-18 · 由修复者本人回忆**（待回填：现象 / 定位 / 改法 三行） | **已修复**：16:10 复核 6 文件 65 项全绿，红→绿全过程记录在 §5.1 / §5.2 |
-| 3-6 | 待 6 子步真实跑完后补 | | | |
+| 3（子步1-3·越界） | **「骨架轮不许写业务逻辑」这条被打破**：`cf1b37a` 同时含 `src/domain/conflicts.ts`（194 行）、`src/domain/planner.ts`（269 行）等业务纯函数，与目录骨架、设计令牌、落地页并成一个提交 | 本条是意图卡禁止事项①的违反。**不美化、不写成"骨架轮零业务"**——评委 `git show cf1b37a --stat` 一眼可见。原因：16:07 落地方先写了 domain，交付官 16:07 把骨架与 domain 一起提交，并行开发下提交边界没守住 | 未下发（无拦截指令留痕，属缺口） | **保留原禁止事项不改**，如实记为偏差；后续轮次按实际归属归链（conflicts→003、planner→004），不把这部分算作骨架轮成果 |
+| 4（并行冲突） | 逻辑手在 UI 开发期间重写 `src/domain/conflicts.ts`（4 类规则 + severity + evidence + ruleVersion + 注入 now），落地方的调用方全部失效：`ConflictPanel` 用的 `conflictType/severity/humanMessage` 不匹配、planner 页 `detectConflicts` 签名变化，并连带 3 处红（`resolveVenue` 写死 10/60/30 未读 config、`PRIORITY_BAND[task.priority]` TS7053、`scripts/parse.ts` 的 `arg` 可能 undefined） | 这是**并行写冲突**，不是单点 bug：两个 Bot 同时改同一契约。正确处置不是回滚自己的版本，而是**以新契约为准重写调用方** | 未下发（处置方式由全栈手自定，原文缺口） | 已收敛：修完 122 个单测全绿（当时值）。**建议作为 003 链的核心素材**，见下 |
+| 5-6 | 待 6 子步真实跑完后补 | | | |
 
 ## 5. 最终结果（可验证）
 
@@ -174,6 +176,7 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 
 - 验收标准逐条对齐：① ⬜（未跑 `npm ci && npm run dev` 取首屏截图）② ✅ 六层目录齐全（`app/ui/domain/data/ai/shared`）③ ◐ `tests/ai/mode.test.ts` 3 项 + `tests/ai/demo.test.ts` 11 项通过，证明 demo 模式有实现，但"白屏/友好提示"未在浏览器验证 ④ ✅ **16:10 复核通过**（6 文件 65 项；16:08 曾红，原始记录保留在 §5.1）⑤ ◐ 无 `.env`、无 SQLite 依赖；但工作区仍有未提交改动
 - 偏差说明：`verify` 通过 ≠ 产品可用。首屏、demo 模式提示、`npm ci` 全新安装三项仍待真实浏览器与干净环境验证，未做就记为未做。
+- **重大偏差（如实记录，不美化）**：**「骨架轮不写业务逻辑」这条禁止事项被打破**。`cf1b37a` 提交里已含 `src/domain/conflicts.ts`（194 行）、`src/domain/planner.ts`（269 行）等业务纯函数，即业务逻辑随骨架一起落地。因此 001 不能表述为"骨架轮零业务"；正确表述是「**骨架 + 领域纯函数合并提交，业务逻辑随骨架提前落地**」。原因与时序见 §4 第 3 行。
 
 ### 5.1 二次复核（2026-10-18 16:08，**记录一次真实的红**）
 
@@ -249,7 +252,7 @@ src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never
 
 > 这条链路本身是可复现性的证据：**同一份验收命令在 5 分钟内经历过绿→红→绿**，每次都是实跑，没有一次是抄别人的结论。红的那段保留在 §5.1，不删不覆盖。
 
-> **后续增长不计入 001**（素材不混算）：同日复核已有 8 个测试文件 / 149 项全绿，新增的 `conflicts`（46）、`reflow`（29）、`snapshot`（27）、`planner`（15）共 117 项属 **003 / 004** 两条链，不属于骨架轮。001 可认领的是 32 项：`health` 9 + `mode` 3 + `demo` 11 + `avatar` 9。归属明细见 `INDEX.md` 第五节素材账。
+> **后续增长不计入 001**（素材不混算）。按**撰写时快照**：`conflicts`、`reflow`、`snapshot`、`planner` 属 **003 / 004** 两条链，不属于骨架轮；001 可认领的是 `health` / `mode` / `demo` / `avatar` 四组。**具体项数不写死**——一律以 `npm test` 输出为准（撰写时全仓 8 文件 / 149 项，其中 001 可认领约 32 项；当日曾报 65、122，均在涨）。归属明细见 `INDEX.md` 第五节素材账。
 
 ## 6. 经验沉淀
 
