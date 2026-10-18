@@ -115,7 +115,7 @@ export default function PlannerPage() {
         </div>
         <div className="flex flex-col gap-4">
           <AvatarCard summary={avatar} />
-          <ReplanPanel tasks={todayTasks} dayKey={dayKey} />
+          <ReplanPanel tasks={todayTasks} dayKey={dayKey} now={now} />
         </div>
       </div>
 

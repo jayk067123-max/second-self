@@ -12,6 +12,7 @@ import { usePlannerStore } from "@/store/planner";
 import { Badge, Button, Card, CardText, CardTitle } from "@/ui/primitives";
 import { AiErrorNotice } from "./AiErrorNotice";
 import { AiStatusSteps, type AiStep } from "./AiStatusSteps";
+import { computePlanMetrics } from "./planMetrics";
 
 type Phase = "idle" | "loading" | "ready";
 
@@ -19,7 +20,16 @@ type Phase = "idle" | "loading" | "ready";
  * 重排建议 —— 模型只给方案与理由，合法性由 domain.validatePlan 判定。
  * 被判死的方案连同原因显示出来，用户看得见"AI 没有被无脑信任"。
  */
-export function ReplanPanel({ tasks, dayKey }: { tasks: Task[]; dayKey: string }) {
+export function ReplanPanel({
+  tasks,
+  dayKey,
+  now,
+}: {
+  tasks: Task[];
+  dayKey: string;
+  /** 冲突规则要求注入 now；与页面共用同一个演示时钟 */
+  now: Date;
+}) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<ReplanSuccess | null>(null);
   const [error, setError] = useState<{ message: string; issues: string[] } | null>(null);
@@ -128,6 +138,8 @@ export function ReplanPanel({ tasks, dayKey }: { tasks: Task[]; dayKey: string }
           <div className="grid gap-3 lg:grid-cols-3">
             {result.plans.map((plan) => {
               const summary = summarizePlan(plan);
+              const metrics = computePlanMetrics(plan, tasks, now);
+              const lockedBroken = metrics.movedLockedTitles.length > 0;
               return (
                 <div
                   key={plan.id}
@@ -135,6 +147,44 @@ export function ReplanPanel({ tasks, dayKey }: { tasks: Task[]; dayKey: string }
                 >
                   <p className="text-caption font-semibold text-ink-50">{plan.title}</p>
                   <p className="text-micro leading-relaxed text-ink-300">{plan.rationale}</p>
+
+                  {/* SPEC：方案卡固定 4 个数字 */}
+                  <dl className="grid grid-cols-2 gap-x-2 gap-y-1 rounded-sm bg-ink-900/70 px-2 py-1.5 text-micro">
+                    <div className="flex justify-between gap-1">
+                      <dt className="text-ink-400">挪动</dt>
+                      <dd className="font-mono text-ink-100">{metrics.movedCount} 条</dd>
+                    </div>
+                    <div className="flex justify-between gap-1">
+                      <dt className="text-ink-400">冲突</dt>
+                      <dd className="font-mono text-ink-100">
+                        {metrics.conflictsBefore}→{metrics.conflictsAfter}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-1">
+                      <dt className="text-ink-400">偏离</dt>
+                      <dd className="font-mono text-ink-100">{metrics.deviationMin} 分</dd>
+                    </div>
+                    <div className="flex justify-between gap-1">
+                      <dt className="text-ink-400">固定课被挪</dt>
+                      <dd className={lockedBroken ? "font-mono text-danger-400" : "font-mono text-ok-400"}>
+                        {metrics.movedLockedTitles.length} 条
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {lockedBroken ? (
+                    <p className="text-micro text-danger-400">
+                      动了固定课（{metrics.movedLockedTitles.slice(0, 2).join("、")}），方案作废
+                    </p>
+                  ) : null}
+                  {metrics.conflictsAfter > 0 ? (
+                    <p className="text-micro text-warn-400">
+                      还剩 {metrics.conflictsAfter} 个冲突（未隐藏，写回后仍会红标）
+                    </p>
+                  ) : (
+                    <p className="text-micro text-ok-400">落地后冲突清零</p>
+                  )}
+
                   <p className="font-mono text-micro text-ink-400">
                     {summary.count} 项 · {formatDuration(summary.totalMin)} · 最晚到 {summary.lastEnd}
                   </p>
@@ -157,9 +207,11 @@ export function ReplanPanel({ tasks, dayKey }: { tasks: Task[]; dayKey: string }
                   <Button
                     variant={appliedTitle === plan.title ? "secondary" : "primary"}
                     className="mt-auto h-8 px-3 text-micro"
+                    disabled={lockedBroken}
+                    title={lockedBroken ? "固定课被移动，方案作废" : undefined}
                     onClick={() => apply(plan)}
                   >
-                    {appliedTitle === plan.title ? "已应用" : "用这套"}
+                    {lockedBroken ? "方案作废" : appliedTitle === plan.title ? "已应用" : "用这套"}
                   </Button>
                 </div>
               );
