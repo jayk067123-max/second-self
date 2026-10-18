@@ -8,7 +8,7 @@ import {
   type ReplanSuccess,
 } from "@/domain/schemas/api";
 import { formatClock, formatDuration, parseIsoToMs } from "@/domain/time";
-import { usePlannerStore } from "@/store/planner";
+import { usePlannerStore } from "@/data/store";
 import { Badge, Button, Card, CardText, CardTitle } from "@/ui/primitives";
 import { AiFailureCard } from "./AiFailureCard";
 import { AiStatusSteps, type AiStep } from "./AiStatusSteps";

@@ -6,7 +6,7 @@ import { computeAvatarSummary, tasksOnDay } from "@/domain/avatar";
 import { DEFAULT_DETECT_CONFIG, conflictedTaskIds, detectConflicts } from "@/domain/conflicts";
 import { weekdayLabel } from "@/domain/time";
 import { DEMO_DAY_KEY, DEMO_NOW_ISO } from "@/shared/constants";
-import { usePlannerHydration, usePlannerStore } from "@/store/planner";
+import { usePlannerHydration, usePlannerStore } from "@/data/store";
 import { Badge, Button } from "@/ui/primitives";
 import { AvatarCard } from "@/ui/composites/AvatarCard";
 import { ConflictPanel } from "@/ui/composites/ConflictPanel";

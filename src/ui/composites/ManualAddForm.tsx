@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DEMO_DAY_KEY } from "@/shared/constants";
 import { localInputToIso } from "@/shared/datetime";
-import { usePlannerStore } from "@/store/planner";
+import { usePlannerStore } from "@/data/store";
 import { Button, Card, CardText, CardTitle, Input, Label, Select, StatusBanner } from "@/ui/primitives";
 
 /**

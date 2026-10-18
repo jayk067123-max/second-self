@@ -73,6 +73,13 @@ export const usePlannerStore = create<PlannerState>()(
       lastError: null,
 
       addDrafts: (drafts, source = "manual") => {
+        // 铁律：needsReview=true 是"AI 自己说没把握"的条目，必须先过人工修正表
+        const unconfirmed = drafts.filter((draft) => draft.needsReview === true).length;
+        if (unconfirmed > 0) {
+          const message = `还有 ${unconfirmed} 条待人工确认（表格里点「待确认」或改一下内容即可确认）`;
+          set({ lastError: message });
+          return { ok: false, error: message };
+        }
         const built: Task[] = [];
         for (const draft of drafts) {
           const task: Task = {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { usePlannerStore } from "@/store/planner";
+import { usePlannerStore } from "@/data/store";
 import { Button } from "@/ui/primitives";
 
 /**

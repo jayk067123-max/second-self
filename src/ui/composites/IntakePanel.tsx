@@ -5,7 +5,7 @@ import { ParseTasksResponseSchema, type AiMode } from "@/domain/schemas/api";
 import type { TaskDraft } from "@/domain/schemas/task";
 import { todayKey } from "@/domain/time";
 import { SAMPLE_INTAKE_TEXT } from "@/shared/samples";
-import { usePlannerStore } from "@/store/planner";
+import { usePlannerStore } from "@/data/store";
 import { Badge, Button, Card, CardText, CardTitle, Textarea } from "@/ui/primitives";
 import { AiFailureCard } from "./AiFailureCard";
 import { AiStatusSteps, type AiStep } from "./AiStatusSteps";

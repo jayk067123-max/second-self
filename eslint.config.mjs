@@ -16,17 +16,22 @@ export default defineConfig([
   ...nextVitals,
   globalIgnores([".next/**", "node_modules/**", "coverage/**", "data/**", "next-env.d.ts"]),
   {
-    // 展示层与业务逻辑层：不许直连数据访问层，更不许碰 AI 编排层
+    // 展示层与业务逻辑层：不许直连持久化适配层的底层实现，更不许碰 AI 编排层。
+    // 例外：`@/data/store` 是 UI 读取/写入状态的唯一入口（store 本身就是状态层）。
     files: ["src/ui/**/*.{ts,tsx}", "src/domain/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
+          // 用精确名单而不是 "@/data/*" 通配：store 是 UI 读写状态的唯一入口，必须放行
+          paths: [
+            { name: "@/data", message: "底层持久化实现不得被展示层直连；UI 只能通过 @/data/store 读写状态。" },
+            { name: "@/data/storage", message: "UI 不直接用存储适配器；请走 @/data/store。" },
+            { name: "@/data/local-adapter", message: "UI 不直接用存储适配器；请走 @/data/store。" },
+            { name: "@/data/migrate", message: "迁移只在 store 的读取路径里跑。" },
+            { name: "@/data/seed", message: "种子转换在导入入口里跑；UI 只调 store.importJson。" },
+          ],
           patterns: [
-            {
-              group: ["@/data", "@/data/*"],
-              message: "展示层/业务层不得直连持久化适配层；数据由 store 或 app 的 server 侧注入。",
-            },
             {
               group: ["@/ai", "@/ai/*"],
               message: "AI 编排层只能在 server 侧调用；客户端请走 /api/ai/* 路由。",
@@ -37,8 +42,8 @@ export default defineConfig([
     },
   },
   {
-    // 状态层可以用持久化适配层，但仍然不许直接调模型
-    files: ["src/store/**/*.ts"],
+    // 持久化适配层里的 store：可以用 localStorage 适配器，但仍然不许直接调模型
+    files: ["src/data/store.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
