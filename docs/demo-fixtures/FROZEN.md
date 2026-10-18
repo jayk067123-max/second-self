@@ -26,6 +26,17 @@ Get-ChildItem docs/demo-fixtures -File | Sort-Object Name | ForEach-Object {
 
 > **本文件不登记自身哈希**：文件无法包含自己的哈希（一写就得改，改了就变）。`FROZEN.md` 的完整性以 **git 提交对象**为准——`git log -1 --format=%H -- docs/demo-fixtures/FROZEN.md`，改过即有新提交、无提交即未改过。这一行的字节数只作辅助参考。
 
+> **引用/报数格式（2026-10-18 追加，不改动本表任何哈希值）**
+> 任何文档、消息、附录在引用本目录素材的**测试结果或解析结果**时，必须写四样：
+> **`HEAD` + 时间戳 + 树的状态 + 两行原样**（`Test Files … / Tests …`）。
+> 树的状态三选一，必写：`工作区（无未提交改动）` / `工作区（含未提交 N 个文件：<列文件名>）` / `干净副本（git archive HEAD 导出）`。
+> 示例（主Bot 2026-10-18 17:29:27 那次实测的规范写法）：
+> `HEAD 3fc31c8 · 2026-10-18 17:29:27 · 工作区（含未提交 1 个文件：docs/COMMIT-MAP.md）· 12 文件 / 221 项`
+> 另一例（Prompt官 17:30:35 在 4 个文件未提交时测的）：
+> `HEAD 3fc31c8 · 2026-10-18 17:30:35 · 工作区（含未提交 4 个文件：docs/COMMIT-MAP.md、docs/demo-fixtures/FROZEN.md、docs/prompts/001-skeleton-architecture.md、docs/prompts/RECORDING-GUIDE.md）· Test Files 12 passed (12) / Tests 221 passed (221)`
+> 注意两者**同一 HEAD、数相同，但树不同**：前者只能说明"那棵树是绿的"，后者同理；要断言"HEAD 本身是绿的"，必须用干净副本（`git archive HEAD` 导出）跑一次。
+> 理由：前两样只定位 commit，**分不出"哪棵树"**；不写树的状态，数字就无法复现。禁止写"测试全绿"这类不带坐标的话。
+
 > **2026-10-18 17:15 复核（主Bot 实测）**：全表哈希与磁盘逐项一致；`git status docs/demo-fixtures` 为空。本次修正一处**已提交但已过期**的行：`EXPECTED-2026-10-19.md` 原登记 9,674 B / `5EECA1DABFF8`，是 `92b5b58` 时的值；`e13da07`（加 §二/§四 同名不同物警示）之后实际为 10,100 B / `C8EA2C13225A`。教训：**改了素材表里的文件就必须同步这张表**，否则"冻结记录"本身成了过期数据源。
 
 ## 两条并行路径（口径，不再变）
