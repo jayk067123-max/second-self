@@ -3,7 +3,9 @@ import { demoParseTasks, demoReplanPlans } from "@/ai/demo";
 import { checkRateLimit, resetRateLimit } from "@/ai/ratelimit";
 import { formatIssues } from "@/ai/guarded";
 import { TaskDraftSchema } from "@/domain/schemas/task";
-import { validatePlan, DEFAULT_PLAN_OPTIONS } from "@/domain/planner";
+import { applyPlan } from "@/domain/reflow";
+import { DEFAULT_DETECT_CONFIG, detectConflicts } from "@/domain/conflicts";
+import { hhmm } from "../domain/support/tasks";
 import { makeTask } from "../helpers/fixtures";
 import { z } from "zod";
 
@@ -55,20 +57,42 @@ describe("demoParseTasks（无密钥兜底解析）", () => {
 });
 
 describe("demoReplanPlans（无密钥兜底重排）", () => {
-  it("生成的方案全部通过本地校验", () => {
+  it("兜底方案来自裁决器：条目不空、且每套都让冲突数下降（效果闸）", () => {
     const tasks = [
-      makeTask({ title: "论文", durationMin: 90, priority: 1 }),
-      makeTask({ title: "复习", durationMin: 60, priority: 2 }),
+      makeTask({
+        title: "论文",
+        durationMin: 90,
+        priority: 1,
+        start: hhmm(DAY, 9, 0),
+        end: hhmm(DAY, 10, 0),
+      }),
+      makeTask({
+        title: "复习",
+        durationMin: 60,
+        priority: 2,
+        start: hhmm(DAY, 9, 30),
+        end: hhmm(DAY, 10, 30),
+      }),
     ];
+    const now = new Date(`${DAY}T09:00:00`);
+    const before = detectConflicts(tasks, DEFAULT_DETECT_CONFIG, now).length;
+    expect(before).toBeGreaterThan(0); // 场景本身有冲突，否则测不到效果闸
+
     const plans = demoReplanPlans(tasks, DAY);
     expect(plans.length).toBeGreaterThan(0);
     for (const plan of plans) {
-      expect(validatePlan(plan, tasks, DAY, DEFAULT_PLAN_OPTIONS).ok).toBe(true);
+      const after = detectConflicts(applyPlan(tasks, plan), DEFAULT_DETECT_CONFIG, now).length;
+      expect(after).toBeLessThan(before);
     }
   });
 
-  it("没有可排任务时返回空数组", () => {
-    expect(demoReplanPlans([makeTask({ durationMin: 0 })], DAY)).toEqual([]);
+  it("没有冲突时兜底不硬造方案", () => {
+    expect(
+      demoReplanPlans(
+        [makeTask({ title: "唯一一条", durationMin: 60, start: hhmm(DAY, 9, 0), end: hhmm(DAY, 10, 0) })],
+        DAY,
+      ),
+    ).toEqual([]);
   });
 });
 

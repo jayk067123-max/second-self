@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_DETECT_CONFIG, detectConflicts } from "@/domain/conflicts";
 import type { Conflict } from "@/domain/conflicts";
 import { TaskSchema, type Task } from "@/domain/schemas/task";
-import { adjudicateProposal, type Adjudication, type ReflowOp } from "@/domain/reflow";
+import { adjudicateProposal, buildLocalProposals, type Adjudication, type ReflowOp } from "@/domain/reflow";
 
 /**
  * 与 `docs/demo-fixtures/demo-seed.json` 对齐的验收测试。
@@ -394,5 +394,63 @@ describe("demo-seed · 重排方案的验收目标（A / B / C）", () => {
     if (!result.ok) return;
     expect(result.value.tasksAfter).toHaveLength(18);
     expect(new Set(result.value.tasksAfter.map((task) => task.id)).size).toBe(18);
+  });
+});
+
+describe("demo-seed · 无模型兜底（buildLocalProposals）", () => {
+  it("在真实演示数据上非空，且每套都过裁决器：冲突下降、locked 未动、18 条不变", () => {
+    const proposals = buildLocalProposals(tasks, { now: DEMO_NOW });
+    expect(proposals.length).toBeGreaterThan(0);
+    for (const proposal of proposals) {
+      expect(proposal.proposal.conflictsBefore).toBe(3);
+      // 兜底只挪一条，能清掉几条取决于挪的是谁（挪 t_meet 一次能同时解掉 buffer + 超载）
+      expect(proposal.proposal.conflictsAfter).toBeLessThan(3);
+      expect(proposal.proposal.lockedTouched).toBe(0);
+      expect(proposal.tasksAfter).toHaveLength(18);
+      expect(new Set(proposal.tasksAfter.map((task) => task.id)).size).toBe(18);
+    }
+  });
+
+  // 注：这里原来还有一条"旧的 buildLocalPlans 在 seed 上返回 0 套"的对比用例。
+  // 那个函数已随兜底切换删除（它的设计假设是"把当天能排的全排进去"，
+  // 面对 15 条 / 1780 分钟的数据会被日上限全部拒掉，所以才换成 buildLocalProposals）。
+});
+
+describe("demo-seed · 给映像官的「先红后绿」可复现脚本", () => {
+  /** 把某个任务的起止改成指定时刻（模拟用户/方案挪动它），不改其他字段 */
+  function moveTo(taskId: string, start: string, end: string): (task: Task) => Task {
+    return (task) =>
+      task.id === taskId ? { ...task, start: localIso(start), end: localIso(end) } : task;
+  }
+
+  it("一格镜头：只挪走 90 分钟的「大创讨论」→ 超载卡消失（670 → 580）", () => {
+    const before = detect();
+    const overloadBefore = before.filter((conflict) => conflict.conflictType === "overload");
+    expect(overloadBefore).toHaveLength(1);
+    expect(overloadBefore[0]?.date).toBe("2026-10-20");
+    expect(overloadBefore[0]?.evidence.usedMin).toBe(670);
+    expect(overloadBefore[0]?.evidence.overMin).toBe(70);
+
+    const moved = tasks.map(moveTo("t_dachuang", "2026-10-22T22:00", "2026-10-22T23:30"));
+    const after = detectConflicts(moved, DEFAULT_DETECT_CONFIG, DEMO_NOW);
+    expect(after.filter((conflict) => conflict.conflictType === "overload")).toHaveLength(0);
+    // 另外两条冲突还在 —— 这条镜头只演"超载"这一格，别指望它顺手清空全部
+    expect(after.map((conflict) => conflict.conflictType).sort()).toEqual(["buffer", "overlap"]);
+  });
+
+  it("全套镜头：三步挪完 → 冲突归零（3 → 0），每步都可单独验", () => {
+    let state = [...tasks];
+
+    // ① 挪走大创讨论 → 超载消失
+    state = state.map(moveTo("t_dachuang", "2026-10-22T22:00", "2026-10-22T23:30"));
+    expect(detectConflicts(state, DEFAULT_DETECT_CONFIG, DEMO_NOW)).toHaveLength(2);
+
+    // ② 答辩准备挪到 10-22 上午 → 周三 19:00 的重叠消失
+    state = state.map(moveTo("t_defense", "2026-10-22T09:00", "2026-10-22T11:00"));
+    expect(detectConflicts(state, DEFAULT_DETECT_CONFIG, DEMO_NOW)).toHaveLength(1);
+
+    // ③ 线上例会挪到 10-22 21:00 → 周二那条首尾相接消失，冲突归零
+    state = state.map(moveTo("t_weekly", "2026-10-22T21:00", "2026-10-22T21:30"));
+    expect(detectConflicts(state, DEFAULT_DETECT_CONFIG, DEMO_NOW)).toHaveLength(0);
   });
 });

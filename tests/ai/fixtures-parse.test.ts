@@ -60,9 +60,12 @@ describe("demo 解析器 · 真实素材", () => {
     // 「下雨顺延」这类条件性安排，规则版无法确定 → 必须挂待确认，不能假装知道
     const conditional = drafts.find((d) => (d.rawTextOrigin ?? "").includes("下雨顺延"));
     if (conditional) expect(conditional.needsReview).toBe(true);
-    // 任何一条只要 start 为空，就不许自称"已确认"
+    // 既没有时间块、也没有截止的条目（真正"什么都说不清"）才必须挂待确认；
+    // 只有截止日的任务（微积分作业/奖学金表格）是确定信息，不该被黄标打扰
     for (const draft of drafts) {
-      if (draft.start === null) expect(draft.needsReview).toBe(true);
+      if (draft.start === null && draft.deadline === null) {
+        expect(draft.needsReview).toBe(true);
+      }
     }
   });
 });

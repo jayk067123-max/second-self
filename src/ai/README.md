@@ -17,7 +17,7 @@
 ## 四道闸（骨架第 5 步落地）
 1. **Schema First**：先写 zod 契约，再由契约生成注入 prompt 的 JSON 结构描述
 2. **强制 JSON + 硬校验**：`response_format: json_object` → `JSON.parse` → `safeParse`
-3. **分级修复重试**（≤3 次）：回灌 `issues` → 降温/拆分任务 → 熔断并返回 `needs_repair`
+3. **分级修复重试**（≤3 次）：回灌 `issues` → 降温/拆分任务 → 熔断并返回失败态 `ok:false`（调用级；早期文档曾写作 `needs_repair`，该名为设计期名称、代码从未采用，术语区分见 `docs/ARCHITECTURE.md` §3）
 4. **可视修复入口**：前端展示原始输出与失败字段，可一键重试或手工修正
 
 ## 降级
