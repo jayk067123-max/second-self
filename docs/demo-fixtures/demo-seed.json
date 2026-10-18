@@ -62,20 +62,21 @@
     "A": {
       "label": "最小改动之外的保截止日策略",
       "reasonText": "先清 10-31 两个截止，10-26 只做答辩材料",
-      "mustHold": ["把 t_defense 从 10-21 19:00–21:00 移到 2026-10-26 09:00–11:00（10-26 全天无其他任务）", "t_defense_ddl 与 t_scholar 两个 10-31 截止的准备量被前置到 10-26 之后的工作日", "overlap 冲突消失，冲突数 3→2"],
-      "expectedDeviationMin": 600
+      "mustHold": ["把 t_defense 从 10-21 19:00–21:00 移到 2026-10-26 09:00–11:00（10-26 全天无其他任务）", "10-26 剩余时段用于消化 t_defense_ddl 的 480 分钟准备量（当日既有容量 600 分钟，够用）", "overlap 冲突消失，冲突数 3→2"],
+      "expectedDeviationMin": 6600,
+      "note": "目标日 2026-10-26 属于「下周」，本周视图不显示该色块。A 只作对比卡展示，演示时不要点它来录「滑到位」镜头（分镜点的是 B）。"
     },
     "B": {
       "label": "保精力策略",
       "reasonText": "答辩准备挪到上午 9 点，避开晚间例会",
       "mustHold": ["把 t_defense 移到 2026-10-22 09:00–11:00（周四上午为空）", "t_lab_meet 原地不动", "overlap 冲突消失，冲突数 3→2"],
-      "expectedDeviationMin": 300
+      "expectedDeviationMin": 840
     },
     "C": {
       "label": "保缓冲策略",
       "reasonText": "例会前移 30 分钟，之间留 30 分钟缓冲",
       "mustHold": ["t_lab_meet 改为 18:30–20:30", "t_defense 改为 21:00–23:00", "两任务间隔 = 30 分钟 ≥ gapMin 30 − 容差 5", "overlap 冲突消失，冲突数 3→2"],
-      "expectedDeviationMin": 60,
+      "expectedDeviationMin": 150,
       "sacrifice": "周三 23:00 才结束，超出作息建议"
     },
     "allProposals": {
