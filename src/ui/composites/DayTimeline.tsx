@@ -125,12 +125,15 @@ export function DayTimeline({
                     冲突
                   </Badge>
                 ) : null}
-                {/* 固定课标记：**纯文字 chip**，不用 emoji（1080p→H.264→二次转码后 12px 锁形会糊，
-                    而且与「每周」徽标不同族、横向对不齐）。两枚 chip 同尺寸/同基线/同色系：
-                    固定=品牌色描边，每周=中性灰描边 */}
+                {/* 三枚徽标**全是纯文字 chip，不用 emoji**：
+                    emoji 跨平台渲染不一致（Windows 彩色 / macOS 另一套 / 录屏投屏后发灰），
+                    同一界面在评委机器上会长得不一样；文字 chip 灰度截图也能分清（FR-18）。
+                    同尺寸（w-11）、同基线、同圆角，横向天然对齐：
+                    固定=neutral（"不可动"是一个中性事实）、每周=brand（周期性是强调信息）、
+                    待确认=warn（需要人看一眼）。 */}
                 {task.locked ? (
                   <Badge
-                    tone="brand"
+                    tone="neutral"
                     className="w-11 shrink-0 justify-center"
                     title="固定课：重排不会移动它"
                   >
@@ -139,7 +142,7 @@ export function DayTimeline({
                 ) : null}
                 {task.repeat ? (
                   <Badge
-                    tone="neutral"
+                    tone="brand"
                     className="w-11 shrink-0 justify-center"
                     title="周期安排：一条任务，按规则重复"
                   >

@@ -12,6 +12,9 @@ import { fileURLToPath } from "node:url";
  */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // 开发态左下角的 Next 报错角标会出现在截图里（用户明确要求清掉）。
+  // 关掉的是这个浮标，不是错误本身：真出错仍然会报在终端和 /api/health 上。
+  devIndicators: false,
   turbopack: {
     root: fileURLToPath(new URL(".", import.meta.url)),
   },

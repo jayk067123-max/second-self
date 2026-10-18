@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="第二自我">
+  <rect width="64" height="64" rx="18" fill="#C74726" />
+  <circle cx="24" cy="27" r="3.6" fill="#ffffff" />
+  <circle cx="40" cy="27" r="3.6" fill="#ffffff" />
+  <path d="M22.5 38.5q9.5 8 19 0" stroke="#ffffff" stroke-width="3.6" fill="none" stroke-linecap="round" />
+</svg>

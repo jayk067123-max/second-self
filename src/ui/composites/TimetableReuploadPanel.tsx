@@ -7,10 +7,9 @@ import {
   type TimetableBlock,
   type TimetablePlan,
 } from "@/domain/schedule";
-import type { Task } from "@/domain/schemas/task";
 import { parseTimetableText } from "@/shared/timetableParse";
-import { isoWeekdayOf, minutesFromLocalMidnight, parseIsoToMs } from "@/domain/time";
 import { usePlannerStore } from "@/data/store";
+import { courseBlocksOf } from "./timetableCoverage";
 import { Badge, Button, Card, CardText, CardTitle, StatusBanner, Textarea } from "@/ui/primitives";
 
 /**
@@ -18,30 +17,11 @@ import { Badge, Button, Card, CardText, CardTitle, StatusBanner, Textarea } from
  * 而是"比出差异、保留用户标记、只改课表条目"**。
  *
  * 边界（与 SPEC/需求书一致）：
- * 1. 只对**课表类条目**做比对。会议/兼职/体测不参与，否则摘要会把它们算成"删除"，
- *    画面数字与旁白当场对不上。
+ * 1. 只对**课表类条目**做比对，取样规则集中在 `courseBlocksOf`（含"新表覆盖到的星期几"
+ *    这条范围线）。会议/兼职/体测不参与，否则摘要会把它们算成"删除"，点一次确认就真删了。
  * 2. 落库走 store 的 `applyTimetablePlan`：`updated` 原地 update，保留 done / locked /
  *    needsReview / repeat；覆盖前自动入快照，可撤销。
  */
-
-/** 课表类条目的判据：固定课，或有地点的定时安排。会议/兼职/体测通常两者皆无 */
-function looksLikeCourse(task: Task): boolean {
-  if (task.start === null || task.end === null) return false;
-  return task.locked === true || (task.location ?? null) !== null;
-}
-
-function taskToBlock(task: Task): TimetableBlock | null {
-  const startMs = parseIsoToMs(task.start);
-  if (startMs === null) return null;
-  return {
-    taskId: task.id,
-    title: task.title,
-    weekday: isoWeekdayOf(startMs),
-    startMinute: minutesFromLocalMidnight(startMs),
-    durationMin: Math.max(1, task.durationMin),
-    location: task.location ?? null,
-  };
-}
 
 export function TimetableReuploadPanel() {
   const tasks = usePlannerStore((s) => s.tasks);
@@ -66,6 +46,11 @@ export function TimetableReuploadPanel() {
         });
         return;
       }
+      // 前提（约束 1，写在这里免得后来人"顺手"换掉）：after **只可能是课表解析结果**，
+      // 不可能是全部 tasks。会议 / 兼职 / 体测这类不是课表的安排压根不在这份 blocks 里。
+      // before 侧走 `courseBlocksOf`：只取「有始有终 + 固定或带地点」的条目，并且只取
+      // **新表覆盖到的星期几**——否则「启航兼职」（周日、固定、有地点）会被算成"删除 1"，
+      // 用户点一次确认就真把它删了。宁可漏报一门被取消的课，也不误删用户的安排。
       const after: TimetableBlock[] = parsed.map((block) => ({
         title: block.title,
         weekday: block.weekday,
@@ -73,10 +58,8 @@ export function TimetableReuploadPanel() {
         durationMin: block.durationMin,
         location: block.location,
       }));
-      const before = tasks
-        .filter(looksLikeCourse)
-        .map(taskToBlock)
-        .filter((block): block is TimetableBlock => block !== null);
+      const scopeWeekdays = new Set(after.map((block) => block.weekday));
+      const before = courseBlocksOf(tasks, scopeWeekdays);
       setPlan(planTimetableCoverage(before, after));
     } catch (error) {
       setMsg({
@@ -140,7 +123,7 @@ export function TimetableReuploadPanel() {
         <Button onClick={() => void compare()} disabled={busy || text.trim().length < 5}>
           {busy ? "比对中…" : "比对并生成计划"}
         </Button>
-        <Badge tone="neutral">当前课表条目 {tasks.filter(looksLikeCourse).length} 条</Badge>
+        <Badge tone="neutral">当前固定块 {courseBlocksOf(tasks).length} 条</Badge>
       </div>
 
       {msg ? <StatusBanner tone={msg.tone}>{msg.text}</StatusBanner> : null}

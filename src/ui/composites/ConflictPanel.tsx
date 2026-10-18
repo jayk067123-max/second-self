@@ -65,7 +65,7 @@ export function ConflictPanel({
             {visible.map((conflict) => (
               <li
                 key={`${conflict.conflictId}-${conflict.date}`}
-                className="flex flex-col gap-1 rounded-sm bg-ink-800/70 px-3 py-2"
+                className="flex flex-col gap-1 rounded-2xl bg-ink-800/70 px-3 py-2"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={SEVERITY_TONE[conflict.severity]}>

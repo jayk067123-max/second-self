@@ -4,12 +4,18 @@ import { cn } from "@/shared/utils";
 type Variant = "primary" | "secondary" | "ghost";
 type Size = "md" | "lg";
 
+/**
+ * 亮色口径：
+ * - primary 珊瑚实心 + 白字（对比 4.9:1），悬停加深而不是变浅——浅底上变浅会掉对比
+ * - secondary 白底暖影，不描边（用户口径"别用边框"）
+ * - ghost 只做文字与浅底，用在"撤销/清空"这种低权重操作
+ */
 const VARIANT_CLASS: Record<Variant, string> = {
   primary:
-    "bg-brand-500 text-ink-950 hover:bg-brand-400 active:bg-brand-600 shadow-glow",
+    "bg-brand-500 text-on-solid shadow-glow hover:bg-brand-600 active:bg-brand-700",
   secondary:
-    "bg-ink-800 text-ink-100 ring-1 ring-inset ring-ink-600 hover:bg-ink-700 hover:ring-ink-400",
-  ghost: "bg-transparent text-ink-200 hover:bg-ink-800 hover:text-ink-50",
+    "bg-ink-900 text-ink-100 shadow-soft hover:bg-ink-800 active:bg-ink-700",
+  ghost: "bg-transparent text-ink-300 hover:bg-ink-800 hover:text-ink-50",
 };
 
 const SIZE_CLASS: Record<Size, string> = {
@@ -34,8 +40,8 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-pill font-medium transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-45",
+        "inline-flex items-center justify-center gap-2 rounded-pill font-medium transition-[background-color,box-shadow,transform] duration-200 ease-standard",
+        "active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
         VARIANT_CLASS[variant],
         SIZE_CLASS[size],
         className,

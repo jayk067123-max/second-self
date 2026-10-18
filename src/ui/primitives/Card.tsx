@@ -6,12 +6,14 @@ export type CardProps = ComponentProps<"section"> & {
   interactive?: boolean;
 };
 
+/** 亮色卡片：白面 + 大圆角 + 一层暖影，**不描边**（用户口径：不要边框和分割线） */
 export function Card({ className, interactive = false, ...rest }: CardProps) {
   return (
     <section
       className={cn(
-        "rounded-card bg-ink-900/80 p-6 ring-1 ring-inset ring-ink-700 shadow-card backdrop-blur",
-        interactive && "transition-transform duration-200 hover:-translate-y-0.5",
+        "rounded-card bg-ink-900 p-5 shadow-card sm:p-6",
+        interactive &&
+          "transition-[transform,box-shadow] duration-300 ease-soft hover:-translate-y-0.5 hover:shadow-pop",
         className,
       )}
       {...rest}

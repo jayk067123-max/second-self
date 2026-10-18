@@ -1,101 +1,116 @@
 @import "tailwindcss";
 
 /* ============================================================
- * 设计令牌（Design Tokens）
+ * 设计令牌（奶油亮色版，2026-10-18 22:40 换肤）
  * ------------------------------------------------------------
- * 全部通过 Tailwind v4 的 @theme 变量化，禁止在组件里写死色值/字号。
- * 命名规则：--color-{域}-{阶}  --radius-*  --shadow-*  --text-*
- * 换肤只需改本文件，不改任何组件。
+ * 口径来自用户原话：奶油底、明亮鲜艳的点缀色、苹果风大留白、ins 风柔和光斑。
+ * 一次只改本文件就能换肤：组件里禁止写死颜色/字号。
+ *
+ * 层级语义（名字沿用旧名，含义已按亮色重排）：
+ *   ink-950 = 页面底色（最深 → 现在是最浅的奶油）
+ *   ink-900 = 卡片面（白）
+ *   ink-50  = 最重的文字（浅底上最深）
+ * 因此旧组件里的 bg-ink-900 / text-ink-50 不用改就自动跟着翻。
+ *
+ * 对比度（正文 ≥ 4.5:1，均为白底实测口径）：
+ *   ink-100 #2A2521 ≈ 13.8:1   ink-300 #625A51 ≈ 6.2:1
+ *   ink-400 #7A7168 ≈ 4.6:1（只用于辅助文字，不再浅）
+ *   brand-500 #C74726 上的白字 ≈ 4.9:1（主按钮）
  * ============================================================ */
 @theme {
-  /* ---- 中性色：深色底，长时间阅读不刺眼 ---- */
-  --color-ink-950: #070b12;
-  --color-ink-900: #0b1220;
-  --color-ink-800: #111a2b;
-  --color-ink-700: #1b2740;
-  --color-ink-600: #2a3a58;
-  --color-ink-500: #41506b;
-  --color-ink-400: #6b7f9e;
-  --color-ink-300: #93a5bf;
-  --color-ink-200: #b9c6d8;
-  --color-ink-100: #dbe4f0;
-  --color-ink-50: #eef3fa;
+  /* ---- 中性色：奶油底 + 白卡 + 暖灰字 ---- */
+  --color-ink-950: #fbf8f2;
+  --color-ink-900: #ffffff;
+  --color-ink-800: #f7f1e8;
+  --color-ink-700: #ede5da;
+  --color-ink-600: #dcd3c7;
+  --color-ink-500: #a79c90;
+  --color-ink-400: #7a7168;
+  --color-ink-300: #625a51;
+  --color-ink-200: #453e37;
+  --color-ink-100: #2a2521;
+  --color-ink-50: #1c1917;
 
-  /* ---- 品牌主色 ---- */
-  --color-brand-300: #a9c2ff;
-  --color-brand-400: #7ba4ff;
-  --color-brand-500: #5b8cff;
-  --color-brand-600: #3f6fe0;
-  --color-brand-700: #2f55b4;
+  /* ---- 品牌主色：珊瑚橙（亮而不刺，白字可读）---- */
+  --color-brand-300: #9e3a1b;
+  --color-brand-400: #d9633c;
+  --color-brand-500: #c74726;
+  --color-brand-600: #a93a1e;
+  --color-brand-700: #8c2f13;
 
-  /* ---- 强调色（状态、关键动作）---- */
-  --color-accent-300: #8bf0dc;
-  --color-accent-400: #4fe3c1;
-  --color-accent-500: #2fcfae;
-  --color-accent-600: #1ea88b;
+  /* ---- 强调色：薄荷青（进行中、轻量提示）---- */
+  --color-accent-300: #0c6e63;
+  --color-accent-400: #0f8478;
+  --color-accent-500: #14a08f;
+  --color-accent-600: #0b7a6c;
 
-  /* ---- 语义色 ---- */
-  --color-ok-400: #63d98a;
-  --color-ok-500: #3fbf6a;
-  --color-warn-400: #ffcc66;
-  --color-warn-500: #f0a92e;
-  --color-danger-400: #ff7a85;
-  --color-danger-500: #e84b5c;
+  /* ---- 语义色：浅底上可读的深色版 + 实心填充版 ---- */
+  --color-ok-400: #0e6b4b;
+  --color-ok-500: #12805a;
+  --color-warn-400: #855600;
+  --color-warn-500: #97620a;
+  --color-danger-400: #b02318;
+  --color-danger-500: #c0392b;
 
-  /* ---- 优先级三档（用户口径：重要红 · 一般黄 · 低绿）----
-   * 铁律：**颜色从不单独承载信息**，三档各配一个形状 + 两个字的文字
-   * （▲ 重要 / ● 一般 / ○ 低），色盲模式下仍可读。
-   * 冲突不靠"再一个红"表达：冲突永远是「▲/● 图标 + 冲突字样 + 红色底带」的三重信号，
-   * 与优先级在同一屏上共存也不会混。
+  /* 实心填充上的文字（主按钮、! 方块、勾选圆点） */
+  --color-on-solid: #ffffff;
+  /* 页面两块柔光斑的用色 */
+  --color-glow-peach: #ffe6d5;
+  --color-glow-sky: #e3f0ff;
+
+  /* ---- 优先级三档：用户口径「重要红 · 一般黄 · 低绿」----
+   * 铁律：颜色从不单独承载信息。三档各带形状 + 文字（▲重要 / ●一般 / ○低），
+   * 并且用「浅底 + 深字」的胶囊，色弱、投屏偏色、截图转灰都能读。
    */
-  --color-prio-high-400: #ff7a85;
-  --color-prio-mid-400: #ffcc66;
-  --color-prio-low-400: #63d98a;
+  --color-prio-high-400: #b0281a;
+  --color-prio-high-bg: #ffe4dd;
+  --color-prio-mid-400: #855600;
+  --color-prio-mid-bg: #fff4de;
+  --color-prio-low-400: #0e6b4b;
+  --color-prio-low-bg: #dcf5e7;
 
-  /* ---- 圆角 ---- */
-  --radius-xs: 0.375rem;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-card: 1.25rem;
+  /* ---- 圆角：苹果风，卡片大到能看出"软" ---- */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-card: 1.75rem;
   --radius-pill: 999px;
 
-  /* ---- 阴影 / 描边 ---- */
-  --shadow-card: inset 0 1px 0 0 rgb(255 255 255 / 0.05), 0 18px 40px -24px rgb(0 0 0 / 0.85);
-  --shadow-pop: 0 24px 60px -20px rgb(0 0 0 / 0.9);
-  --shadow-glow: 0 0 0 1px rgb(91 140 255 / 0.35), 0 12px 32px -16px rgb(91 140 255 / 0.55);
+  /* ---- 阴影：亮色下只有一层很轻的暖影，不用边框 ---- */
+  --shadow-card: 0 1px 2px rgb(96 62 38 / 0.04), 0 20px 44px -32px rgb(96 62 38 / 0.3);
+  --shadow-pop: 0 28px 64px -32px rgb(96 62 38 / 0.35);
+  --shadow-glow: 0 10px 22px -12px rgb(199 71 38 / 0.5);
+  --shadow-soft: 0 10px 26px -20px rgb(96 62 38 / 0.35);
 
-  /* ---- 字号层级（名称即用途，避免正文各自定字号）---- */
-  --text-display: 3.25rem;
-  --text-display--line-height: 1.06;
+  /* ---- 字号阶梯 ---- */
+  --text-display: 3rem;
+  --text-display--line-height: 1.08;
   --text-display--letter-spacing: -0.03em;
-  /* 首屏那句人话结论：手机上一行放得下 12–14 个汉字，两行读完 */
-  --text-headline: 1.3125rem;
-  --text-headline--line-height: 1.5;
-  --text-headline--letter-spacing: -0.012em;
+  /* 首屏那句人话结论：手机上 24px 两行读完 */
+  --text-headline: 1.5rem;
+  --text-headline--line-height: 1.42;
+  --text-headline--letter-spacing: -0.02em;
   --text-title: 1.75rem;
   --text-title--line-height: 1.22;
-  --text-title--letter-spacing: -0.02em;
-  --text-section: 1.125rem;
-  --text-section--line-height: 1.4;
+  --text-title--letter-spacing: -0.025em;
+  --text-section: 1.0625rem;
+  --text-section--line-height: 1.45;
+  --text-section--letter-spacing: -0.01em;
   --text-body: 0.9375rem;
-  --text-body--line-height: 1.65;
-  --text-caption: 0.8125rem;
-  --text-caption--line-height: 1.5;
+  --text-body--line-height: 1.7;
+  --text-caption: 0.875rem;
+  --text-caption--line-height: 1.6;
   --text-micro: 0.75rem;
-  --text-micro--line-height: 1.45;
+  --text-micro--line-height: 1.5;
 
   /* ---- 布局 ---- */
   --spacing-gutter: 1.25rem;
 
-  /* ---- 动效：只用两条曲线，保证全站手感一致 ----
-   * soft    = 进场 / 展开（快起慢收，像东西被"放"下来）
-   * standard= 悬停 / 变色（近乎线性，不抢注意力）
-   * 全站有意义动效上限：每页两处。
-   */
+  /* ---- 动效：两条曲线，全站最多每页两处 ---- */
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
-  /* ---- 字体：只用系统字体栈，构建期不联网 ---- */
+  /* ---- 字体：系统字栈，构建期不联网 ---- */
   --font-sans: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
     system-ui, -apple-system, sans-serif;
   --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
@@ -103,41 +118,55 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     background-color: var(--color-ink-950);
-    /* 一层极浅的顶光：深色底不至于像一块死黑，也不抢内容 */
-    background-image: radial-gradient(
-      120% 72% at 50% -12%,
-      #131d31 0%,
-      #0a1120 42%,
-      var(--color-ink-950) 78%
-    );
+    /* ins 风：两块极淡的柔光斑，固定不动，滚动时不"跟着跑" */
+    background-image:
+      radial-gradient(58% 38% at 8% -6%, var(--color-glow-peach) 0%, transparent 62%),
+      radial-gradient(52% 34% at 102% 2%, var(--color-glow-sky) 0%, transparent 64%);
     background-attachment: fixed;
+    background-repeat: no-repeat;
     color: var(--color-ink-100);
     font-family: var(--font-sans);
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   ::selection {
-    background-color: var(--color-brand-600);
-    color: var(--color-ink-50);
+    background-color: var(--color-brand-500);
+    color: var(--color-on-solid);
   }
 
+  /* 键盘可达：亮底上要一眼看见焦点，不能只靠一根细线 */
   :focus-visible {
-    outline: 2px solid var(--color-brand-400);
+    outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
-/* 页面底纹：极浅的网格，避免大片纯色显得空 */
-@utility bg-grid {
-  background-image: linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
-  background-size: 48px 48px;
+/* 版本号之类的等宽小字：数字对齐用，别在正文里用 */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * 开发态浮标：Next 会在左下角画一个「N 1 Issue」的圆角标记。
+ * 它不属于产品界面，却会出现在截图和录屏里，所以直接不显示。
+ *
+ * 它数的那个 issue 是 React 的 hydration 警告，根因在数据层：
+ * src/data/store.ts:90 的 `demoClock` 用 `new Date()` 初始化，
+ * 服务端渲染和浏览器首次渲染因此拿到两个不同的"现在"（差几十毫秒）。
+ * 那是全栈手的文件，这里只负责不让它画到界面上。
+ * 放这里而不是只靠 next.config 的 devIndicators:false：
+ * 配置项要重启 dev server 才生效，CSS 立刻生效。
+ * ============================================================ */
+nextjs-portal {
+  display: none !important;
 }

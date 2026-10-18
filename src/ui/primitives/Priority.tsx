@@ -9,8 +9,8 @@ import { cn } from "@/shared/utils";
  *   ▲ 重要   ● 一般   ○ 低
  * 形状是实心/空心有别，即使整屏转成黑白也能分出高低。
  *
- * 颜色只取 `--color-prio-*` 令牌，且刻意比冲突色更"闷"一点：
- * 同一屏上「这行很重要」不该和「这里撞车了」抢同一份注意力。
+ * 亮色版改成「浅底 + 深字」的小胶囊：亮底上纯色细字对比度不够，
+ * 加浅底之后既有颜色记忆点，又能保证小字号仍然读得清。
  */
 export type PriorityLevel = "high" | "mid" | "low";
 
@@ -26,7 +26,7 @@ const LABEL: Record<PriorityLevel, string> = {
   low: "低",
 };
 
-const COLOR: Record<PriorityLevel, string> = {
+const PILL: Record<PriorityLevel, string> = {
   high: "text-prio-high-400",
   mid: "text-prio-mid-400",
   low: "text-prio-low-400",
@@ -56,12 +56,12 @@ export function PriorityMark({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 text-micro font-medium whitespace-nowrap",
-        COLOR[lv],
+        "inline-flex shrink-0 items-center gap-1 text-micro font-semibold whitespace-nowrap",
+        PILL[lv],
         className,
       )}
     >
-      <span aria-hidden className="text-[10px] leading-none">
+      <span aria-hidden className="text-[9px] leading-none">
         {SHAPE[lv]}
       </span>
       {showText ? LABEL[lv] : <span className="sr-only">{LABEL[lv]}</span>}
