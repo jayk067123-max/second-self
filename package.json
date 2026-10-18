@@ -1,8 +1,8 @@
-{
-  "name": "vibe-coding-2026",
+﻿{
+  "name": "second-self",
   "version": "0.1.0",
   "private": true,
-  "description": "全国高校 Vibe Coding 开发挑战赛参赛作品（省赛 B 组个人赛 · 杨家凯）",
+  "description": "鍏ㄥ浗楂樻牎 Vibe Coding 寮€鍙戞寫鎴樿禌鍙傝禌浣滃搧锛堢渷璧?B 缁勪釜浜鸿禌 路 鏉ㄥ鍑級",
   "engines": {
     "node": ">=22.11 <25"
   },
@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "parse": "tsx scripts/parse.ts",
     "verify": "npm run typecheck && npm run lint && npm run test"
   },
   "dependencies": {
