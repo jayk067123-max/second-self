@@ -65,14 +65,15 @@ id_rsa*
 # 说明：如确需提交 .npmrc 的 registry 配置，请先确认其中不含 token
 
 # ---------- 本地数据库 / 运行时数据 ----------
-# .env.example 里 DATABASE_URL=file:./data/app.db，数据文件不入库
-data/
+# 注意：目录名锚定到仓库根（/data/ 等），不加锚点会连带忽略 src/data/ 与 tests/data/
+# —— 那是源码与单测目录，绝不能进 ignore。
+/data/
+/uploads/
+/storage/
 *.db
 *.db-journal
 *.sqlite
 *.sqlite3
-uploads/
-storage/
 
 # ---------- 模型权重（体积大，不入库）----------
 *.gguf
@@ -87,9 +88,9 @@ model_weights/
 
 # ---------- 日志与临时文件 ----------
 *.log
-logs/
-tmp/
-temp/
+/logs/
+/tmp/
+/temp/
 *.tmp
 *.bak
 *.orig
