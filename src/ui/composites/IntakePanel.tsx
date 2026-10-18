@@ -4,8 +4,8 @@ import { useState } from "react";
 import type { CoverageReport, SourceLine } from "@/domain/completeness";
 import type { AiMode } from "@/domain/schemas/api";
 import type { TaskDraft } from "@/domain/schemas/task";
-import { todayKey } from "@/domain/time";
 import { SAMPLE_INTAKE_TEXT } from "@/shared/samples";
+import { DEMO_DAY_KEY } from "@/shared/constants";
 import { usePlannerStore } from "@/data/store";
 import { Badge, Button, Card, CardText, CardTitle, Textarea } from "@/ui/primitives";
 import { AiFailureCard } from "./AiFailureCard";
@@ -35,8 +35,9 @@ type LastInput =
 export function IntakePanel() {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<IntakeMode>("text");
-  // dayKey 挂载时定一次：domain 的 todayKey 要求调用方注入时间，不许函数内读时钟
-  const [dayKey] = useState(() => todayKey(Date.now()));
+  // 演示时钟统一来源：与 planner 页共用 DEMO_DAY_KEY，避免"同屏两个今天"
+  // （此前这里用 todayKey(Date.now())，会让 notice.txt 的"这周六"随机器日期漂移）
+  const [dayKey] = useState(() => DEMO_DAY_KEY);
   const [phase, setPhase] = useState<Phase>("idle");
   const [drafts, setDrafts] = useState<TaskDraft[]>([]);
   const [aiMode, setAiMode] = useState<AiMode | null>(null);
