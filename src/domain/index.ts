@@ -5,6 +5,7 @@ export * from "./completeness";
 export * from "./conflicts";
 export * from "./health";
 export * from "./reflow";
+export * from "./schedule";
 export * from "./snapshot";
 export * from "./schemas/task";
 export * from "./time";
