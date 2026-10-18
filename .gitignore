@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.venv*/
+
+# build output
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# env & secrets —— 严禁提交
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets.json
+
+# logs & temp
+*.log
+logs/
+tmp/
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# media raw material（原始录屏素材体积大，只提交成品）
+media/raw/
+*.mp4
+*.mov
