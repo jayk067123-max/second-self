@@ -13,6 +13,7 @@ import { ConflictPanel } from "@/ui/composites/ConflictPanel";
 import { DataPortability } from "@/ui/composites/DataPortability";
 import { DayTimeline } from "@/ui/composites/DayTimeline";
 import { IntakePanel } from "@/ui/composites/IntakePanel";
+import { ManualAddForm } from "@/ui/composites/ManualAddForm";
 import { ReplanPanel } from "@/ui/composites/ReplanPanel";
 
 /**
@@ -103,6 +104,7 @@ export default function PlannerPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <div className="flex flex-col gap-4">
           <IntakePanel />
+          <ManualAddForm />
           <DayTimeline
             tasks={todayTasks}
             conflictIds={conflictIds}

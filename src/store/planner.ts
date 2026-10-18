@@ -30,6 +30,8 @@ interface PlannerState {
   snapshot: Task[] | null;
   lastError: string | null;
   addDrafts: (drafts: TaskDraft[], source?: "text" | "manual") => { ok: boolean; error?: string; added?: number };
+  /** P0-2 手动新增：比 addDrafts 多带 location / locked（用户权威字段） */
+  addManualTask: (input: ManualTaskInput) => { ok: boolean; error?: string; id?: string };
   updateTask: (id: string, patch: Partial<Omit<Task, "id">>) => { ok: boolean; error?: string };
   removeTask: (id: string) => void;
   toggleDone: (id: string) => void;
@@ -44,6 +46,19 @@ interface PlannerState {
 }
 
 const browserAdapter = createBrowserAdapter();
+
+/** 手动新增的输入：不含 id / source / done，由 store 补齐 */
+export interface ManualTaskInput {
+  title: string;
+  start: string | null;
+  end: string | null;
+  durationMin: number;
+  deadline: string | null;
+  priority: 1 | 2 | 3;
+  location: string | null;
+  /** 用户钉死的固定课（重排不许移动） */
+  locked: boolean;
+}
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -79,6 +94,33 @@ export const usePlannerStore = create<PlannerState>()(
         if (built.length === 0) return { ok: false, error: "没有可加入的任务" };
         set({ tasks: [...get().tasks, ...built], lastError: null });
         return { ok: true, added: built.length };
+      },
+
+      addManualTask: (input) => {
+        const id = newId();
+        const parsed = TaskSchema.safeParse({
+          id,
+          title: input.title,
+          start: input.start,
+          end: input.end,
+          durationMin: input.durationMin,
+          deadline: input.deadline,
+          priority: input.priority,
+          source: "manual",
+          done: false,
+          rawTextOrigin: null,
+          location: input.location,
+          locked: input.locked,
+          repeat: null,
+          needsReview: false,
+        });
+        if (!parsed.success) {
+          const message = parsed.error.issues[0]?.message ?? "字段不合法";
+          set({ lastError: `手动新增失败：${message}` });
+          return { ok: false, error: message };
+        }
+        set({ tasks: [...get().tasks, parsed.data], lastError: null });
+        return { ok: true, id };
       },
 
       updateTask: (id, patch) => {
