@@ -19,6 +19,8 @@ type Phase = "idle" | "parsing" | "review" | "done";
  */
 export function IntakePanel() {
   const [text, setText] = useState("");
+  // dayKey 挂载时定一次：domain 的 todayKey 要求调用方注入时间，不许函数内读时钟
+  const [dayKey] = useState(() => todayKey(Date.now()));
   const [phase, setPhase] = useState<Phase>("idle");
   const [drafts, setDrafts] = useState<TaskDraft[]>([]);
   const [mode, setMode] = useState<AiMode | null>(null);
@@ -39,7 +41,7 @@ export function IntakePanel() {
       const res = await fetch("/api/ai/parse-tasks", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: text.trim(), dayKey: todayKey() }),
+        body: JSON.stringify({ text: text.trim(), dayKey }),
       });
       const json: unknown = await res.json();
       const parsed = ParseTasksResponseSchema.safeParse(json);
