@@ -42,6 +42,15 @@
 - 新增 `src/domain/reflow.ts`（原 `planner.ts` 更名，逐条闸/整体闸重新划界）、`snapshot.ts`（快照栈）
 - 新增 `src/domain/schemas/{reflow,snapshot}.ts`
 - 新增 `tests/domain/reflow.test.ts`、`tests/domain/snapshot.test.ts`
+- **唯一裁决器收敛（2026-10-18 21:44 复核，数字已按实测改）**：`src/domain/planner.ts` **已删除**（原 16 行兼容垫片），`Test-Path src/domain/planner.ts` → `False`；`src/` 内 `@/domain/reflow` 的 import **精确 5 处**：`src/ai/demo.ts:2`、`src/ai/tasks.ts:6`、`src/data/store.ts:7`、`src/ui/composites/planMetrics.ts:2`、`src/ui/composites/ReplanPanel.tsx:4`；缓冲口径统一为 `DEFAULT_DETECT_CONFIG.gapMin.default(30)`。采集命令：`Get-ChildItem src -Recurse -Include *.ts,*.tsx -File | Select-String "@/domain/reflow"`。残留的 `domain/planner` 字样只剩 **1 处注释**（`src/domain/schemas/reflow.ts:113`，说明这批 schema 原来住哪），不是 import。
+  - **旧数作废**：本卡与执行方消息里先后写过「6 处」「8 处」import——那是删转发层之前、`src/store` 尚未迁入 `src/data` 时的口径。**凡引用"唯一裁决器"，一律用 5 处 + 上面那条命令**，别用记忆里的数。
+- **演示时钟（可给映像官当录像依据，2026-10-18 按实测收紧口径）**：`src/app/planner/page.tsx` 第 66–68 行渲染角标「演示时钟 2026-10-19 09:00」；`now` **不再取常量**，而是从 store 注入——第 34 行 `usePlannerStore((s) => s.demoClock)`、第 38 行 `useMemo(() => new Date(demoClock.iso), [demoClock.iso])`；角标在第 80 行按 `demoClock.source` 渲染 ` seed` / `系统时间`。导入 `demo-seed.json` 后 `demoClock` 切到种子自带的 `demoNow`，未导入时是系统时间且 `store` 把来源标成 `source:"system"`。
+  - 对外统一口径（每句都能 grep 复核）：**「页面/组件不读系统时钟（`src/ui` + `src/app` 共 32 个文件，`Date.now(` 0 命中）；`new Date(` 共 4 处，均为构造注入值或服务端自检时间戳；系统时钟只在数据层三处使用并标来源；导入 seed 后全链路切到种子 `demoNow`」**。
+  - 4 处 `new Date(` 位置：`planner/page.tsx:38`、`IntakePanel.tsx:41`（各一处 `new Date(注入值)`）、`api/health/route.ts:28` 与 `:84`（服务端自检报告时间戳，本身就要真实时刻）。
+  - 数据层三处：`src/data/store.ts` 第 80 行（生成任务 id）、第 90 行（`demoClock` 初始值 `new Date().toISOString()`，带 `source:"system"`）、第 285 行（导出文件名时间戳）。**另有 4 处 `new Date(毫秒数)`（227 / 228 / 241 / 242 行）是把传入的时间戳转成 ISO 字符串，属格式化、不读时钟**——写进卡里免得评委逐行 grep 时多问一轮。
+  - 行号会漂：取号命令 `Select-String -Path src/data/store.ts -Pattern "Date\.now\(|new Date\("`，上述行号对应 2026-10-18 21:46 的 `a46d9b4`。
+  - **禁止写法**：「页面无 `new Date`」「全仓无系统时钟」「系统时钟只在两处」——三句都会被 grep 反咬。
+  - 行号提醒：本条早前写的是「第 37 行 `useState(() => new Date(DEMO_NOW_ISO))`」，代码改成 store 注入后 `now` 在第 38 行、`demoClock` 在第 34 行，**旧行号（33 / 37）已作废**（映像官 分镜若引需改）。
 - 测试数量**不作断言**，以 `npm test` 输出为准
 
 ## 4. 我如何引导与修正（真实回归，原文照录）

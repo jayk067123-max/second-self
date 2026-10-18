@@ -48,7 +48,7 @@
 3. 真踩两个坑：`react-hooks/set-state-in-effect`（改为 async effect + nonce 重测）、`next build` 把 Turbopack 工作区根判到用户主目录（显式 `turbopack.root`，并把 `jsx` 改成 Next 强制的 `react-jsx`）；
 4. 上报了 4 条提交拆分建议，"工程基线"与"四层目录"分开。
 
-> ⚠️ **与执行方口述的一处差异（如实记，不美化）**：上表第 3 条的两个坑，执行方另一次口述说发生在**第 1 轮之后**（AI 四道闸阶段），与本节"先跑通再上报"的时序不完全一致。该细节未能确证，暂按执行方本次提供的版本记录，并在 10-22 复核时确认；**不做两处并存的美化写法**。
+> ✅ **一处口述差异已澄清（2026-10-18 复核，执行方确认）**：上表第 3 条的两个坑确在**第 0 轮骨架**（`npm run dev` / `next build` 验证阶段）；AI 四道闸阶段遇到的是**另外三处**——`todayKey` 签名收紧导致的 TS2554、`IntakePanel` 同一处、`scripts/parse.ts` 的 EPIPE 退出码。**两组不混记**。此前"该细节未能确证"的存疑表述作废。
 
 ### 2.1 第 1 轮：选题拍板 + 六步落地顺序（逐字）
 
@@ -150,7 +150,7 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 - ✅ 依赖口径（**已修正为准确表述**）：**初版方案为 drizzle + better-sqlite3，在被否决前、落地之前即被否掉；过渡依赖从未进入提交历史**。依据：`git log -S "better-sqlite3" -- package.json` 无输出；`package.json` 全部历史仅 3 次提交；当前 grep 0 命中。**不写"砍掉了依赖"**，写"被否决、未落地"，否则与 `package.json` 比对不上。
 - ✅ 文档层：`ARCHITECTURE.md` 定稿 v1.0 已写入 `StorageAdapter` + `local-adapter.ts` 方案；SQLite 仅作为 ADR-1 背景保留（第 157 行），属刻意留的演进痕迹。
 - ✅ 集成：`npm run verify` 通过（**以 `npm test` 输出为准**；撰写时 8 文件 / 149 项全绿，当日曾报 65、122 两值，均在涨，故不写死）。
-- ✅ 实现层（**已落盘，未提交**）：`src/data/storage.ts`（StorageAdapter 接口实现）、`local-adapter.ts`（localStorage + zustand persist）、`migrate.ts`（版本迁移）、`index.ts`、`README.md` 均已创建。§3.2 表里"适配层代码仍未落盘"的旧结论作废。
+- ✅ 实现层（**已落地并入库**）：`src/data/` 现有 7 个文件（`index.ts` / `storage.ts` / `local-adapter.ts` / `migrate.ts` / `seed.ts` / `store.ts` / `README.md`），落地提交 `83f2622 feat: 本地持久化适配层`（`storage`+`local-adapter`+`migrate`+`tests/data/storage.test.ts`）、`e40dc40`（seed 适配 + 设计令牌 + lint 边界），状态层于 `1cf3982` 由 `src/store/` 归入 `src/data/store.ts`。`src/data/` 内 `drizzle` / `SQLite` 仅剩"为什么不用"的说明性注释（`README.md`、`storage.ts` 文件头），**无过时代码引用**。§3.2 表中"适配层代码仍未落盘"的旧结论作废。
 
 > 结论口径：**依赖层、文档层、实现层均已落盘**（实现层在工作区、未提交）。可以证明"AI 给的 SQLite 方案被人类否决、依赖清掉、适配层按新方案重写完成"，仍**不能**声称"已在 HEAD 上可复现"——那几个文件还没入库。
 
@@ -168,7 +168,7 @@ LLM 只负责"给方案和理由"，不许它算结果：输出 2-3 套时间块
 | # | 现象（AI 写歪/报错/跑不通） | 我的判断 | 我下的指令（原文） | 结果 |
 |---|---|---|---|---|
 | 1（子步1·选型） | AI 给出的数据层方案是 `drizzle-orm + better-sqlite3` 单文件 SQLite | 方案本身能跑，但**评的是 10 分钟复现**：`better-sqlite3` 是原生模块，评委机器上需 node-gyp + VS Build Tools 编译，装不上就白屏，复现风险远大于收益 | 「砍掉 drizzle + better-sqlite3，`data/` 层改成本地持久化适配层（storage adapter + zustand persist + localStorage + JSON 导入导出），不要服务端数据库、不要迁移脚本、不要 `db:push`。」（**逐字原文已归档到 `001b-data-layer-decision.md` §2，含下发方/时间/渠道标注**） | **被否决、未落地**：过渡依赖从未进入提交历史（`git log -S` 无输出）；适配层实现已在 `83f2622` 落盘 |
-| 2（子步5·AI 编排） | `npm run verify` 在 typecheck 阶段报 `src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.` | 工作区在 `e7bc43c` 之后又往前走了，新落盘的 `src/ai/*` 未过 typecheck；单测 54/54 仍绿，说明问题只在类型层，不影响逻辑正确性 | **事后补记 · 2026-10-18 · 由修复者本人回忆**（待回填：现象 / 定位 / 改法 三行） | **已修复**：16:10 复核 6 文件 65 项全绿，红→绿全过程记录在 §5.1 / §5.2（**16:10 时点快照**，当前用例数以 `npm test` 为准——撰写时 **162 项全绿**） |
+| 2（子步5·AI 编排） | `npm run verify` 在 typecheck 阶段报 `src/ai/tasks.ts(191,3): error TS6133: 'input' is declared but its value is never read.` | 工作区在 `e7bc43c` 之后又往前走了，新落盘的 `src/ai/*` 未过 typecheck；单测 54/54 仍绿，说明问题只在类型层，不影响逻辑正确性 | **事后补记 · 2026-10-18 · 由修复者本人回忆（全栈手）**：<br>**现象**——`npm run typecheck` 报 `src/ai/tasks.ts(191,3): TS6133 'input' is declared but its value is never read`（`finalizePlans(plans, input, mode, …)` 里 `input` 从未被引用）。<br>**定位**——`npm run verify` 的 typecheck 阶段直接给出文件:行号；打开该函数确认是写重排兜底时留了占位参数，函数体只用到 `plans` / `mode` / `rejected` / `timings`。<br>**改法**——参数名改为 `_input`（保留签名形状、表达"故意不用"），三处调用点不动。 | **已修复**：16:10 复核 6 文件 65 项全绿，红→绿全过程记录在 §5.1 / §5.2（16:10 时点快照；当前用例数以 `npm test` 为准） |
 | 3（子步1-3·越界） | **「骨架轮不许写业务逻辑」这条被打破**：`cf1b37a` 同时含 `src/domain/conflicts.ts`（194 行）、`src/domain/planner.ts`（269 行）等业务纯函数，与目录骨架、设计令牌、落地页并成一个提交 | 本条是意图卡禁止事项①的违反。**不美化、不写成"骨架轮零业务"**——评委 `git show cf1b37a --stat` 一眼可见。原因：16:07 落地方先写了 domain，交付官 16:07 把骨架与 domain 一起提交，并行开发下提交边界没守住 | 未下发（无拦截指令留痕，属缺口） | **保留原禁止事项不改**，如实记为偏差；后续轮次按实际归属归链（conflicts→003、planner→004），不把这部分算作骨架轮成果 |
 | 4（并行冲突） | 逻辑手在 UI 开发期间重写 `src/domain/conflicts.ts`（4 类规则 + severity + evidence + ruleVersion + 注入 now），落地方的调用方全部失效：`ConflictPanel` 用的 `conflictType/severity/humanMessage` 不匹配、planner 页 `detectConflicts` 签名变化，并连带 3 处红（`resolveVenue` 写死 10/60/30 未读 config、`PRIORITY_BAND[task.priority]` TS7053、`scripts/parse.ts` 的 `arg` 可能 undefined） | 这是**并行写冲突**，不是单点 bug：两个 Bot 同时改同一契约。正确处置不是回滚自己的版本，而是**以新契约为准重写调用方** | 未下发（处置方式由全栈手自定，原文缺口） | 已收敛：修完 122 个单测全绿（当时值）。**建议作为 003 链的核心素材**，见下 |
 | 5（子步4·适配层） | `.gitignore` 里 `data/` 没锚定根，把 `src/data/` 和 `tests/data/` 一起忽略了——**新写的持久化层和单测对 git 完全不可见**，`git add` 会静默漏文件 | 这是最危险的一类 bug：不是代码错，是**版本控制把正确代码藏起来了**。后果是"本地全绿、评委 clone 后缺文件"，正好打在「10 分钟复现」上 | 纠正：改成 `/data/` `/uploads/` `/storage/` 锚定根目录，并用 `git check-ignore -v` 验证归零（来源：全栈手自述，2026-10-18） | **已修复**，`.gitignore` 第 68–72 行留了注释说明为什么不加锚点会连带忽略 |
