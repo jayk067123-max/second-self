@@ -7,7 +7,7 @@ import { todayKey } from "@/domain/time";
 import { SAMPLE_INTAKE_TEXT } from "@/shared/samples";
 import { usePlannerStore } from "@/store/planner";
 import { Badge, Button, Card, CardText, CardTitle, Textarea } from "@/ui/primitives";
-import { AiErrorNotice } from "./AiErrorNotice";
+import { AiFailureCard } from "./AiFailureCard";
 import { AiStatusSteps, type AiStep } from "./AiStatusSteps";
 import { TaskCorrectionTable } from "./TaskCorrectionTable";
 
@@ -24,7 +24,7 @@ export function IntakePanel() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [drafts, setDrafts] = useState<TaskDraft[]>([]);
   const [mode, setMode] = useState<AiMode | null>(null);
-  const [error, setError] = useState<{ message: string; issues: string[] } | null>(null);
+  const [error, setError] = useState<{ message: string; issues: string[]; raw?: string } | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
   const [timings, setTimings] = useState<Array<{ phase: string; ms: number }>>([]);
   const [addedCount, setAddedCount] = useState(0);
@@ -53,7 +53,7 @@ export function IntakePanel() {
       setMode(parsed.data.mode);
       setTimings(parsed.data.timings);
       if (!parsed.data.ok) {
-        setError({ message: parsed.data.error, issues: parsed.data.issues });
+        setError({ message: parsed.data.error, issues: parsed.data.issues, raw: parsed.data.raw });
         setPhase("idle");
         return;
       }
@@ -134,11 +134,21 @@ export function IntakePanel() {
       {phase === "parsing" ? <AiStatusSteps steps={steps} /> : null}
 
       {error ? (
-        <AiErrorNotice
+        <AiFailureCard
           message={error.message}
           issues={error.issues}
+          rawOutput={error.raw}
           onRetry={() => void parse()}
-          retryLabel="重新解析"
+          onManualFix={() => {
+            // 出路二：转到手动新增，用户自己把这条录进去
+            document.getElementById("manual-title")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            document.getElementById("manual-title")?.focus();
+          }}
+          onBack={() => {
+            setError(null);
+            setPhase("idle");
+          }}
+          busy={phase === "parsing"}
         />
       ) : null}
 

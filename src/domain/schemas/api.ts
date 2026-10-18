@@ -45,6 +45,8 @@ export const ParseTasksFailureSchema = z.object({
   error: z.string(),
   issues: z.array(z.string()),
   timings: z.array(PhaseTimingSchema),
+  /** 模型返回的原始文本：失败卡必须能摊开给人看（ARCHITECTURE §3 第 4 闸） */
+  raw: z.string().optional(),
 });
 export type ParseTasksFailure = z.infer<typeof ParseTasksFailureSchema>;
 
@@ -86,6 +88,7 @@ export const ReplanFailureSchema = z.object({
   error: z.string(),
   issues: z.array(z.string()),
   timings: z.array(PhaseTimingSchema),
+  raw: z.string().optional(),
 });
 export type ReplanFailure = z.infer<typeof ReplanFailureSchema>;
 

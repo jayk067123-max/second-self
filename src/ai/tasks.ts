@@ -73,6 +73,7 @@ export async function parseTasksFromText(
       error: result.error,
       issues: result.issues,
       timings: result.timings,
+      raw: result.raw,
     };
   }
 
@@ -149,6 +150,7 @@ export async function replanForDay(
       error: result.error,
       issues: result.issues,
       timings: result.timings,
+      raw: result.raw,
     };
   }
 

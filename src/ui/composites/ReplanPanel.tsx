@@ -10,7 +10,7 @@ import {
 import { formatClock, formatDuration, parseIsoToMs } from "@/domain/time";
 import { usePlannerStore } from "@/store/planner";
 import { Badge, Button, Card, CardText, CardTitle } from "@/ui/primitives";
-import { AiErrorNotice } from "./AiErrorNotice";
+import { AiFailureCard } from "./AiFailureCard";
 import { AiStatusSteps, type AiStep } from "./AiStatusSteps";
 import { computePlanMetrics } from "./planMetrics";
 
@@ -32,7 +32,7 @@ export function ReplanPanel({
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<ReplanSuccess | null>(null);
-  const [error, setError] = useState<{ message: string; issues: string[] } | null>(null);
+  const [error, setError] = useState<{ message: string; issues: string[]; raw?: string } | null>(null);
   const [appliedTitle, setAppliedTitle] = useState<string | null>(null);
   const applyPlanWithSnapshot = usePlannerStore((s) => s.applyPlanWithSnapshot);
 
@@ -54,7 +54,7 @@ export function ReplanPanel({
         return;
       }
       if (!parsed.data.ok) {
-        setError({ message: parsed.data.error, issues: parsed.data.issues });
+        setError({ message: parsed.data.error, issues: parsed.data.issues, raw: parsed.data.raw });
         setPhase("idle");
         return;
       }
@@ -119,11 +119,17 @@ export function ReplanPanel({
       <AiStatusSteps steps={steps} />
 
       {error ? (
-        <AiErrorNotice
+        <AiFailureCard
+          title="这次重排建议没通过本地校验"
           message={error.message}
           issues={error.issues}
+          rawOutput={error.raw}
           onRetry={() => void request()}
-          retryLabel="重新生成"
+          onBack={() => {
+            setError(null);
+            setPhase("idle");
+          }}
+          busy={phase === "loading"}
         />
       ) : null}
 
