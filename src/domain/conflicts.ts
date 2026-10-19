@@ -373,6 +373,40 @@ function bufferCandidates(occurrences: readonly Occurrence[]): BufferCandidate[]
   return candidates;
 }
 
+/**
+ * 缓冲冲突的一句话文案：**唯一来源**——卡片、截图、材料里的原话都从这出。
+ *
+ * 为什么不再只写「21:00 结束接着 21:00 开始」：那种句式只给两个时刻点，
+ * 读者想知道"到底有没有留空"，必须自己回头翻上一行。冲突卡是给人看的第一现场，
+ * 能在同一句里自证的事，就不该要求读者去对照别处；这也正是评审判"体验漏洞"的那条。
+ *
+ * 为什么把"前一条的开始时间"单独留成 `null` 分支：今天（rules/v1）的候选对必然来自
+ * `occurrencesOf`，开始/结束都解析成功才会成为 occurrence（纯 DDL、零时长的任务在
+ * `timedTasksOf` 就被排除了），所以**运行时到不了这个分支**。留着是因为文案一旦被
+ * 内联回某个调用点，以后有人加"点事件"或从外部拼 occurrence 时就会静默退回时刻点；
+ * 单测钉住这个退化形态的措辞，谁想删它之前会先看到那条用例。
+ *
+ * 为什么区间形态里不写"路上至少要 N 分钟"：`humanMessage` 有 40 字硬上限
+ * （`schemas/conflict.ts`），"两条区间 + 间隔 + 要求"三段装不下。区间与间隔优先——
+ * 它们决定这条冲突"看不看得懂"；要求值仍在 `evidence.requiredMin`，UI 需要时单独取。
+ */
+export function formatBufferMessage(input: {
+  earlierStartMs: number | null;
+  earlierEndMs: number;
+  laterStartMs: number;
+  laterEndMs: number;
+  gapMin: number;
+  requiredMin: number;
+}): string {
+  const { earlierStartMs, earlierEndMs, laterStartMs, laterEndMs, gapMin, requiredMin } = input;
+  if (earlierStartMs === null) {
+    return `${formatClock(earlierEndMs)} 结束接着 ${formatClock(laterStartMs)} 开始，路上至少要 ${requiredMin} 分钟`;
+  }
+  // gap=0 用"没有留空"：这句话本身就是结论，不必再让读者去减两个时刻
+  const tail = gapMin === 0 ? "中间没有留空" : `中间只有 ${gapMin} 分钟`;
+  return `${formatClock(earlierStartMs)}–${formatClock(earlierEndMs)} 接着 ${formatClock(laterStartMs)}–${formatClock(laterEndMs)}，${tail}`;
+}
+
 function detectBuffers(occurrences: readonly Occurrence[], config: DetectConfig, nowIso: string): Conflict[] {
   const conflicts: Conflict[] = [];
   for (const { earlier, later } of bufferCandidates(occurrences)) {
@@ -395,7 +429,16 @@ function detectBuffers(occurrences: readonly Occurrence[], config: DetectConfig,
       locationUnknown: (a.location ?? null) === null || (b.location ?? null) === null,
     });
     const dayKey = dayKeyOf(earlier.endMs);
-    const message = `${formatClock(earlier.endMs)} 结束接着 ${formatClock(later.startMs)} 开始，路上至少要 ${requiredMin} 分钟`;
+    // 文案统一走 formatBufferMessage：区间自证 + 间隔结论。
+    // 注意传的是**这一次发生**的起止（重复任务按 occurrence 算），不是任务原始行。
+    const message = formatBufferMessage({
+      earlierStartMs: earlier.startMs,
+      earlierEndMs: earlier.endMs,
+      laterStartMs: later.startMs,
+      laterEndMs: later.endMs,
+      gapMin,
+      requiredMin,
+    });
 
     conflicts.push(
       buildConflict({

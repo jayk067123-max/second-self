@@ -8,6 +8,7 @@ import {
   describeConflict,
   detectConflicts,
   foldConflicts,
+  formatBufferMessage,
   minutesOnDay,
   timedTasksOf,
 } from "@/domain/conflicts";
@@ -187,6 +188,41 @@ describe("detectConflicts · 规则2 缓冲不足（buffer）", () => {
     expect(buffers[0]?.severity).toBe("high");
     expect(buffers[0]?.evidence.requiredMin).toBe(30);
     expect(buffers[0]?.evidence.venue).toBe("virtual");
+  });
+
+  it("缓冲文案用区间自证：18:30–21:00 接着 21:00–21:30，中间没有留空", () => {
+    // 评审判"体验漏洞"的原案：旧文案只写「21:00 结束接着 21:00 开始」，
+    // 上一行 18:30 的会议不显示结束时间时，读者无法自己验证这条冲突。
+    const meeting = block(DAY, 18, 30, 21, 0, { location: "学院楼301" });
+    const online = block(DAY, 21, 0, 21, 30, { location: "线上" });
+    const [buffer] = only(detect([meeting, online]), "buffer");
+    expect(buffer?.humanMessage).toBe("18:30–21:00 接着 21:00–21:30，中间没有留空");
+    expect(buffer?.humanMessage.length).toBeLessThanOrEqual(40);
+  });
+
+  it("间隔不为 0 时写真实分钟数，不写成「没有留空」", () => {
+    // gap=5 < 30−5，仍然报；但结论必须与数字一致，否则文案就变成了谎报
+    const meeting = block(DAY, 18, 30, 21, 0, { location: "学院楼301" });
+    const online = block(DAY, 21, 5, 21, 30, { location: "线上" });
+    const [buffer] = only(detect([meeting, online]), "buffer");
+    expect(buffer?.evidence.gapMin).toBe(5);
+    expect(buffer?.humanMessage).toBe("18:30–21:00 接着 21:05–21:30，中间只有 5 分钟");
+    expect(buffer?.humanMessage.length).toBeLessThanOrEqual(40);
+  });
+
+  it("拿不到前一条开始时间时退回「结束接着开始」（退化形态由单测钉住，别当死代码删）", () => {
+    // 今天运行时到不了这里（只有截止日/零时长的任务不会成为 occurrence），
+    // 但措辞是产品口径的一部分：留着这条用例，防止以后有人内联回去时悄悄丢掉退化分支。
+    expect(
+      formatBufferMessage({
+        earlierStartMs: null,
+        earlierEndMs: Date.parse(hhmm(DAY, 21, 0)),
+        laterStartMs: Date.parse(hhmm(DAY, 21, 0)),
+        laterEndMs: Date.parse(hhmm(DAY, 21, 30)),
+        gapMin: 0,
+        requiredMin: 30,
+      }),
+    ).toBe("21:00 结束接着 21:00 开始，路上至少要 30 分钟");
   });
 
   it("地点未知时降为灰点（信息不足不替用户假设）", () => {
