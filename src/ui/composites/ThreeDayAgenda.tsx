@@ -221,8 +221,11 @@ function TaskRow({
         ongoing ? "bg-brand-500/8" : "hover:bg-ink-800/70",
       )}
     >
-      <span className="tnum w-9 shrink-0 font-mono text-micro text-ink-400">
-        {hasBlock ? formatClock(startMs) : "DDL"}
+      {/* 时刻显示成区间，不是只给开始时间：
+          冲突提示说「21:00 结束接着 21:00 开始」，要是上一行只写 18:30，
+          用户和评委都没法自己验算这条冲突。有结束时间就写成 18:30–21:00。 */}
+      <span className="tnum w-[66px] shrink-0 font-mono text-[10px] leading-tight tracking-tight text-ink-400">
+        {hasBlock ? `${formatClock(startMs)}–${formatClock(endMs)}` : "DDL"}
       </span>
 
       {/* 完成勾选：18px，可选；勾掉之后分身百分比会跟着跳（今日页标题旁那个数字） */}
