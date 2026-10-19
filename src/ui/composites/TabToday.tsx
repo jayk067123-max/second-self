@@ -1,9 +1,12 @@
 "use client";
 
+import type { AvatarSummary } from "@/domain/avatar";
 import type { Conflict } from "@/domain/conflicts";
 import type { Task } from "@/domain/schemas/task";
+import { usePlannerStore } from "@/data/store";
 import { Button, EmptyState } from "@/ui/primitives";
 import { ConflictPanel } from "./ConflictPanel";
+import { PlanUndoBar } from "./PlanUndoBar";
 import { ReplanPanel } from "./ReplanPanel";
 import { ThreeDayAgenda } from "./ThreeDayAgenda";
 import { TodayHeadline } from "./TodayHeadline";
@@ -12,12 +15,14 @@ import type { HeadlineView } from "./headline";
 /**
  * 「今日」页 —— 只回答一个问题：今天到后天会撞上什么。
  *
- * 版面：一句人话结论 → 三天时间轴（冲突贴发生处）→ 冲突明细（有才出现）。
+ * 版面：一句人话结论（右上角带分身完成度）→ 三天时间轴（冲突贴发生处）
+ * → 冲突明细（有才出现）→ 3 秒撤销条（方案写回后才出现）。
  * 卡片最多两张；没有冲突时省掉第二张，只留一行字。
  */
 export function TabToday({
   hydrated,
   headline,
+  avatar,
   tasks,
   days,
   conflicts,
@@ -30,6 +35,7 @@ export function TabToday({
 }: {
   hydrated: boolean;
   headline: HeadlineView;
+  avatar: AvatarSummary;
   tasks: Task[];
   days: { dayKey: string; label: string }[];
   conflicts: Conflict[];
@@ -40,9 +46,11 @@ export function TabToday({
   windowCount: number;
   onGoCapture: () => void;
 }) {
+  const toggleDone = usePlannerStore((s) => s.toggleDone);
+
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <TodayHeadline view={headline} />
+      <TodayHeadline view={headline} avatar={avatar} />
 
       {!hydrated ? (
         <AgendaSkeleton />
@@ -67,6 +75,7 @@ export function TabToday({
           days={days}
           conflicts={conflicts}
           nowMs={nowMs}
+          onToggle={toggleDone}
         />
       )}
 
@@ -88,6 +97,9 @@ export function TabToday({
           </div>
         </details>
       ) : null}
+
+      {/* 方案写回后浮 3 秒，撤销不用切到「我的」页 */}
+      <PlanUndoBar />
     </div>
   );
 }

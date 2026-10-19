@@ -190,6 +190,7 @@ export function TodayScreen() {
           <TabToday
             hydrated={hydrated}
             headline={headline}
+            avatar={avatar}
             tasks={tasks}
             days={days}
             conflicts={conflicts}

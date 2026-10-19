@@ -96,12 +96,19 @@ export function ThreeDayAgenda({
   days,
   conflicts,
   nowMs,
+  onToggle,
 }: {
   tasks: Task[];
   days: { dayKey: string; label: string }[];
   conflicts: Conflict[];
   /** 演示时钟：`正在进行` 的判定用它，不读系统时间 */
   nowMs: number;
+  /**
+   * 勾选完成。完成态是**可选**动作（用户口径：不勾也照常用），
+   * 但只要这里给了回调，行上就有一枚 18px 的圆点可点——
+   * 分身负载百分比要跟着它跳，所以空着不传会看不到反馈。
+   */
+  onToggle?: (id: string) => void;
 }) {
   const limitMin = DEFAULT_DETECT_CONFIG.dayCapacityMin;
   const totalCount = useMemo(
@@ -166,7 +173,12 @@ export function ThreeDayAgenda({
                   entry.kind === "note" ? (
                     <ConflictNote key={entry.conflict.conflictId} conflict={entry.conflict} />
                   ) : (
-                    <TaskRow key={entry.task.id} task={entry.task} nowMs={nowMs} />
+                    <TaskRow
+                      key={entry.task.id}
+                      task={entry.task}
+                      nowMs={nowMs}
+                      onToggle={onToggle}
+                    />
                   ),
                 )}
               </ul>
@@ -178,7 +190,15 @@ export function ThreeDayAgenda({
   );
 }
 
-function TaskRow({ task, nowMs }: { task: Task; nowMs: number }) {
+function TaskRow({
+  task,
+  nowMs,
+  onToggle,
+}: {
+  task: Task;
+  nowMs: number;
+  onToggle?: (id: string) => void;
+}) {
   const startMs = parseIsoToMs(task.start);
   const endMs = parseIsoToMs(task.end);
   const hasBlock = startMs !== null && endMs !== null && endMs > startMs;
@@ -204,6 +224,26 @@ function TaskRow({ task, nowMs }: { task: Task; nowMs: number }) {
       <span className="tnum w-9 shrink-0 font-mono text-micro text-ink-400">
         {hasBlock ? formatClock(startMs) : "DDL"}
       </span>
+
+      {/* 完成勾选：18px，可选；勾掉之后分身百分比会跟着跳（今日页标题旁那个数字） */}
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={task.done}
+        aria-label={`${task.done ? "取消完成" : "标记完成"}：${task.title}`}
+        onClick={() => onToggle?.(task.id)}
+        disabled={!onToggle}
+        className={cn(
+          "grid size-[18px] shrink-0 place-items-center rounded-pill transition-[background-color,box-shadow,color] duration-150 ease-standard",
+          task.done
+            ? "bg-ok-500 text-on-solid"
+            : "bg-transparent text-transparent shadow-[inset_0_0_0_1.5px_var(--color-ink-600)] hover:shadow-[inset_0_0_0_1.5px_var(--color-brand-400)]",
+        )}
+      >
+        <span aria-hidden className="text-[8px] leading-none">
+          ✓
+        </span>
+      </button>
 
       {/* 这一层必须自己给行高：外层 body 是 1.7，不给的话行盒被撑到 25.5px，一行变两行高 */}
       <span className="min-w-0 flex-1 truncate text-caption leading-[1.5]">
