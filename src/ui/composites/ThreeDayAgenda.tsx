@@ -222,8 +222,9 @@ function TaskRow({
       )}
     >
       {/* 时刻显示成区间，不是只给开始时间：
-          冲突提示说「21:00 结束接着 21:00 开始」，要是上一行只写 18:30，
-          用户和评委都没法自己验算这条冲突。有结束时间就写成 18:30–21:00。 */}
+          冲突提示现在说「18:30–21:00 接着 21:00–21:30，中间没有留空」，
+          要是上一行只写 18:30，用户和评委都没法自己验算这条冲突。
+          有结束时间就写成 18:30–21:00（列宽 66px、10px 字，375 宽不换行）。 */}
       <span className="tnum w-[66px] shrink-0 font-mono text-[10px] leading-tight tracking-tight text-ink-400">
         {hasBlock ? `${formatClock(startMs)}–${formatClock(endMs)}` : "DDL"}
       </span>
