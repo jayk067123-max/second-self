@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CoverageReport, SourceLine } from "@/domain/completeness";
+import { mergeDraftPatch } from "@/domain/clarify";
 import type { AiMode } from "@/domain/schemas/api";
 import type { TaskDraft } from "@/domain/schemas/task";
 import { SAMPLE_INTAKE_TEXT } from "@/shared/samples";
@@ -10,12 +11,15 @@ import { usePlannerStore } from "@/data/store";
 import { Badge, Button, Card, CardText, CardTitle, Textarea } from "@/ui/primitives";
 import { AiFailureCard } from "./AiFailureCard";
 import { AiStatusSteps, type AiStep } from "./AiStatusSteps";
+import { ClarifyPanel } from "./ClarifyPanel";
+import { pendingCount } from "./clarifyQueue";
 import { ImageIntake } from "./ImageIntake";
 import { TaskCorrectionTable } from "./TaskCorrectionTable";
 import { UncoveredNotice } from "./UncoveredNotice";
 import { requestParseImage, requestParseText, type IntakeOutcome } from "./intakeClient";
 
-type Phase = "idle" | "parsing" | "review" | "done";
+/** `ask` = 追问阶段（一屏一问）；`review` = 修正表阶段。两者共用同一份 drafts */
+type Phase = "idle" | "parsing" | "ask" | "review" | "done";
 type IntakeMode = "text" | "image";
 
 /** 重试要用的输入快照：点「一键重试」时不该让用户重选图 */
@@ -76,7 +80,16 @@ export function IntakePanel() {
     setDrafts(outcome.response.tasks);
     setNotes(outcome.response.droppedIssues);
     setCoverage(outcome.response.coverage);
-    setPhase("review");
+    // 有缺信息的条目就先追问（一屏一问）；都有信息就直接进修正表
+    setPhase(pendingCount(outcome.response.tasks, dayKey, []) > 0 ? "ask" : "review");
+  }
+
+  /**
+   * 字段回写**唯一入口**：追问面板和修正表都走这里 → 同一个 `mergeDraftPatch`。
+   * 这是 007 卡里"双写 bug"的执行侧防线：两个入口的合并语义一模一样。
+   */
+  function applyPatch(index: number, patch: Partial<TaskDraft>) {
+    setDrafts((prev) => prev.map((draft, i) => (i === index ? mergeDraftPatch(draft, patch) : draft)));
   }
 
   async function runText(snapshot: { text: string }) {
@@ -129,6 +142,8 @@ export function IntakePanel() {
   }
 
   const busy = phase === "parsing";
+  /** 追问和修正表是同一个阶段的两个屏：都要显示状态步骤与完整性提示 */
+  const inReview = phase === "ask" || phase === "review";
   const steps: AiStep[] =
     phase === "parsing"
       ? [
@@ -137,7 +152,7 @@ export function IntakePanel() {
           { label: "逐行核对完整性", status: "idle" },
           { label: "等你人工核对", status: "idle" },
         ]
-      : phase === "review"
+      : inReview
         ? [
             { label: mode === "image" ? "压缩图片并上传" : "提交原文", status: "done" },
             {
@@ -151,7 +166,11 @@ export function IntakePanel() {
               status: "done",
               detail: coverage === null ? "未核对" : coverage.verified ? "已用原文重算" : "图片路径未复核",
             },
-            { label: "等你人工核对", status: "active" },
+            {
+              label: phase === "ask" ? "补齐缺的信息" : "等你人工核对",
+              status: "active",
+              detail: phase === "ask" ? "一屏一问" : undefined,
+            },
           ]
         : [];
 
@@ -242,7 +261,7 @@ export function IntakePanel() {
         />
       ) : null}
 
-      {phase === "review" && drafts.length > 0 ? (
+      {inReview && drafts.length > 0 ? (
         <>
           <AiStatusSteps steps={steps} />
           {notes.length > 0 ? (
@@ -264,20 +283,26 @@ export function IntakePanel() {
               }
             />
           ) : null}
-          <TaskCorrectionTable
-            drafts={drafts}
-            onChange={(index, patch) =>
-              setDrafts((prev) =>
-                prev.map((draft, i) => (i === index ? { ...draft, ...patch } : draft)),
-              )
-            }
-            onRemove={(index) => setDrafts((prev) => prev.filter((_, i) => i !== index))}
-            onConfirm={confirm}
-            onCancel={() => {
-              setDrafts([]);
-              setPhase("idle");
-            }}
-          />
+          {phase === "ask" ? (
+            <ClarifyPanel
+              drafts={drafts}
+              dayKey={dayKey}
+              onPatch={applyPatch}
+              onFinish={() => setPhase("review")}
+              onSkipAll={() => setPhase("review")}
+            />
+          ) : (
+            <TaskCorrectionTable
+              drafts={drafts}
+              onChange={applyPatch}
+              onRemove={(index) => setDrafts((prev) => prev.filter((_, i) => i !== index))}
+              onConfirm={confirm}
+              onCancel={() => {
+                setDrafts([]);
+                setPhase("idle");
+              }}
+            />
+          )}
         </>
       ) : null}
 
