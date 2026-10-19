@@ -54,9 +54,6 @@
 
   /* 实心填充上的文字（主按钮、! 方块、勾选圆点） */
   --color-on-solid: #ffffff;
-  /* 页面两块柔光斑的用色 */
-  --color-glow-peach: #ffe6d5;
-  --color-glow-sky: #e3f0ff;
 
   /* ---- 优先级三档：用户口径「重要红 · 一般黄 · 低绿」----
    * 铁律：颜色从不单独承载信息。三档各带形状 + 文字（▲重要 / ●一般 / ○低），
@@ -124,12 +121,9 @@
 
   body {
     background-color: var(--color-ink-950);
-    /* ins 风：两块极淡的柔光斑，固定不动，滚动时不"跟着跑" */
-    background-image:
-      radial-gradient(58% 38% at 8% -6%, var(--color-glow-peach) 0%, transparent 62%),
-      radial-gradient(52% 34% at 102% 2%, var(--color-glow-sky) 0%, transparent 64%);
-    background-attachment: fixed;
-    background-repeat: no-repeat;
+    /* 平涂奶油底，只有这一层颜色。
+       用户原话：渐变/光斑"显得档次低"。层次只靠白卡、留白、字重。
+       这里刻意不写 background-image —— 谁想加先问一遍。 */
     color: var(--color-ink-100);
     font-family: var(--font-sans);
     font-size: var(--text-body);

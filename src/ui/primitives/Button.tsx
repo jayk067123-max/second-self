@@ -7,14 +7,14 @@ type Size = "md" | "lg";
 /**
  * 亮色口径：
  * - primary 珊瑚实心 + 白字（对比 4.9:1），悬停加深而不是变浅——浅底上变浅会掉对比
- * - secondary 白底暖影，不描边（用户口径"别用边框"）
+ * - secondary 暖米底，不描边：它常放在白卡里，纯白底按钮会"消失"
  * - ghost 只做文字与浅底，用在"撤销/清空"这种低权重操作
  */
 const VARIANT_CLASS: Record<Variant, string> = {
   primary:
     "bg-brand-500 text-on-solid shadow-glow hover:bg-brand-600 active:bg-brand-700",
   secondary:
-    "bg-ink-900 text-ink-100 shadow-soft hover:bg-ink-800 active:bg-ink-700",
+    "bg-ink-800 text-ink-100 hover:bg-ink-700 active:bg-ink-600",
   ghost: "bg-transparent text-ink-300 hover:bg-ink-800 hover:text-ink-50",
 };
 

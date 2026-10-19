@@ -1,35 +1,66 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useCallback, useMemo } from "react";
+import { useSyncExternalStore, useCallback, useMemo } from "react";
 import { computeAvatarSummary, tasksOnDay } from "@/domain/avatar";
 import { DEFAULT_DETECT_CONFIG, detectConflicts } from "@/domain/conflicts";
 import { dayKeyOf, weekdayLabel } from "@/domain/time";
 import { TERM_START_DAY_KEY } from "@/shared/constants";
 import { usePlannerHydration, usePlannerStore } from "@/data/store";
-import { Button, EmptyState } from "@/ui/primitives";
-import { AvatarCard } from "./AvatarCard";
-import { ConflictPanel } from "./ConflictPanel";
-import { DataPortability } from "./DataPortability";
-import { IntakePanel } from "./IntakePanel";
-import { ManualAddForm } from "./ManualAddForm";
-import { ReplanPanel } from "./ReplanPanel";
-import { ThreeDayAgenda } from "./ThreeDayAgenda";
-import { TimetableReuploadPanel } from "./TimetableReuploadPanel";
-import { TodayHeadline } from "./TodayHeadline";
 import { buildHeadline, threeDayWindow } from "./headline";
+import { TabCapture } from "./TabCapture";
+import { TabMe } from "./TabMe";
+import { TabTasks } from "./TabTasks";
+import { TabToday } from "./TabToday";
 
 /**
- * 今日视图 —— 整个首页只有这一个文件在"装配"。
+ * 应用外壳 = 四个标签页。
  *
- * 版面顺序是硬要求，不是审美偏好：
- *   一句人话结论 → 近三天时间轴 → 冲突明细 → 分身 → 重排 → 录入。
- * 录入是**动作入口**，不是首屏内容：手机上它只以底部那颗主按钮出现，
- * 首屏必须整块让给「今天会撞上什么」。
+ * 用户否掉了"一屏堆全部内容"：太复杂、太乱。所以这里只做两件事：
+ *   1. 决定**当前是哪一页**（手机底部标签栏 / 桌面顶部导航）；
+ *   2. 把 domain 算好的数一次性算完，按页喂给面板。
  *
- * 三种状态都显式画出来：
- *   加载 = 骨架行；空 = 空态卡 + 主按钮；出错 = 顶部红条 + 关闭。
+ * 每页只干一件事，跨页重复的模块一律删掉：
+ *   今日 = 结论 + 三天时间轴 + 冲突提示
+ *   任务 = 全部任务 + 搜索 + 每条可溯源
+ *   随手记 = 一个大输入框 + 手动加一条 + 重传课表
+ *   我的 = 数字分身 + 数据导入导出 + 撤销
+ *
+ * 不新增路由（/planner 仍指向这里），标签状态写进 location.hash，
+ * 好处是截图、录像、刷新都能停在同一页（#today / #tasks / #capture / #me）。
  */
+
+export type TabKey = "today" | "tasks" | "capture" | "me";
+
+const TAB_LABEL: Record<TabKey, string> = {
+  today: "今日",
+  tasks: "任务",
+  capture: "随手记",
+  me: "我的",
+};
+
+const TAB_ORDER: TabKey[] = ["today", "tasks", "capture", "me"];
+
+function isTabKey(value: string): value is TabKey {
+  return (TAB_ORDER as string[]).includes(value);
+}
+
+/** hash 订阅：刷新、手改地址栏、点导航都走同一条路 */
+function subscribeHash(onChange: () => void): () => void {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
+function readHashTab(): TabKey {
+  const fromHash = window.location.hash.replace("#", "");
+  return isTabKey(fromHash) ? fromHash : "today";
+}
+
+/** 服务端没有 hash，统一渲「今日」；客户端首帧之后由 hash 接管 */
+function getServerTab(): TabKey {
+  return "today";
+}
+
 export function TodayScreen() {
   const hydrated = usePlannerHydration();
   const tasks = usePlannerStore((s) => s.tasks);
@@ -40,7 +71,17 @@ export function TodayScreen() {
   const dismissError = usePlannerStore((s) => s.dismissError);
   const demoClock = usePlannerStore((s) => s.demoClock);
 
-  // "现在"永远由 demoClock 注入（domain 里不读系统时钟），来源写在角标上可自证。
+  // 当前页 = location.hash 是唯一真相（不另存一份 state，免得两处打架）。
+  // 切换用 replaceState：不往浏览器历史里塞四条记录；手动派发 hashchange 通知订阅者。
+  const tab = useSyncExternalStore(subscribeHash, readHashTab, getServerTab);
+
+  const selectTab = useCallback((next: TabKey) => {
+    window.history.replaceState(null, "", `#${next}`);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  // "现在"永远由 demoClock 注入（domain 里不读系统时钟），来源写在顶栏可自证。
   const now = useMemo(() => new Date(demoClock.iso), [demoClock.iso]);
   const nowMs = now.getTime();
   const dayKey = useMemo(() => dayKeyOf(nowMs), [nowMs]);
@@ -77,35 +118,52 @@ export function TodayScreen() {
     now.getMinutes(),
   ).padStart(2, "0")}`;
 
-  const jumpToIntake = useCallback(() => {
-    document.getElementById("intake-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col px-gutter pt-4 pb-28 lg:pt-8 lg:pb-10">
-      {/* ---------- 顶栏：只留身份 + 可复现的时钟 ---------- */}
-      <header className="flex items-center gap-2.5">
-        <span
-          aria-hidden
-          className="grid size-8 shrink-0 place-items-center rounded-md bg-brand-500 font-mono text-micro font-bold text-on-solid"
-        >
-          我
-        </span>
-        <p className="min-w-0 truncate text-caption font-semibold text-ink-50">第二自我</p>
-        <span className="tnum ml-auto shrink-0 font-mono text-micro text-ink-400">
-          {dayKey.slice(5).replace("-", "/")} {weekdayLabel(dayKey)} {clockText}
-        </span>
+    <main className="mx-auto flex w-full max-w-[34rem] flex-col px-4 pb-24 pt-4 lg:max-w-3xl lg:pb-12 lg:pt-8">
+      {/* ---------- 顶栏：身份 + 可复现的时钟，没有别的 ---------- */}
+      <header className="flex items-center gap-2 px-1">
+        <span aria-hidden className="size-2 rounded-pill bg-brand-500" />
+        <p className="text-caption font-semibold tracking-wide text-ink-50">第二自我</p>
+        {/* 时钟必须等挂载后再画：服务端与客户端各读一次系统时间会差几分钟，
+            直接输出会让 React 判定 hydration 不一致，整棵树重渲染。 */}
+        <p className="tnum ml-auto text-micro text-ink-400">
+          {hydrated ? `${dayKey.slice(5).replace("-", "/")} ${weekdayLabel(dayKey)} ${clockText}` : ""}
+        </p>
       </header>
 
-      {/* ---------- 出错态：不挡路，但一定看得见 ---------- */}
+      {/* ---------- 桌面导航：一行四个，不占内容区 ---------- */}
+      <nav aria-label="主导航" className="mt-5 hidden lg:block">
+        <ul className="flex flex-wrap gap-1.5">
+          {TAB_ORDER.map((key) => {
+            const active = key === tab;
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => selectTab(key)}
+                  className={
+                    "inline-flex items-center gap-2 rounded-pill px-3.5 py-2 text-caption font-medium transition-colors duration-200 ease-standard " +
+                    (active
+                      ? "bg-brand-500 text-on-solid shadow-glow"
+                      : "text-ink-300 hover:bg-ink-800 hover:text-ink-50")
+                  }
+                >
+                  <TabIcon name={key} className="size-4" />
+                  {TAB_LABEL[key]}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* ---------- 出错态：任何一页都不挡路，但一定看得见 ---------- */}
       {lastError ? (
-        <div
-          role="alert"
-          className="mt-3 flex items-start gap-2 rounded-2xl bg-danger-500/10 px-3 py-2"
-        >
+        <div role="alert" className="mt-3 flex items-start gap-2 rounded-2xl bg-prio-high-bg px-3 py-2">
           <span
             aria-hidden
-            className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-danger-500 text-[9px] font-bold leading-none text-on-solid"
+            className="mt-[2px] grid size-4 shrink-0 place-items-center rounded-[5px] bg-danger-500 text-[9px] font-bold leading-none text-on-solid"
           >
             !
           </span>
@@ -113,130 +171,119 @@ export function TodayScreen() {
           <button
             type="button"
             onClick={dismissError}
-            className="shrink-0 rounded px-1 text-micro text-danger-400 hover:underline"
+            className="shrink-0 rounded-pill px-1 text-micro text-danger-400 hover:underline"
           >
             知道了
           </button>
         </div>
       ) : null}
 
-      {/* 桌面两栏：左「结论 + 时间轴 + 冲突」是主阅读列，右栏是分身与数据操作。
-          轨道写成 minmax(0,1fr)：单列 auto 轨道会被子元素的 min-content 撑破，
-          手机上就会出现横向滚动（整页被浏览器缩放，底部按钮被挤出屏幕）。 */}
-      <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:mt-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42, ease: "easeOut" }}
-          className="flex min-w-0 flex-col gap-3.5 lg:max-w-[680px] lg:gap-5"
-        >
-          <TodayHeadline view={headline} />
-
-          {!hydrated ? (
-            <AgendaSkeleton />
-          ) : windowCount === 0 ? (
-            <div className="rounded-card bg-ink-900 px-2 py-2 shadow-card">
-              <EmptyState
-                bare
-                className="py-8"
-                icon="○"
-                title="今天还是空的"
-                description="粘一段群通知、传一张课表截图，或者直接手记一条。漏掉的每一行我都会回头问你。"
-                action={
-                  <Button size="lg" onClick={jumpToIntake}>
-                    随手记一条
-                  </Button>
-                }
-              />
-            </div>
-          ) : (
-            <ThreeDayAgenda
-              tasks={tasks}
-              days={days}
-              conflicts={conflicts}
-              nowMs={nowMs}
-            />
-          )}
-
-          <ConflictPanel conflicts={conflicts} tasks={tasks} />
-          <ReplanPanel tasks={todayTasks} dayKey={dayKey} now={now} />
-        </motion.div>
-
-        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-6">
-          <AvatarCard summary={avatar} />
-          <section className="flex flex-col gap-2 rounded-card bg-ink-900 p-4 shadow-soft">
-            <p className="text-micro text-ink-400">数据与撤销 · 全部存在这台设备</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="secondary"
-                className="h-8 px-3 text-micro"
-                onClick={undo}
-                disabled={!hasSnapshot}
-              >
-                撤销上次写回
-              </Button>
-              <DataPortability />
-              <Button
-                variant="ghost"
-                className="h-8 px-3 text-micro"
-                onClick={() => {
-                  if (tasks.length === 0) return;
-                  if (window.confirm("清空本地全部任务？该操作不可撤销。")) clearAll();
-                }}
-              >
-                清空
-              </Button>
-            </div>
-          </section>
-        </aside>
-      </div>
-
-      {/* ---------- 录入入口：动作，不是首屏内容 ---------- */}
-      <div
-        id="intake-panel"
-        className="mt-4 flex min-w-0 scroll-mt-4 flex-col gap-4 lg:mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"
+      {/* ---------- 页内容：一次只挂一页，别的页不占 DOM 也不抢视线 ---------- */}
+      <motion.div
+        key={tab}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        className="mt-3 min-w-0 lg:mt-5"
       >
-        <IntakePanel />
-        <div className="flex min-w-0 flex-col gap-4">
-          <ManualAddForm />
-          <TimetableReuploadPanel />
-        </div>
-      </div>
+        {tab === "today" ? (
+          <TabToday
+            hydrated={hydrated}
+            headline={headline}
+            tasks={tasks}
+            days={days}
+            conflicts={conflicts}
+            nowMs={nowMs}
+            now={now}
+            dayKey={dayKey}
+            todayTasks={todayTasks}
+            windowCount={windowCount}
+            onGoCapture={() => selectTab("capture")}
+          />
+        ) : null}
+        {tab === "tasks" ? <TabTasks tasks={tasks} onGoCapture={() => selectTab("capture")} /> : null}
+        {tab === "capture" ? <TabCapture /> : null}
+        {tab === "me" ? (
+          <TabMe avatar={avatar} hasSnapshot={hasSnapshot} undo={undo} clearAll={clearAll} tasks={tasks} />
+        ) : null}
+      </motion.div>
 
-      <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 text-micro text-ink-400">
-        <p>数据只存在本机浏览器，不上传服务器；模型调用仅发送你粘进来的文本。</p>
-        <span className="font-mono">v0.1.0</span>
-      </footer>
-
-      {/* ---------- 手机端单手入口：整页唯一的主按钮 ---------- */}
-      {windowCount > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-20 bg-ink-950/90 px-4 pb-4 pt-2 backdrop-blur-md lg:hidden">
-          <Button size="lg" className="w-full shadow-glow" onClick={jumpToIntake}>
-            随手记一条
-          </Button>
-        </div>
-      ) : null}
+      {/* ---------- 手机底部标签栏：四个「图标 + 文字」，单手够得到 ---------- */}
+      <nav
+        aria-label="主导航"
+        className="fixed inset-x-0 bottom-0 z-30 bg-ink-900 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5 shadow-[0_-10px_30px_-24px_rgb(96_62_38/0.45)] lg:hidden"
+      >
+        <ul className="mx-auto grid max-w-[34rem] grid-cols-4">
+          {TAB_ORDER.map((key) => {
+            const active = key === tab;
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => selectTab(key)}
+                  className={
+                    "flex w-full flex-col items-center gap-1 rounded-2xl px-1 py-1.5 transition-colors duration-200 ease-standard " +
+                    (active ? "text-brand-500" : "text-ink-400 hover:text-ink-200")
+                  }
+                >
+                  <TabIcon name={key} className="size-5" />
+                  <span className={"text-[11px] leading-none " + (active ? "font-semibold" : "")}>
+                    {TAB_LABEL[key]}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     </main>
   );
 }
 
-/** 加载态：形状和真实时间轴一致，读盘那 100ms 不会跳版 */
-function AgendaSkeleton() {
+/** 四个标签的图标：细线、同一线宽，不用图标字体（换机器不会缺字） */
+function TabIcon({ name, className }: { name: TabKey; className?: string }) {
+  const common = {
+    className,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  if (name === "today") {
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="5" width="17" height="15" rx="4.5" />
+        <path d="M8 3.5v3M16 3.5v3M3.5 10h17" />
+        <circle cx="12" cy="14.6" r="1.5" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  if (name === "tasks") {
+    return (
+      <svg {...common}>
+        <path d="M9 7h11M9 12h11M9 17h7" />
+        <circle cx="4.6" cy="7" r="1.1" fill="currentColor" stroke="none" />
+        <circle cx="4.6" cy="12" r="1.1" fill="currentColor" stroke="none" />
+        <circle cx="4.6" cy="17" r="1.1" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  if (name === "capture") {
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="3.5" width="17" height="17" rx="5.5" />
+        <path d="M12 8.5v7M8.5 12h7" />
+      </svg>
+    );
+  }
   return (
-    <div className="rounded-card bg-ink-900 p-4 shadow-card">
-      <div className="h-4 w-24 animate-pulse rounded-pill bg-ink-800" />
-      <div className="mt-3 flex flex-col gap-2">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-7 animate-pulse rounded-xl bg-ink-800"
-            style={{ animationDelay: `${i * 80}ms` }}
-          />
-        ))}
-      </div>
-      <p className="mt-3 text-micro text-ink-400">
-        正在读本地任务（先过一遍校验，脏数据不会进画面）
-      </p>
-    </div>
+    <svg {...common}>
+      <circle cx="12" cy="8.5" r="3.6" />
+      <path d="M4.8 20c.8-3.6 3.6-5.6 7.2-5.6s6.4 2 7.2 5.6" />
+    </svg>
   );
 }

@@ -1,9 +1,11 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/shared/utils";
 
+// 亮色口径：输入框用「暖米底、无描边」，靠底色和留白分开；
+// 焦点才出现 2px 珊瑚环（键盘用户一眼看得到），不靠默认蓝框。
 const FIELD_BASE =
-  "w-full rounded-sm bg-ink-950/70 px-3 py-2 text-caption text-ink-100 ring-1 ring-inset ring-ink-600 " +
-  "placeholder:text-ink-400 focus:ring-2 focus:ring-brand-400 focus:outline-none disabled:opacity-50";
+  "w-full rounded-md bg-ink-800/70 px-3 py-2 text-caption text-ink-100 " +
+  "placeholder:text-ink-400 focus:bg-ink-900 focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:opacity-50";
 
 export function Label({ className, ...rest }: ComponentProps<"label">) {
   return (

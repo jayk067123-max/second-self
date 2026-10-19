@@ -149,6 +149,8 @@ export function ThreeDayAgenda({
                 <span className="tnum ml-auto text-micro text-warn-400">
                   {compactMinutes(loadMin)}/{compactMinutes(limitMin)}
                 </span>
+              ) : entries.length === 0 ? (
+                <span className="ml-auto text-micro text-ink-400">空着</span>
               ) : null}
             </div>
 
