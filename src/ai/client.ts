@@ -24,7 +24,7 @@ export function readAiConfig(env: NodeJS.ProcessEnv = process.env): AiRuntimeCon
     apiKey: apiKey || undefined,
     model: env.LLM_MODEL?.trim() || "gpt-4o-mini",
     timeoutMs,
-    maxRetries: toPositiveInt(env.AI_MAX_RETRIES, 1),
+    maxRetries: Math.min(3, toPositiveInt(env.AI_MAX_RETRIES, 1)),
   };
 }
 

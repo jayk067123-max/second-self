@@ -19,6 +19,7 @@ import {
   formatClock,
   formatDuration,
   minutesFromLocalMidnight,
+  msFromDayKey,
   parseIsoToMs,
   startOfLocalDay,
   weekdayLabel,
@@ -694,7 +695,7 @@ function detectDeadlines(
   const deadlineTasks = tasks.flatMap(task => {
     if (!task.repeat || !task.deadline) return [task];
     return Array.from({ length: config.repeatHorizonDays }, (_, index) => {
-      const day = addDaysToKey(dayKeyOf(nowMs), index);
+      const day = addDaysToKey(config.repeatWindowStartDayKey ?? dayKeyOf(nowMs), index);
       const deadline = repeatDeadlineOnDay(task, day, config.termStartDayKey);
       return deadline ? { ...task, deadline, done: task.done || (task.completedOn ?? []).includes(day) } : null;
     }).filter(task => task !== null);
@@ -852,7 +853,7 @@ export function detectConflicts(
 
   // 重复任务先展开成"发生序列"：数据里只有一行，判定时要看每一次发生。
   // 窗口从注入的 now 的本地零点起算，长 repeatHorizonDays 天 —— 全程没有系统时钟。
-  const rangeStartMs = startOfLocalDay(nowMs);
+  const rangeStartMs = config.repeatWindowStartDayKey ? msFromDayKey(config.repeatWindowStartDayKey, 0) : startOfLocalDay(nowMs);
   const rangeEndMs = rangeStartMs + config.repeatHorizonDays * MS_DAY;
   const occurrences = occurrencesOf(tasks, rangeStartMs, rangeEndMs, config.termStartDayKey);
 

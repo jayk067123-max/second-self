@@ -1,0 +1,109 @@
+{
+  "checks": [
+    {
+      "name": "Fresh storage hydration completes",
+      "pass": true
+    },
+    {
+      "name": "18 demo tasks loaded",
+      "pass": true
+    },
+    {
+      "name": "Edit persisted in UI",
+      "pass": true
+    },
+    {
+      "name": "Edit undo restores title",
+      "pass": true
+    },
+    {
+      "name": "Delete removes task",
+      "pass": true
+    },
+    {
+      "name": "Delete undo restores task",
+      "pass": true
+    },
+    {
+      "name": "Replan can apply without touching fixed tasks",
+      "pass": true
+    },
+    {
+      "name": "Text parse confirmed into store",
+      "pass": true
+    },
+    {
+      "name": "Explicit date remains October 25 in UI",
+      "pass": true
+    },
+    {
+      "name": "Tasks persist after reload",
+      "pass": true
+    },
+    {
+      "name": "JSON export has 19 tasks",
+      "pass": true
+    },
+    {
+      "name": "Import restores exported tasks",
+      "pass": true
+    },
+    {
+      "name": "今天 no page overflow at 320",
+      "pass": true
+    },
+    {
+      "name": "添加 no page overflow at 320",
+      "pass": true
+    },
+    {
+      "name": "未来 no page overflow at 320",
+      "pass": true
+    },
+    {
+      "name": "今天 no page overflow at 390",
+      "pass": true
+    },
+    {
+      "name": "添加 no page overflow at 390",
+      "pass": true
+    },
+    {
+      "name": "未来 no page overflow at 390",
+      "pass": true
+    },
+    {
+      "name": "今天 no page overflow at 768",
+      "pass": true
+    },
+    {
+      "name": "添加 no page overflow at 768",
+      "pass": true
+    },
+    {
+      "name": "未来 no page overflow at 768",
+      "pass": true
+    },
+    {
+      "name": "今天 no page overflow at 1440",
+      "pass": true
+    },
+    {
+      "name": "添加 no page overflow at 1440",
+      "pass": true
+    },
+    {
+      "name": "未来 no page overflow at 1440",
+      "pass": true
+    },
+    {
+      "name": "Settings Escape returns focus",
+      "pass": true
+    },
+    {
+      "name": "No uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

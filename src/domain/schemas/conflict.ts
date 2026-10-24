@@ -82,6 +82,8 @@ export const DetectConfigSchema = z.object({
    * 冲突检测只看这个窗口内的发生时段：一个"每周二晚 9 点"的例会如果不在窗口内，
    * 就不该参与判定；窗口太短又会漏掉下周的撞车，默认两周覆盖一次完整的周循环。
    */
+  /** 查看远期日期时仅移动周期计算窗口，截止预警仍按真实 now 计算。 */
+  repeatWindowStartDayKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   repeatHorizonDays: z.number().int().min(1).max(60),
   /**
    * 学期第 1 周周一的 dayKey（'YYYY-MM-DD'）。

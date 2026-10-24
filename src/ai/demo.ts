@@ -308,7 +308,7 @@ export function demoReplanPlans(tasks: readonly Task[], dayKey: string, actualNo
   const now = actualNow ?? new Date(msFromDayKey(dayKey, 9 * 60));
   const inputs = {
     now,
-    detect: { ...DEFAULT_DETECT_CONFIG, termStartDayKey },
+    detect: { ...DEFAULT_DETECT_CONFIG, termStartDayKey, repeatWindowStartDayKey: dayKey },
     targetDayKey: dayKey,
   };
   const accepted = buildLocalProposals(tasks, inputs);

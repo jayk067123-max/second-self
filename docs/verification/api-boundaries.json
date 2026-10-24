@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Invalid JSON rejected",
+    "status": 400,
+    "pass": true,
+    "error": "请求体不是合法 JSON"
+  },
+  {
+    "name": "Short input rejected",
+    "status": 400,
+    "pass": true,
+    "error": "请求参数不合法"
+  },
+  {
+    "name": "Image without multimodal key explicitly fails",
+    "status": 422,
+    "pass": true,
+    "error": "图片识别需要真实多模态模型，当前未配置 LLM_API_KEY（demo 模式）。请把图里的文字打一句话发我，或改用「粘贴文本」入口。"
+  }
+]

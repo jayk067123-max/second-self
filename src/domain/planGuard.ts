@@ -8,7 +8,7 @@ export interface PlanContext { dayKey: string; now?: string; termStartDayKey?: s
 export function guardPlan(plan: ReplanPlan, tasks: readonly Task[], context: PlanContext) {
   const issues: string[] = [];
   const now = new Date(context.now ?? new Date(msFromDayKey(context.dayKey, 0)).toISOString());
-  const detect = { ...DEFAULT_DETECT_CONFIG, termStartDayKey: context.termStartDayKey ?? null };
+  const detect = { ...DEFAULT_DETECT_CONFIG, termStartDayKey: context.termStartDayKey ?? null, repeatWindowStartDayKey: context.dayKey };
   const seen = new Set<string>();
   if (!plan.blocks.length) issues.push("方案没有任何变更");
   for (const block of plan.blocks) {
@@ -28,6 +28,14 @@ export function guardPlan(plan: ReplanPlan, tasks: readonly Task[], context: Pla
   const beforeConflicts = detectConflicts(tasks, detect, now);
   const afterConflicts = detectConflicts(after, detect, now);
   const beforeKeys = new Set(beforeConflicts.map(c=>c.conflictId+"@"+c.date));
+  // 同时检查顺延日的周期安排，不受默认两周窗口遗漏影响。
+  for (const day of new Set(plan.blocks.map(block => dayKeyOf(Date.parse(block.start))))) {
+    const targetConfig = { ...detect, repeatWindowStartDayKey: day };
+    const before = new Set(detectConflicts(tasks, targetConfig, now).map(c => c.conflictId+"@"+c.date));
+    for (const conflict of detectConflicts(after, targetConfig, now)) {
+      if (conflict.conflictType !== "deadline" && !before.has(conflict.conflictId+"@"+conflict.date) && conflict.involvedTaskIds.some(id=>seen.has(id))) issues.push("顺延日期存在冲突："+conflict.humanMessage);
+    }
+  }
   for (const c of afterConflicts) {
     if (c.conflictType !== "deadline" && !beforeKeys.has(c.conflictId+"@"+c.date) && c.involvedTaskIds.some(id=>seen.has(id))) issues.push("方案引入新冲突："+c.humanMessage);
   }

@@ -69,4 +69,9 @@ describe("正式版整合回归", () => {
     expect(usePlannerStore.getState().demoClock.source).toBe("seed");
     expect(usePlannerStore.getState().termStartDayKey).toBe("2026-09-21");
   });
+  it("远期查看仍检测到周期课程冲突",()=>{
+    const a=makeTask({id:"weekly-later",start:hhmm("2026-10-19",9),end:hhmm("2026-10-19",10),durationMin:60,repeat:{kind:"weekly",byDay:[1]}});
+    const b=makeTask({id:"later",start:hhmm("2026-12-07",9),end:hhmm("2026-12-07",10),durationMin:60});
+    expect(detectConflicts([a,b],{...DEFAULT_DETECT_CONFIG,repeatWindowStartDayKey:"2026-12-07"},new Date(hhmm("2026-10-24",12))).some(c=>c.conflictType==="overlap"&&c.date==="2026-12-07")).toBe(true);
+  });
 });
