@@ -26,6 +26,8 @@
 | 设置Escape关闭、焦点回设置按钮 | 通过 |
 | 整个流程pageerror事件 | 0 |
 
+API错误边界另实测：非法JSON返回400、过短文本返回400、无密钥图片返回422；见verification/api-boundaries.json。
+
 机器检查摘要保存在verification/browser-checks.json。正式截图位于docs/screenshots；不是设计图或假数据接口渲染，所用日程为明确标识的固定演示样例。
 
 ## 真实发现与修复
