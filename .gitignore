@@ -137,3 +137,8 @@ recording/
 .vercel/
 .netlify/
 .firebase/
+
+# 本地浏览器验证与制作中间文件
+.playwright/
+.playwright-cli/
+/output/

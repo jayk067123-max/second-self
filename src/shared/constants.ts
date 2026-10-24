@@ -1,7 +1,7 @@
 /** 应用级常量 —— 只放与选题无关的元信息 */
 export const APP_NAME = "第二自我";
-export const APP_SUBTITLE = "全国高校 Vibe Coding 开发挑战赛 · B 组";
-export const APP_VERSION = "0.1.0";
+export const APP_SUBTITLE = "校园日程与冲突规划助手";
+export const APP_VERSION = "1.0.0";
 
 /**
  * 六层架构的唯一定义源：/api/health 与落地页共用，避免两处描述漂移。

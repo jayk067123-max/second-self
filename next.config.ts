@@ -10,6 +10,9 @@ import { fileURLToPath } from "node:url";
  * 3. 无 serverExternalPackages：本项目不使用任何原生模块（已否决 better-sqlite3/drizzle），
  *    数据持久化走浏览器 localStorage 适配层，因此无需为原生依赖做打包例外。
  */
+// 校园日程采用北京时间，避免部署默认 UTC 导致服务端日期偏移。
+process.env.TZ = "Asia/Shanghai";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // 开发态左下角的 Next 报错角标会出现在截图里（用户明确要求清掉）。

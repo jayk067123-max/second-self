@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { DEMO_DAY_KEY } from "@/shared/constants";
+import { useEffect, useState } from "react";
+import { dayKeyOf } from "@/domain/time";
 import { localInputToIso } from "@/shared/datetime";
 import { usePlannerStore } from "@/data/store";
 import { Button, Card, CardText, CardTitle, Input, Label, Select, StatusBanner } from "@/ui/primitives";
@@ -14,9 +14,11 @@ import { Button, Card, CardText, CardTitle, Input, Label, Select, StatusBanner }
 export function ManualAddForm() {
   const addManualTask = usePlannerStore((s) => s.addManualTask);
   const [open, setOpen] = useState(false);
+  useEffect(() => {function openManual(){setOpen(true);}window.addEventListener("second-self:manual-open",openManual);return()=>window.removeEventListener("second-self:manual-open",openManual);},[]);
   const [title, setTitle] = useState("");
   // 演示时钟：与页面其它地方一致，不读系统时间
-  const dayKey = DEMO_DAY_KEY;
+  const clock = usePlannerStore((s) => s.demoClock);
+  const dayKey = dayKeyOf(Date.parse(clock.iso));
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -75,7 +77,7 @@ export function ManualAddForm() {
       <Card className="flex flex-wrap items-center justify-between gap-2 py-3">
         <div>
           <CardTitle>手动新增</CardTitle>
-          <CardText className="mt-0.5">第二个数据入口：临时想到的事，10 秒录进来</CardText>
+          <CardText className="mt-0.5">临时想到的事，也可以直接记下来</CardText>
         </div>
         <Button variant="secondary" onClick={() => setOpen(true)}>
           ＋ 新增一条

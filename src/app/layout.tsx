@@ -3,7 +3,7 @@ import { APP_NAME, APP_SUBTITLE } from "@/shared/constants";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} · 今日`,
+  title: `${APP_NAME} · 校园日程助手`,
   description: APP_SUBTITLE,
 };
 

@@ -35,6 +35,8 @@ export function DataPortability() {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
+      if (file.size > 5_000_000) throw new Error("文件超过 5 MB");
+      if (!window.confirm("导入会替换当前全部任务，可撤销。是否继续？")) return;
       const text = await file.text();
       const result = importJson(text);
       setMsg(

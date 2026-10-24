@@ -1,5 +1,7 @@
 "use client";
 
+import { DEFAULT_DETECT_CONFIG } from "@/domain/conflicts";
+
 import { useState } from "react";
 import { type ReplanPlan } from "@/domain/reflow";
 import type { Task } from "@/domain/schemas/task";
@@ -7,7 +9,7 @@ import {
   ReplanResponseSchema,
   type ReplanSuccess,
 } from "@/domain/schemas/api";
-import { formatClock, formatDuration, parseIsoToMs } from "@/domain/time";
+import { dayKeyOf, formatClock, formatDuration, parseIsoToMs } from "@/domain/time";
 import { usePlannerStore } from "@/data/store";
 import { Badge, Button, Card, CardText, CardTitle } from "@/ui/primitives";
 import { AiFailureCard } from "./AiFailureCard";
@@ -24,12 +26,15 @@ export function ReplanPanel({
   tasks,
   dayKey,
   now,
+  termStartDayKey = null,
 }: {
   tasks: Task[];
   dayKey: string;
   /** 冲突规则要求注入 now；与页面共用同一个演示时钟 */
   now: Date;
+  termStartDayKey?: string | null;
 }) {
+  const [inputFingerprint, setInputFingerprint] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<ReplanSuccess | null>(null);
   const [error, setError] = useState<{ message: string; issues: string[]; raw?: string } | null>(null);
@@ -40,11 +45,12 @@ export function ReplanPanel({
     setPhase("loading");
     setError(null);
     setAppliedTitle(null);
+    const fingerprint = JSON.stringify(tasks);
     try {
       const res = await fetch("/api/ai/replan", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tasks, dayKey }),
+        body: JSON.stringify({ tasks, dayKey, now: now.toISOString(), termStartDayKey }),
       });
       const json: unknown = await res.json();
       const parsed = ReplanResponseSchema.safeParse(json);
@@ -58,6 +64,7 @@ export function ReplanPanel({
         setPhase("idle");
         return;
       }
+      setInputFingerprint(fingerprint);
       setResult(parsed.data);
       setPhase("ready");
     } catch (err) {
@@ -70,7 +77,8 @@ export function ReplanPanel({
   }
 
   function apply(plan: ReplanPlan) {
-    const outcome = applyPlanWithSnapshot(plan);
+    if (JSON.stringify(usePlannerStore.getState().tasks) !== inputFingerprint) { setError({ message: "任务已变化，请重新生成方案", issues: [] }); return; }
+    const outcome = applyPlanWithSnapshot(plan, { dayKey, now: now.toISOString(), termStartDayKey });
     if (!outcome.ok) {
       setError({ message: `写回失败：${outcome.error ?? "未知原因"}`, issues: [] });
       return;
@@ -102,7 +110,7 @@ export function ReplanPanel({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <CardTitle>重排建议</CardTitle>
-          <CardText className="mt-1">最多三套方案并排对比，选中即写回，可撤销</CardText>
+          <CardText className="mt-1">最多三套方案并排对比，选中才写回，可撤销</CardText>
         </div>
         <div className="flex items-center gap-2">
           {appliedTitle ? <Badge tone="ok">已写回 · 可撤销</Badge> : null}
@@ -155,7 +163,7 @@ export function ReplanPanel({
                     ? "—"
                     : formatClock(intervals.reduce((max, x) => Math.max(max, x.e), 0)),
               };
-              const metrics = computePlanMetrics(plan, tasks, now);
+              const metrics = computePlanMetrics(plan, tasks, now, { ...DEFAULT_DETECT_CONFIG, termStartDayKey, repeatWindowStartDayKey: dayKey });
               const lockedBroken = metrics.movedLockedTitles.length > 0;
               return (
                 <div
@@ -214,7 +222,7 @@ export function ReplanPanel({
                       return (
                         <li key={`${plan.id}-${block.taskId}`} className="flex gap-2 text-micro text-ink-200">
                           <span className="shrink-0 font-mono text-ink-400">
-                            {startMs !== null ? formatClock(startMs) : "--:--"}–{endMs !== null ? formatClock(endMs) : "--:--"}
+                            {startMs !== null ? dayKeyOf(startMs).slice(5) + " " + formatClock(startMs) : "--:--"}–{endMs !== null ? formatClock(endMs) : "--:--"}
                           </span>
                           <span className="truncate">{title}</span>
                         </li>

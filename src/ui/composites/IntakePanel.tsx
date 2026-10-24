@@ -148,7 +148,7 @@ export function IntakePanel() {
     phase === "parsing"
       ? [
           { label: mode === "image" ? "压缩图片并上传" : "提交原文", status: "active" },
-          { label: "调用模型结构化 + zod 校验", status: "idle" },
+          { label: "整理字段并检查格式", status: "idle" },
           { label: "逐行核对完整性", status: "idle" },
           { label: "等你人工核对", status: "idle" },
         ]
@@ -156,10 +156,10 @@ export function IntakePanel() {
         ? [
             { label: mode === "image" ? "压缩图片并上传" : "提交原文", status: "done" },
             {
-              label: "调用模型结构化 + zod 校验",
+              label: "整理字段并检查格式",
               status: "done",
               detail:
-                aiMode === "demo" ? "demo 模式" : `${timings.length} 个阶段 · 已过契约`,
+                aiMode === "demo" ? "本地规则模式" : `${timings.length} 个阶段 · 已过契约`,
             },
             {
               label: "逐行核对完整性",
@@ -178,14 +178,14 @@ export function IntakePanel() {
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <CardTitle>随手一记 → 结构化</CardTitle>
+          <CardTitle>随手一记，整理成日程</CardTitle>
           <CardText className="mt-1">
-            群通知、课表截图、作业照片都行，不用填字段；漏掉的每一行都会请你确认
+            先粘贴通知或上传截图。整理后核对时间，确认才加入日程。
           </CardText>
         </div>
         {aiMode ? (
           <Badge tone={aiMode === "live" ? "brand" : "warn"}>
-            {aiMode === "live" ? "真实模型" : "demo 模式"}
+            {aiMode === "live" ? "真实模型" : "本地规则模式"}
           </Badge>
         ) : null}
       </div>
@@ -250,8 +250,9 @@ export function IntakePanel() {
           onRetry={retry}
           onManualFix={() => {
             // 出路二：转到手动新增，用户自己把这条录进去
-            document.getElementById("manual-title")?.scrollIntoView({ behavior: "smooth", block: "center" });
-            document.getElementById("manual-title")?.focus();
+            window.dispatchEvent(new Event("second-self:manual-open"));
+            window.setTimeout(() => { document.getElementById("manual-title")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            document.getElementById("manual-title")?.focus(); }, 100);
           }}
           onBack={() => {
             setError(null);
@@ -308,7 +309,7 @@ export function IntakePanel() {
 
       {phase === "done" ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm bg-ok-500/10 px-3 py-2 text-caption text-ok-400 ring-1 ring-inset ring-ok-500/30">
-          <span>已入库 {addedCount} 条，去下面「今日时间轴」看冲突和重排建议。</span>
+          <span>已入库 {addedCount} 条，切到「今天」或「未来」查看。</span>
           <Button
             variant="ghost"
             className="h-8 px-3 text-micro"

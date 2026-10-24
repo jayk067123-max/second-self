@@ -1,9 +1,9 @@
 {
   "name": "second-self",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "license": "MIT",
-  "description": "第二自我 · 全国高校 Vibe Coding 开发挑战赛 B 组参赛作品",
+  "description": "第二自我 · 校园日程与冲突规划助手",
   "engines": {
     "node": ">=22.11 <25"
   },

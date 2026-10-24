@@ -64,7 +64,7 @@ export function HealthPanel() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <CardTitle>环境自检</CardTitle>
-          <CardText className="mt-1">GET /api/health · 校验四层是否就位</CardText>
+          <CardText className="mt-1">GET /api/health · 检查运行环境与六层结构</CardText>
         </div>
         <div className="flex items-center gap-2">
           {state.kind === "loading" && (
