@@ -1,0 +1,26 @@
+{
+  "programs": [],
+  "stream_groups": [],
+  "streams": [
+    {
+      "codec_name": "h264",
+      "width": 1920,
+      "height": 1080,
+      "r_frame_rate": "25/1"
+    },
+    {
+      "codec_name": "aac",
+      "sample_rate": "44100",
+      "channels": 1,
+      "r_frame_rate": "0/0"
+    }
+  ],
+  "format": {
+    "duration": "459.503220",
+    "size": "12200220"
+  },
+  "fullDecodeExit": 0,
+  "fullDecodeErrors": "",
+  "processReplaySeconds": 161,
+  "processDisclosure": "Existing real session and test records replay, not live chat capture; does not replace 3 missing original core Prompt chains."
+}

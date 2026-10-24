@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-24",
+  "sourceCommit": "38465a4",
+  "method": "git archive HEAD to new empty directory; npm ci --no-audit --no-fund; npm run verify; npm run build",
+  "elapsedSeconds": 46.7932267,
+  "node": "24.14.0",
+  "npm": "11.9.0",
+  "networkAndCache": "npm cache available; network connected; not a guarantee for every reviewer",
+  "tests": 360,
+  "testFiles": 25,
+  "result": "pass"
+}
