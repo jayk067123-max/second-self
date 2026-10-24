@@ -1,7 +1,5 @@
 import {
   AiReplanOutputSchema,
-  DEFAULT_PLAN_OPTIONS,
-  validatePlan,
   type ReplanPlan,
 } from "@/domain/reflow";
 import {
@@ -17,6 +15,7 @@ import type {
   RejectedPlan,
 } from "@/domain/schemas/api";
 import { readAiConfig, type AiRuntimeConfig } from "./client";
+import { guardPlan } from "@/domain/planGuard";
 import { demoParseTasks, demoReplanPlans } from "./demo";
 import { callStructuredJson } from "./guarded";
 import {
@@ -201,7 +200,7 @@ export async function parseTasksFromImage(
 }
 
 export async function replanForDay(
-  input: { tasks: Task[]; dayKey: string },
+  input: { tasks: Task[]; dayKey: string; now?: string; termStartDayKey?: string | null },
   config: AiRuntimeConfig = readAiConfig(),
 ): Promise<ReplanResponse> {
   const schedulable = input.tasks.filter((t) => !t.done && t.durationMin > 0);
@@ -216,7 +215,7 @@ export async function replanForDay(
   }
 
   if (config.mode === "demo") {
-    const plans = demoReplanPlans(input.tasks, input.dayKey);
+    const plans = demoReplanPlans(input.tasks, input.dayKey, input.now ? new Date(input.now) : undefined, input.termStartDayKey ?? null);
     return finalizePlans(plans, input, "demo", [], false, [
       { phase: "本地确定性重排", ms: 0 },
     ]);
@@ -252,7 +251,7 @@ export async function replanForDay(
       rationale: rawPlan.rationale,
       blocks: rawPlan.blocks,
     };
-    const verdict = validatePlan(plan, input.tasks, input.dayKey, DEFAULT_PLAN_OPTIONS);
+    const verdict = guardPlan(plan, input.tasks, { dayKey: input.dayKey, now: input.now, termStartDayKey: input.termStartDayKey });
     if (verdict.ok) {
       legal.push(plan);
     } else {
@@ -262,7 +261,7 @@ export async function replanForDay(
 
   if (legal.length === 0) {
     // 模型方案全部不可落地：改用确定性兜底，并把否决理由如实回传
-    const plans = demoReplanPlans(input.tasks, input.dayKey);
+    const plans = demoReplanPlans(input.tasks, input.dayKey, input.now ? new Date(input.now) : undefined, input.termStartDayKey ?? null);
     return finalizePlans(plans, input, "live", rejected, true, result.timings);
   }
 
@@ -279,17 +278,18 @@ export async function replanForDay(
 /** 兜底方案也再无解时，必须给出可读错误而不是空白 */
 function finalizePlans(
   plans: ReplanPlan[],
-  _input: { tasks: Task[]; dayKey: string },
+  _input: { tasks: Task[]; dayKey: string; now?: string; termStartDayKey?: string | null },
   mode: "live" | "demo",
   rejected: RejectedPlan[],
   fallback: boolean,
   timings: Array<{ phase: string; ms: number }>,
 ): ReplanResponse {
+  plans = plans.filter(plan => guardPlan(plan, _input.tasks, _input).ok);
   if (plans.length === 0) {
     return {
       ok: false,
       mode,
-      error: "今天的剩余时间放不下任何一套方案，建议先减少任务或延长可用时段",
+      error: "没有通过校验的改进方案。可能没有冲突，或固定安排、截止时间等约束无法同时满足。可手动编辑调整。",
       issues: rejected.flatMap((r) => r.issues),
       timings,
     };

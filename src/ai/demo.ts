@@ -30,7 +30,7 @@ const PM_RE = /下午|晚上|傍晚|晚间/;
 /** 完整 ISO 日期（2026-10-25），必须优先于「10月25日」这类短式匹配，否则 2026 会被当成月份 */
 const ISO_DATE_RE = /(\d{4})-(\d{2})-(\d{2})/;
 /** 中文/短式日期：10月25日、10-25、10/25 */
-const SHORT_DATE_RE = /(\d{1,2})\s*[月/-]\s*(\d{1,2})\s*[日号]?/;
+const SHORT_DATE_RE = /(?<![0-9:：])(1[0-2]|0?[1-9])\s*[月/-]\s*(3[01]|[12][0-9]|0?[1-9])\s*[日号]?/;
 /** 星期：「周三」「每周三」「下周三」「下下周三」「这周六」 */
 const WEEKDAY_RE = /(下下|下|本|这|每)?\s*(?:周|星期)\s*([一二三四五六日天])/;
 /** 更正行：「【更正】」「【再更正】」「（更正）」——应并入上一条任务，不新增 */
@@ -62,7 +62,15 @@ export function demoParseTasks(text: string, dayKey: string): TaskDraft[] {
     const isCorrection = CORRECTION_RE.test(line);
     /** 星期解析：「每周三」「下周三」「这周六」→ 具体日期；解析到即为"相对日期"，需人工确认 */
     const weekday = resolveWeekday(line, dayKey);
-    const baseDay = weekday?.date ?? (TOMORROW_RE.test(line) ? shiftDay(dayKey, 1) : dayKey);
+    const explicit = ISO_DATE_RE.exec(line);
+    const short = explicit ? null : SHORT_DATE_RE.exec(line);
+    let explicitDay = explicit ? explicit[0] : null;
+    if (short) {
+      const year = Number(dayKey.slice(0, 4));
+      explicitDay = year + "-" + String(Number(short[1])).padStart(2, "0") + "-" + String(Number(short[2])).padStart(2, "0");
+      if (explicitDay < dayKey) explicitDay = (year + 1) + explicitDay.slice(4);
+    }
+    const baseDay = explicitDay ?? weekday?.date ?? (TOMORROW_RE.test(line) ? shiftDay(dayKey, 1) : /后天/.test(line) ? shiftDay(dayKey, 2) : dayKey);
     // 提前把"是否相对日期推出来 / 是否周期规则"定下来，避免后面的类型收窄把 weekday 弄成 never
     const weeklyRepeat =
       weekday !== null && weekday.weekly
@@ -282,8 +290,11 @@ function resolveWeekday(
   const current = base.getDay(); // 0=周日
   let delta = (target - current + 7) % 7;
   const prefix = match[1] ?? "";
-  if (prefix === "下") delta += 7;
-  if (prefix === "下下") delta += 14;
+  const currentIso = current === 0 ? 7 : current;
+  const targetIso = target === 0 ? 7 : target;
+  if (prefix === "本" || prefix === "这") delta = targetIso - currentIso;
+  if (prefix === "下") delta = 7 + targetIso - currentIso;
+  if (prefix === "下下") delta = 14 + targetIso - currentIso;
 
   // byDay 用 ISO 口径：周一=1 … 周日=7
   const isoWeekday = target === 0 ? 7 : target;
@@ -291,13 +302,14 @@ function resolveWeekday(
 }
 
 /** 重排兜底：直接复用 domain 的确定性方案生成器 */
-export function demoReplanPlans(tasks: readonly Task[], dayKey: string): ReplanPlan[] {
+export function demoReplanPlans(tasks: readonly Task[], dayKey: string, actualNow?: Date, termStartDayKey: string | null = TERM_START_DAY_KEY): ReplanPlan[] {
   // 兜底不再自己造"计划"：走 reflow 的 buildLocalProposals → 与模型提议共用同一套裁决器，
   // 效果闸（冲突数必须下降、locked 不动、18 条不变）照旧生效，不留第二条判定路径。
-  const now = new Date(msFromDayKey(dayKey, 9 * 60));
+  const now = actualNow ?? new Date(msFromDayKey(dayKey, 9 * 60));
   const inputs = {
     now,
-    detect: { ...DEFAULT_DETECT_CONFIG, termStartDayKey: TERM_START_DAY_KEY },
+    detect: { ...DEFAULT_DETECT_CONFIG, termStartDayKey },
+    targetDayKey: dayKey,
   };
   const accepted = buildLocalProposals(tasks, inputs);
   const byId = new Map(tasks.map((task) => [task.id, task]));
@@ -324,7 +336,8 @@ export function demoReplanPlans(tasks: readonly Task[], dayKey: string): ReplanP
         blocks,
       };
     })
-    .filter((plan) => plan.blocks.length > 0);
+    .filter((plan) => plan.blocks.length > 0)
+    .filter((plan, index, plans) => plans.findIndex(other => JSON.stringify(other.blocks) === JSON.stringify(plan.blocks)) === index);
 }
 
 function extractDuration(line: string): number | null {

@@ -11,6 +11,8 @@ import {
 import { priorityBandOf, type Task } from "./schemas/task";
 import {
   MS_DAY,
+  addDaysToKey,
+  repeatDeadlineOnDay,
   MS_MINUTE,
   dayKeyOf,
   expandOccurrences,
@@ -126,7 +128,7 @@ function occurrencesOf(
         const startMs = parseIsoToMs(occurrence.start);
         const endMs = parseIsoToMs(occurrence.end);
         if (startMs === null || endMs === null || endMs <= startMs) continue;
-        occurrences.push({ task, startMs, endMs, repeated: true });
+        occurrences.push({ task: { ...task, done: task.done || (task.completedOn ?? []).includes(dayKeyOf(startMs)) }, startMs, endMs, repeated: true });
       }
       continue;
     }
@@ -689,7 +691,15 @@ function detectDeadlines(
   highOverloadDays: ReadonlySet<string>,
 ): Conflict[] {
   const conflicts: Conflict[] = [];
-  for (const task of tasks) {
+  const deadlineTasks = tasks.flatMap(task => {
+    if (!task.repeat || !task.deadline) return [task];
+    return Array.from({ length: config.repeatHorizonDays }, (_, index) => {
+      const day = addDaysToKey(dayKeyOf(nowMs), index);
+      const deadline = repeatDeadlineOnDay(task, day, config.termStartDayKey);
+      return deadline ? { ...task, deadline, done: task.done || (task.completedOn ?? []).includes(day) } : null;
+    }).filter(task => task !== null);
+  });
+  for (const task of deadlineTasks) {
     // 已完成的任务不产生截止提醒
     if (isDone(task)) continue;
     const deadlineMs = parseDeadlineMs(task.deadline);
@@ -735,6 +745,7 @@ function detectDeadlines(
         severity,
         message,
         date: dateKey,
+        idSuffix: task.repeat ? "@" + dateKey : "",
         evidence: {
           remainH: round1(remainH),
           estRemainH: round1(estRemainH),

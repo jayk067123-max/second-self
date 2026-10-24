@@ -86,7 +86,7 @@ export function createPlannerAdapter(
 /** 浏览器环境适配器（SSR 时自动退化为不可用） */
 export function createBrowserAdapter(): PlannerStorageAdapter {
   return createPlannerAdapter(() =>
-    typeof window !== "undefined" && window.localStorage ? window.localStorage : null,
+    (() => { try { return typeof window !== "undefined" ? window.localStorage : null; } catch { return null; } })(),
   );
 }
 

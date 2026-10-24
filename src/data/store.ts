@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { TaskListSchema, TaskSchema, type Task, type TaskDraft } from "@/domain/schemas/task";
+import { guardPlan, type PlanContext } from "@/domain/planGuard";
 import { applyPlan, type ReplanPlan } from "@/domain/reflow";
 import { formatTimetableSummary, type TimetablePlan } from "@/domain/schedule";
 import { MS_MINUTE, addDaysToKey, dayKeyOf, isoWeekdayOf, msFromDayKey } from "@/domain/time";
-import { DEMO_DAY_KEY } from "@/shared/constants";
 import {
   buildExportEnvelope,
   createBrowserAdapter,
@@ -32,6 +32,8 @@ interface PlannerState {
   tasks: Task[];
   /** 写回前的快照，用于撤销 */
   snapshot: Task[] | null;
+  snapshotTermStart: string | null;
+  snapshotClock: { iso: string; source: "seed" | "system" } | null;
   lastError: string | null;
   /**
    * 演示时钟：`iso` 是当前"现在"，`source` 标明来源（seed = 种子自带 / system = 系统时间）。
@@ -43,8 +45,13 @@ interface PlannerState {
   addManualTask: (input: ManualTaskInput) => { ok: boolean; error?: string; id?: string };
   updateTask: (id: string, patch: Partial<Omit<Task, "id">>) => { ok: boolean; error?: string };
   removeTask: (id: string) => void;
-  toggleDone: (id: string) => void;
-  applyPlanWithSnapshot: (plan: ReplanPlan) => { ok: boolean; error?: string };
+  toggleDone: (id: string, dayKey?: string) => void;
+  termStartDayKey: string | null;
+  setTermStart: (day: string | null) => void;
+  tickClock: () => void;
+  exitDemo: () => void;
+  storageAvailable: () => boolean;
+  applyPlanWithSnapshot: (plan: ReplanPlan, context?: PlanContext) => { ok: boolean; error?: string };
   /**
    * 课表重传覆盖（P0-11 / 评审 WO-02）：把 `planTimetableCoverage` 算出的计划落到库里。
    * 关键约束：`updated` 走**原地 update**（保留 done/locked/needsReview/repeat），
@@ -84,7 +91,14 @@ export const usePlannerStore = create<PlannerState>()(
   persist(
     (set, get) => ({
       tasks: [],
+      termStartDayKey: null,
+      setTermStart: (day) => set({ termStartDayKey: day }),
+      storageAvailable: () => browserAdapter.available,
+      tickClock: () => { if (get().demoClock.source === "system") set({ demoClock: { iso: new Date().toISOString(), source: "system" } }); },
+      exitDemo: () => set({ demoClock: { iso: new Date().toISOString(), source: "system" } }),
       snapshot: null,
+      snapshotClock: null,
+      snapshotTermStart: null,
       lastError: null,
       // 初始 = 系统时间（来源如实标注）；导入带 demoNow 的种子后切到 seed 时钟
       demoClock: { iso: new Date().toISOString(), source: "system" as const },
@@ -120,7 +134,7 @@ export const usePlannerStore = create<PlannerState>()(
           built.push(parsed.data);
         }
         if (built.length === 0) return { ok: false, error: "没有可加入的任务" };
-        set({ tasks: [...get().tasks, ...built], lastError: null });
+        set({ tasks: [...get().tasks, ...built], snapshot: get().tasks, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey, lastError: null });
         return { ok: true, added: built.length };
       },
 
@@ -147,7 +161,7 @@ export const usePlannerStore = create<PlannerState>()(
           set({ lastError: `手动新增失败：${message}` });
           return { ok: false, error: message };
         }
-        set({ tasks: [...get().tasks, parsed.data], lastError: null });
+        set({ tasks: [...get().tasks, parsed.data], snapshot: get().tasks, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey, lastError: null });
         return { ok: true, id };
       },
 
@@ -162,23 +176,36 @@ export const usePlannerStore = create<PlannerState>()(
         }
         set({
           tasks: get().tasks.map((t) => (t.id === id ? parsed.data : t)),
+          snapshot: get().tasks, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey,
           lastError: null,
         });
         return { ok: true };
       },
 
       removeTask: (id) => {
-        set({ tasks: get().tasks.filter((t) => t.id !== id) });
+        set({ tasks: get().tasks.filter((t) => t.id !== id), snapshot: get().tasks, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey });
       },
 
-      toggleDone: (id) => {
+      toggleDone: (id, dayKey) => {
         set({
-          tasks: get().tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+          snapshot: get().tasks, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey,
+          tasks: get().tasks.map((t) => {
+            if (t.id !== id) return t;
+            if (t.repeat && dayKey) {
+              const days = t.completedOn ?? [];
+              return { ...t, done: false, completedOn: days.includes(dayKey) ? days.filter(d => d !== dayKey) : [...days, dayKey] };
+            }
+            return { ...t, done: !t.done };
+          }),
         });
       },
 
-      applyPlanWithSnapshot: (plan) => {
+      applyPlanWithSnapshot: (plan, context) => {
         const before = get().tasks;
+        if (context) {
+          const verdict = guardPlan(plan, before, context);
+          if (!verdict.ok) return { ok: false, error: verdict.issues.join("；") };
+        }
         const next = applyPlan(before, plan);
         const parsed = TaskListSchema.safeParse(next);
         if (!parsed.success) {
@@ -186,7 +213,7 @@ export const usePlannerStore = create<PlannerState>()(
           set({ lastError: message });
           return { ok: false, error: message };
         }
-        set({ tasks: parsed.data, snapshot: before, lastError: null });
+        set({ tasks: parsed.data, snapshot: before, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey, lastError: null });
         return { ok: true };
       },
 
@@ -194,7 +221,7 @@ export const usePlannerStore = create<PlannerState>()(
         const before = get().tasks;
         const byId = new Map(before.map((task) => [task.id, task]));
         // 演示周口径：把"周几"换算成本周的具体日期（第 1 周周一由 TERM_START 决定）
-        const mondayKey = addDaysToKey(DEMO_DAY_KEY, 1 - isoWeekdayOf(msFromDayKey(DEMO_DAY_KEY, 0)));
+        const mondayKey = addDaysToKey(dayKeyOf(Date.parse(get().demoClock.iso)), 1 - isoWeekdayOf(Date.parse(get().demoClock.iso)));
         const removedIds = new Set<string>();
         const patched = new Map<string, Task>();
         const added: Task[] = [];
@@ -267,23 +294,23 @@ export const usePlannerStore = create<PlannerState>()(
           set({ lastError: message });
           return { ok: false, error: message };
         }
-        set({ tasks: parsed.data, snapshot: before, lastError: null });
+        set({ tasks: parsed.data, snapshot: before, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey, lastError: null });
         return { ok: true, summary: formatTimetableSummary(plan) };
       },
 
       undo: () => {
         const snapshot = get().snapshot;
         if (!snapshot) return;
-        set({ tasks: snapshot, snapshot: null });
+        set({ tasks: snapshot, snapshot: null, ...(get().snapshotClock ? { demoClock: get().snapshotClock! } : {}), snapshotClock: null, termStartDayKey: get().snapshotTermStart, snapshotTermStart: null });
       },
-      clearAll: () => set({ tasks: [], snapshot: null, lastError: null }),
+      clearAll: () => set({ tasks: [], snapshot: get().tasks, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey, lastError: null }),
       dismissError: () => set({ lastError: null }),
 
       exportJson: () => {
         const { tasks, snapshot } = get();
         try {
           const now = new Date();
-          const envelope = buildExportEnvelope({ tasks, snapshot }, now);
+          const envelope = { ...buildExportEnvelope({ tasks, snapshot }, now), settings: { demoClock: get().demoClock, termStartDayKey: get().termStartDayKey } };
           return { ok: true, text: serializeExport(envelope), filename: exportFileName(now) };
         } catch {
           return { ok: false, error: "生成导出文件失败" };
@@ -301,21 +328,20 @@ export const usePlannerStore = create<PlannerState>()(
         }
 
         const isSeed = isDemoSeed(parsed);
+        const settings = (parsed as { settings?: { demoClock?: { iso?: string; source?: string }; termStartDayKey?: string } })?.settings;
         const migrated = migrateImportedPayload(parsed);
         if (!migrated.ok) {
           set({ lastError: `导入失败：${migrated.error}` });
           return { ok: false, error: migrated.error };
         }
-        if (migrated.value.tasks.length === 0) {
-          const message = "导入失败：文件里没有任何任务";
-          set({ lastError: message });
-          return { ok: false, error: message };
-        }
+
 
         set({
           tasks: migrated.value.tasks,
+          demoClock: settings?.demoClock?.source === "seed" && settings.demoClock.iso && Number.isFinite(Date.parse(settings.demoClock.iso)) ? { iso: settings.demoClock.iso, source: "seed" as const } : { iso: new Date().toISOString(), source: "system" as const },
+          termStartDayKey: settings?.termStartDayKey && /^\d{4}-\d{2}-\d{2}$/.test(settings.termStartDayKey) ? settings.termStartDayKey : null,
           // 种子自带演示时钟（seed.demoNow）→ 导入后以它为准，标来源 seed；
-          // 普通 JSON 不动时钟（保持当前来源），避免录制中途时钟跳变
+          // 普通导出恢复有效的演示设置，否则返回实时日程
           ...(isSeed && typeof (parsed as { demoNow?: unknown }).demoNow === "string"
             ? {
                 demoClock: {
@@ -325,7 +351,7 @@ export const usePlannerStore = create<PlannerState>()(
               }
             : {}),
           // 覆盖前留快照：导入也是一次"批量写"，必须可撤销
-          snapshot: get().tasks,
+          snapshot: get().tasks, snapshotClock: get().demoClock, snapshotTermStart: get().termStartDayKey,
           lastError: null,
         });
         return { ok: true, imported: migrated.value.tasks.length, demo: isSeed };
@@ -336,11 +362,16 @@ export const usePlannerStore = create<PlannerState>()(
       version: 2,
       storage: createJSONStorage(() => browserAdapter),
       skipHydration: true,
-      partialize: (state) => ({ tasks: state.tasks, snapshot: state.snapshot }),
+      partialize: (state) => ({ tasks: state.tasks, snapshot: state.snapshot, snapshotClock: state.snapshotClock, snapshotTermStart: state.snapshotTermStart, demoClock: state.demoClock, termStartDayKey: state.termStartDayKey }),
       merge: (persisted, current) => {
         const migrated = migrateStoredPayload(persisted);
         if (!migrated.ok) return current;
-        return { ...current, tasks: migrated.value.tasks, snapshot: migrated.value.snapshot };
+        const saved = (persisted ?? {}) as { demoClock?: { source?: string; iso?: string }; snapshotClock?: { source: "seed" | "system"; iso: string }; snapshotTermStart?: string | null; termStartDayKey?: string };
+        const clock = saved.demoClock;
+        return { ...current, tasks: migrated.value.tasks, snapshot: migrated.value.snapshot, snapshotClock: saved.snapshotClock && ["seed", "system"].includes(saved.snapshotClock.source) && Number.isFinite(Date.parse(saved.snapshotClock.iso)) ? saved.snapshotClock : null, snapshotTermStart: typeof saved.snapshotTermStart === "string" && /^\d{4}-\d{2}-\d{2}$/.test(saved.snapshotTermStart) ? saved.snapshotTermStart : null,
+          ...(clock?.source === "seed" && clock.iso && Number.isFinite(Date.parse(clock.iso)) ? { demoClock: { iso: clock.iso, source: "seed" as const } } : {}),
+          termStartDayKey: typeof saved.termStartDayKey === "string" && /^\d{4}-\d{2}-\d{2}$/.test(saved.termStartDayKey) ? saved.termStartDayKey : null,
+        };
       },
     },
   ),

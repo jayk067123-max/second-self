@@ -12,6 +12,7 @@ import { AiProposalDraftSchema } from "./schemas/reflow";
 import type { Task } from "./schemas/task";
 import {
   MS_MINUTE,
+  expandOccurrences,
   addDaysToKey,
   dayKeyOf,
   formatClock,
@@ -120,6 +121,7 @@ export interface JudgeInputs {
   now: Date;
   config?: ReflowConfig;
   detect?: DetectConfig;
+  targetDayKey?: string;
 }
 
 interface Block {
@@ -769,7 +771,8 @@ function findSlotOnDay(
 
   // 当日已占用区间（按开始时间排序）；跨天段只算与今天相交的那部分
   const busy: Array<{ startMs: number; endMs: number }> = [];
-  for (const { startMs, endMs } of timedTasksOf(others)) {
+  const occurrences = others.flatMap(task => expandOccurrences(task, new Date(msFromDayKey(dayKey,0)), new Date(msFromDayKey(addDaysToKey(dayKey,1),0)), detect.termStartDayKey).map(o=>({ ...task, start:o.start, end:o.end })));
+  for (const { startMs, endMs } of timedTasksOf(occurrences)) {
     const start = Math.max(startMs, dayStartMs);
     const end = Math.min(endMs, dayEndMs);
     if (end > start) busy.push({ startMs: start, endMs: end });
@@ -777,7 +780,7 @@ function findSlotOnDay(
   busy.sort((a, b) => a.startMs - b.startMs);
 
   // 当日剩余容量：已经排满的日子不再往里塞
-  const usedMin = dailyTotals(timedTasksOf(others)).get(dayKey) ?? 0;
+  const usedMin = dailyTotals(timedTasksOf(occurrences)).get(dayKey) ?? 0;
   if (usedMin + durationMin > detect.dayCapacityMin) return null;
 
   let cursor = dayStartMs;
@@ -823,7 +826,7 @@ export function buildLocalProposals(
   const detect = inputs.detect ?? DEFAULT_DETECT_CONFIG;
   const baseline = [...tasks];
 
-  const conflicts = detectConflicts(baseline, detect, inputs.now);
+  const conflicts = detectConflicts(baseline, detect, inputs.now).filter(c => !inputs.targetDayKey || c.date === inputs.targetDayKey);
   if (conflicts.length === 0) return []; // 没冲突就不用提议，别硬造方案
 
   // 候选：冲突里出现过、未完成、非固定块、真的占时段的任务
@@ -832,14 +835,14 @@ export function buildLocalProposals(
     for (const id of conflict.involvedTaskIds) {
       if (movableIds.includes(id)) continue;
       const task = baseline.find((candidate) => candidate.id === id);
-      if (!task || task.done || task.locked || task.durationMin <= 0) continue;
+      if (!task || task.done || task.locked || task.repeat || task.durationMin <= 0) continue;
       if (blockOfTask(task) === null) continue;
       movableIds.push(id);
     }
   }
   if (movableIds.length === 0) return [];
 
-  const todayKey = dayKeyOf(inputs.now.getTime());
+  const todayKey = inputs.targetDayKey ?? dayKeyOf(inputs.now.getTime());
   const strategies: Array<{ label: string; offsetDays: number }> = [
     { label: "最小改动", offsetDays: 0 },
     { label: "保精力", offsetDays: 1 },
@@ -857,7 +860,10 @@ export function buildLocalProposals(
       let slot: Slot | null = null;
       for (let extra = 0; extra < 7 && slot === null; extra += 1) {
         const dayKey = addDaysToKey(todayKey, strategy.offsetDays + extra);
-        slot = findSlotOnDay(others, dayKey, task.durationMin, config, detect);
+        const liveDay = dayKeyOf(inputs.now.getTime());
+        const minStart = dayKey === liveDay ? Math.max(config.dayStartMin, Math.ceil((inputs.now.getTime()-msFromDayKey(liveDay,0))/MS_MINUTE)) : config.dayStartMin;
+        if (dayKey < liveDay) continue;
+        slot = findSlotOnDay(others, dayKey, task.durationMin, { ...config, dayStartMin: minStart }, detect);
       }
       if (!slot) continue;
 
@@ -968,7 +974,7 @@ export function validatePlan(
 
   // 全局两眼：与 adjudicateProposal 共用同一份实现，措辞按旧调用方习惯翻译
   const after = applyPlan(tasks, plan);
-  const touched = new Set(after.map((task) => task.id));
+  const touched = new Set(plan.blocks.map((block) => block.taskId));
   for (const violation of validateWhole(after, tasks, touched, detect)) {
     switch (violation.kind) {
       case "overlap": {

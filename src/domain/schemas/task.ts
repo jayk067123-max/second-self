@@ -110,6 +110,7 @@ export const TaskSchema = z
     priority: priorityField,
     source: TaskSourceSchema,
     done: z.boolean(),
+    completedOn: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
     /** 来自粘贴文本的原始行，用于人工修正时溯源 */
     rawTextOrigin: z.string().max(2000).nullable(),
     /**

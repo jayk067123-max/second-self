@@ -79,6 +79,7 @@ export const REPLAN_SYSTEM = [
   "5. 单个方案覆盖的时长总和不得超过 600 分钟。",
   "6. taskId 必须来自输入，不得新增或编造任务。",
   "7. 只输出 JSON，不要 markdown 代码块，不要解释。",
+  "9. 固定安排、已完成安排和周期安排不得移动。只移动目标日的任务，其他任务是必须避开的约束。",
   "8. rationale 用一句中文说明这套方案的取舍（不超过 80 字）。",
 ].join("\n");
 
@@ -92,11 +93,12 @@ export function buildReplanUser(
     deadline: string | null;
     start: string | null;
     end: string | null;
+    locked?: boolean; flexible?: boolean; location?: string | null; repeat?: unknown;
   }>,
 ): string {
   const lines = tasks.map(
     (t) =>
-      `- taskId=${t.id} | 标题=${t.title} | 时长=${t.durationMin}分钟 | 优先级=${t.priority} | 截止=${t.deadline ?? "无"} | 当前=${t.start ?? "未排"}~${t.end ?? "未排"}`,
+      `- taskId=${t.id} | 标题=${t.title} | 时长=${t.durationMin}分钟 | 优先级=${t.priority} | 截止=${t.deadline ?? "无"} | 固定=${t.locked ?? false} | 弹性=${t.flexible ?? false} | 地点=${t.location ?? "未知"} | 重复=${JSON.stringify(t.repeat ?? null)} | 当前=${t.start ?? "未排"}~${t.end ?? "未排"}`,
   );
   return [
     `目标日期：${dayKey}（本地时区）`,

@@ -183,3 +183,14 @@ export function expandOccurrences(
   }
   return occurrences;
 }
+
+/** 周期截止事项只映射截止时刻，不虚构占用时段。 */
+export function repeatDeadlineOnDay(task: Task, dayKey: string, termStartDayKey?: string | null): string | null {
+  if (!task.repeat || !task.deadline) return null;
+  const base = parseIsoToMs(task.deadline);
+  if (base === null || !task.repeat.byDay.includes(isoWeekdayOf(msFromDayKey(dayKey, 0)))) return null;
+  const weeks = task.repeat.weeks;
+  if (weeks && termStartDayKey && !dayInWeekSpec(dayKey, termStartDayKey, weeks)) return null;
+  const minute = /^\d{4}-\d{2}-\d{2}$/.test(task.deadline) ? 1439 : minutesFromLocalMidnight(base);
+  return new Date(msFromDayKey(dayKey, minute)).toISOString();
+}

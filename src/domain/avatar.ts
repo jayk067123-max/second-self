@@ -5,7 +5,7 @@ import {
   type ConflictOptions,
 } from "./conflicts";
 import type { Task } from "./schemas/task";
-import { formatDuration, parseIsoToMs, dayKeyOf } from "./time";
+import { formatDuration, parseIsoToMs, dayKeyOf, expandOccurrences, msFromDayKey, MS_DAY, repeatDeadlineOnDay } from "./time";
 
 /**
  * 数字分身状态机 —— 纯函数。
@@ -43,16 +43,30 @@ export interface AvatarSummary {
 }
 
 /** 归属于某一天的任务：时间块相交当天，或截止时间落在当天 */
-export function tasksOnDay(tasks: readonly Task[], dayKey: string): Task[] {
-  return tasks.filter((task) => {
+export function tasksOnDay(tasks: readonly Task[], dayKey: string, termStartDayKey?: string | null): Task[] {
+  const dayStart = msFromDayKey(dayKey, 0);
+  const onDay: Task[] = [];
+  for (const task of tasks) {
+    if (task.repeat) {
+      const occurrence = expandOccurrences(task, new Date(dayStart), new Date(dayStart + MS_DAY), termStartDayKey)[0];
+      const deadline = repeatDeadlineOnDay(task, dayKey, termStartDayKey);
+      if (!occurrence && deadline) onDay.push({ ...task, deadline, done: task.done || (task.completedOn ?? []).includes(dayKey) });
+      if (occurrence) onDay.push({ ...task, start: occurrence.start, end: occurrence.end, done: task.done || (task.completedOn ?? []).includes(dayKey) });
+      continue;
+    }
+    if (belongs(task, dayKey, dayStart)) onDay.push(task);
+  }
+  return onDay.sort((a,b) => (parseIsoToMs(a.start) ?? parseIsoToMs(a.deadline) ?? Infinity) - (parseIsoToMs(b.start) ?? parseIsoToMs(b.deadline) ?? Infinity));
+}
+
+function belongs(task: Task, dayKey: string, dayStart: number): boolean {
     const startMs = parseIsoToMs(task.start);
     const endMs = parseIsoToMs(task.end);
     if (startMs !== null && endMs !== null && endMs > startMs) {
-      if (dayKeyOf(startMs) === dayKey || dayKeyOf(endMs - 1) === dayKey) return true;
+      if (startMs < dayStart + MS_DAY && endMs > dayStart) return true;
     }
     const deadlineMs = parseIsoToMs(task.deadline);
     return deadlineMs !== null && dayKeyOf(deadlineMs) === dayKey;
-  });
 }
 
 export function computeAvatarSummary(
@@ -65,7 +79,7 @@ export function computeAvatarSummary(
   const totalCount = today.length;
   const completionRate = totalCount === 0 ? 0 : doneCount / totalCount;
 
-  const loadMin = minutesOnDay(tasks, dayKey);
+  const loadMin = minutesOnDay(today, dayKey);
   const loadRatio = options.dailyLimitMin === 0 ? 0 : loadMin / options.dailyLimitMin;
 
   const pending = today

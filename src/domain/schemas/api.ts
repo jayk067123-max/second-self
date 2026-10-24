@@ -100,7 +100,9 @@ export type ParseImageResponse = ParseTasksResponse;
 /* ---------------- 重排 ---------------- */
 
 export const ReplanRequestSchema = z.object({
-  tasks: z.array(TaskSchema).max(60),
+  tasks: z.array(TaskSchema).max(300),
+  now: z.string().datetime({ offset: true }).optional(),
+  termStartDayKey: z.string().regex(DAY_KEY_RE).nullable().optional(),
   dayKey: z.string().regex(DAY_KEY_RE, "dayKey 必须是 YYYY-MM-DD"),
 });
 export type ReplanRequest = z.infer<typeof ReplanRequestSchema>;
