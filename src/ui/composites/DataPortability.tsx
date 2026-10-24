@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlannerStore } from "@/data/store";
 import { Button } from "@/ui/primitives";
 
@@ -14,6 +14,7 @@ export function DataPortability() {
   const taskCount = usePlannerStore((s) => s.tasks.length);
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (!msg) return; const timer = setTimeout(() => setMsg(null), 5000); return () => clearTimeout(timer); }, [msg]);
 
   function handleExport() {
     const result = exportJson();
@@ -44,8 +45,8 @@ export function DataPortability() {
           ? {
               tone: "ok",
               text: result.demo
-                ? `已导入 ${result.imported} 条任务（演示数据），可用「撤销上次写回」退回`
-                : `已导入 ${result.imported} 条任务，可用「撤销上次写回」退回`,
+                ? `已导入 ${result.imported} 条任务（演示数据）`
+                : `已导入 ${result.imported} 条任务`,
             }
           : { tone: "err", text: result.error ?? "导入失败" },
       );
@@ -58,9 +59,9 @@ export function DataPortability() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="data-buttons">
       <Button
-        variant="ghost"
+        variant="secondary"
         className="h-8 px-3 text-micro"
         onClick={handleExport}
         disabled={taskCount === 0}
@@ -68,7 +69,7 @@ export function DataPortability() {
       >
         导出 JSON
       </Button>
-      <Button variant="ghost" className="h-8 px-3 text-micro" onClick={() => fileRef.current?.click()}>
+      <Button variant="secondary" className="h-8 px-3 text-micro" onClick={() => fileRef.current?.click()}>
         导入 JSON
       </Button>
       <input

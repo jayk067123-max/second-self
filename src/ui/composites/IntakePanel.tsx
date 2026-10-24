@@ -1,16 +1,12 @@
 "use client";
-
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CoverageReport, SourceLine } from "@/domain/completeness";
 import { mergeDraftPatch } from "@/domain/clarify";
-import type { AiMode } from "@/domain/schemas/api";
 import type { TaskDraft } from "@/domain/schemas/task";
 import { SAMPLE_INTAKE_TEXT } from "@/shared/samples";
 import { dayKeyOf } from "@/domain/time";
 import { usePlannerStore } from "@/data/store";
-import { Badge, Button, Card, CardText, CardTitle, Textarea } from "@/ui/primitives";
-import { AiFailureCard } from "./AiFailureCard";
-import { AiStatusSteps, type AiStep } from "./AiStatusSteps";
+import { Sheet } from "@/ui/Sheet";
 import { ClarifyPanel } from "./ClarifyPanel";
 import { pendingCount } from "./clarifyQueue";
 import { ImageIntake } from "./ImageIntake";
@@ -18,311 +14,82 @@ import { TaskCorrectionTable } from "./TaskCorrectionTable";
 import { UncoveredNotice } from "./UncoveredNotice";
 import { requestParseImage, requestParseText, type IntakeOutcome } from "./intakeClient";
 
-/** `ask` = 追问阶段（一屏一问）；`review` = 修正表阶段。两者共用同一份 drafts */
-type Phase = "idle" | "parsing" | "ask" | "review" | "done";
-type IntakeMode = "text" | "image";
-
-/** 重试要用的输入快照：点「一键重试」时不该让用户重选图 */
-type LastInput =
-  | { kind: "text"; text: string }
-  | { kind: "image"; file: File; hint: string };
-
-/**
- * 录入 → 解析 → 人工修正 → 入库。两个入口（粘贴文本 / 上传图片）共用一套状态机。
- *
- * 三条不许违反的约束：
- *   1. 任何结果都要落到可见界面：没有静默失败、没有白屏；
- *   2. 解析成功不等于完整性通过 —— `coverage.uncovered` 必须展示给用户，
- *      每一行原文要么进库、要么被用户明确确认不重要；
- *   3. 结构校验在客户端再做一次（intakeClient 里），不信任任何外部返回。
- */
+type Phase = "idle" | "parsing" | "uncovered" | "ask" | "review" | "done" | "error";
+type LastInput = { kind: "text"; text: string } | { kind: "image"; file: File; hint: string };
 export function IntakePanel() {
   const [text, setText] = useState("");
-  const [mode, setMode] = useState<IntakeMode>("text");
-  // 演示时钟**唯一来源**：与 planner 页共用 store 的 demoClock（导入 demo-seed 后切 seed 时钟），
-  // 不再读系统时间，也不再各自读常量——否则会出现"同屏两个今天"，录制日期还会随机器漂移。
-  const demoClockIso = usePlannerStore((s) => s.demoClock.iso);
-  const dayKey = dayKeyOf(new Date(demoClockIso).getTime());
+  const [mode, setMode] = useState<"text" | "image">("text");
   const [phase, setPhase] = useState<Phase>("idle");
   const [drafts, setDrafts] = useState<TaskDraft[]>([]);
-  const [aiMode, setAiMode] = useState<AiMode | null>(null);
-  const [error, setError] = useState<{ message: string; issues: string[]; raw?: string } | null>(
-    null,
-  );
-  const [notes, setNotes] = useState<string[]>([]);
-  const [timings, setTimings] = useState<Array<{ phase: string; ms: number }>>([]);
   const [coverage, setCoverage] = useState<CoverageReport | null>(null);
-  const [dismissedLines, setDismissedLines] = useState<number[]>([]);
-  const [adoptedLines, setAdoptedLines] = useState<number[]>([]);
+  const [dismissed, setDismissed] = useState<number[]>([]);
+  const [adopted, setAdopted] = useState<number[]>([]);
+  const [error, setError] = useState("");
   const [lastInput, setLastInput] = useState<LastInput | null>(null);
   const [addedCount, setAddedCount] = useState(0);
-
-  const addDrafts = usePlannerStore((s) => s.addDrafts);
-
-  function resetResult() {
-    setError(null);
-    setDrafts([]);
-    setNotes([]);
-    setTimings([]);
-    setCoverage(null);
-    setDismissedLines([]);
-    setAdoptedLines([]);
-  }
-
-  function applyOutcome(outcome: IntakeOutcome) {
-    if (outcome.kind === "fail") {
-      setError({ message: outcome.message, issues: outcome.issues, raw: outcome.raw });
-      setPhase("idle");
-      return;
-    }
-    setAiMode(outcome.response.mode);
-    setTimings(outcome.response.timings);
-    setDrafts(outcome.response.tasks);
-    setNotes(outcome.response.droppedIssues);
-    setCoverage(outcome.response.coverage);
-    // 有缺信息的条目就先追问（一屏一问）；都有信息就直接进修正表
-    setPhase(pendingCount(outcome.response.tasks, dayKey, []) > 0 ? "ask" : "review");
-  }
-
-  /**
-   * 字段回写**唯一入口**：追问面板和修正表都走这里 → 同一个 `mergeDraftPatch`。
-   * 这是 007 卡里"双写 bug"的执行侧防线：两个入口的合并语义一模一样。
-   */
-  function applyPatch(index: number, patch: Partial<TaskDraft>) {
-    setDrafts((prev) => prev.map((draft, i) => (i === index ? mergeDraftPatch(draft, patch) : draft)));
-  }
-
-  async function runText(snapshot: { text: string }) {
-    setPhase("parsing");
-    resetResult();
-    setLastInput({ kind: "text", text: snapshot.text });
-    applyOutcome(await requestParseText({ text: snapshot.text, dayKey }));
-  }
-
-  async function runImage(snapshot: { file: File; hint: string }) {
-    setPhase("parsing");
-    resetResult();
-    setLastInput({ kind: "image", file: snapshot.file, hint: snapshot.hint });
-    applyOutcome(await requestParseImage({ file: snapshot.file, dayKey, hint: snapshot.hint }));
-  }
-
-  function retry() {
-    if (lastInput === null) return;
-    if (lastInput.kind === "text") void runText({ text: lastInput.text });
-    else void runImage({ file: lastInput.file, hint: lastInput.hint });
-  }
-
-  /** 把"没看懂"的一行补成任务：进修正表，用户可以再编辑，也可以直接确认 */
-  function adoptLine(line: SourceLine) {
-    const title = line.text.replace(/^[\s\d.、)）]+/, "").slice(0, 200);
-    const draft: TaskDraft = {
-      title: title.length > 0 ? title : line.text.slice(0, 200),
-      start: null,
-      end: null,
-      durationMin: 0,
-      deadline: null,
-      priority: 2,
-      rawTextOrigin: line.text.slice(0, 500),
-      needsReview: true,
-      repeat: null,
-    };
-    setDrafts((prev) => [...prev, draft]);
-    setAdoptedLines((prev) => [...prev, line.lineNo]);
-  }
-
-  function confirm() {
-    const result = addDrafts(drafts, "text");
-    if (!result.ok) {
-      setError({ message: `入库失败：${result.error ?? "未知原因"}`, issues: [] });
-      return;
-    }
-    setAddedCount(result.added ?? drafts.length);
-    setDrafts([]);
-    setPhase("done");
-  }
-
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [askRound, setAskRound] = useState(0);
+  const asked = useRef(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const requestId = useRef(0);
+  const [skipped, setSkipped] = useState<number[]>([]);
+  const askHistory = useRef<Array<{ drafts: TaskDraft[]; skipped: number[] }>>([]);
+  const addDrafts = usePlannerStore(s => s.addDrafts);
+  const clock = usePlannerStore(s => s.demoClock.iso);
+  const dayKey = dayKeyOf(Date.parse(clock));
   const busy = phase === "parsing";
-  /** 追问和修正表是同一个阶段的两个屏：都要显示状态步骤与完整性提示 */
-  const inReview = phase === "ask" || phase === "review";
-  const steps: AiStep[] =
-    phase === "parsing"
-      ? [
-          { label: mode === "image" ? "压缩图片并上传" : "提交原文", status: "active" },
-          { label: "整理字段并检查格式", status: "idle" },
-          { label: "逐行核对完整性", status: "idle" },
-          { label: "等你人工核对", status: "idle" },
-        ]
-      : inReview
-        ? [
-            { label: mode === "image" ? "压缩图片并上传" : "提交原文", status: "done" },
-            {
-              label: "整理字段并检查格式",
-              status: "done",
-              detail:
-                aiMode === "demo" ? "本地规则模式" : `${timings.length} 个阶段 · 已过契约`,
-            },
-            {
-              label: "逐行核对完整性",
-              status: "done",
-              detail: coverage === null ? "未核对" : coverage.verified ? "已用原文重算" : "图片路径未复核",
-            },
-            {
-              label: phase === "ask" ? "补齐缺的信息" : "等你人工核对",
-              status: "active",
-              detail: phase === "ask" ? "一屏一问" : undefined,
-            },
-          ]
-        : [];
-
-  return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <CardTitle>随手一记，整理成日程</CardTitle>
-          <CardText className="mt-1">
-            先粘贴通知或上传截图。整理后核对时间，确认才加入日程。
-          </CardText>
-        </div>
-        {aiMode ? (
-          <Badge tone={aiMode === "live" ? "brand" : "warn"}>
-            {aiMode === "live" ? "真实模型" : "本地规则模式"}
-          </Badge>
-        ) : null}
-      </div>
-
-      <div className="flex gap-1.5" role="tablist" aria-label="录入方式">
-        {(
-          [
-            { key: "text", label: "粘贴文本" },
-            { key: "image", label: "上传图片" },
-          ] as const
-        ).map((tab) => (
-          <button
-            key={tab.key}
-            role="tab"
-            aria-selected={mode === tab.key}
-            type="button"
-            onClick={() => setMode(tab.key)}
-            disabled={busy}
-            className={
-              "rounded-pill px-3 py-1.5 text-micro font-medium transition-colors " +
-              (mode === tab.key
-                ? "bg-brand-600/25 text-brand-300 ring-1 ring-inset ring-brand-600/50"
-                : "bg-ink-800 text-ink-300 hover:text-ink-100")
-            }
-          >
-            {tab.label}
-          </button>
-        ))}
-        <span className="ml-auto self-center text-micro text-ink-400">{dayKey}</span>
-      </div>
-
-      {mode === "text" ? (
-        <>
-          <Textarea
-            aria-label="粘贴日程文本"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={SAMPLE_INTAKE_TEXT}
-            maxLength={8000}
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => void runText({ text })} disabled={text.trim().length < 5 || busy}>
-              {busy ? "解析中…" : "解析成任务"}
-            </Button>
-            <Button variant="secondary" onClick={() => setText(SAMPLE_INTAKE_TEXT)} disabled={busy}>
-              填入示例
-            </Button>
-            <span className="ml-auto text-micro text-ink-400">{text.trim().length} / 8000 字</span>
-          </div>
-        </>
-      ) : (
-        <ImageIntake busy={busy} onSubmit={(file, hint) => void runImage({ file, hint })} />
-      )}
-
-      {busy ? <AiStatusSteps steps={steps} /> : null}
-
-      {error ? (
-        <AiFailureCard
-          message={error.message}
-          issues={error.issues}
-          rawOutput={error.raw}
-          onRetry={retry}
-          onManualFix={() => {
-            // 出路二：转到手动新增，用户自己把这条录进去
-            window.dispatchEvent(new Event("second-self:manual-open"));
-            window.setTimeout(() => { document.getElementById("manual-title")?.scrollIntoView({ behavior: "smooth", block: "center" });
-            document.getElementById("manual-title")?.focus(); }, 100);
-          }}
-          onBack={() => {
-            setError(null);
-            setPhase("idle");
-          }}
-          busy={busy}
-        />
-      ) : null}
-
-      {inReview && drafts.length > 0 ? (
-        <>
-          <AiStatusSteps steps={steps} />
-          {notes.length > 0 ? (
-            <div className="rounded-sm bg-warn-500/10 px-3 py-2 text-micro text-warn-400 ring-1 ring-inset ring-warn-500/30">
-              {notes.map((note) => (
-                <p key={note}>{note}</p>
-              ))}
-            </div>
-          ) : null}
-          {coverage !== null ? (
-            <UncoveredNotice
-              coverage={coverage}
-              dismissedLineNos={dismissedLines}
-              adoptedLineNos={adoptedLines}
-              onAdopt={adoptLine}
-              onDismiss={(lineNo) => setDismissedLines((prev) => [...prev, lineNo])}
-              onRestore={(lineNo) =>
-                setDismissedLines((prev) => prev.filter((value) => value !== lineNo))
-              }
-            />
-          ) : null}
-          {phase === "ask" ? (
-            <ClarifyPanel
-              drafts={drafts}
-              dayKey={dayKey}
-              onPatch={applyPatch}
-              onFinish={() => setPhase("review")}
-              onSkipAll={() => setPhase("review")}
-            />
-          ) : (
-            <TaskCorrectionTable
-              drafts={drafts}
-              onChange={applyPatch}
-              onRemove={(index) => setDrafts((prev) => prev.filter((_, i) => i !== index))}
-              onConfirm={confirm}
-              onCancel={() => {
-                setDrafts([]);
-                setPhase("idle");
-              }}
-            />
-          )}
-        </>
-      ) : null}
-
-      {phase === "done" ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm bg-ok-500/10 px-3 py-2 text-caption text-ok-400 ring-1 ring-inset ring-ok-500/30">
-          <span>已入库 {addedCount} 条，切到「今天」或「未来」查看。</span>
-          <Button
-            variant="ghost"
-            className="h-8 px-3 text-micro"
-            onClick={() => {
-              setText("");
-              resetResult();
-              setPhase("idle");
-            }}
-          >
-            再记一条
-          </Button>
-        </div>
-      ) : null}
-    </Card>
-  );
+  const unresolved = coverage?.uncovered.filter(l => !dismissed.includes(l.lineNo) && !adopted.includes(l.lineNo)) ?? [];
+  function toQuestions(next = drafts) { asked.current = pendingCount(next, dayKey, []) > 0; setPhase(asked.current ? "ask" : "review"); setAskRound(n => n+1); }
+  function applyPatch(index: number, patch: Partial<TaskDraft>) { setDrafts(prev => prev.map((d,i) => i === index ? mergeDraftPatch(d,patch) : d)); setError(""); }
+  async function run(input: LastInput) {
+    const id = ++requestId.current; setLastInput(input); setPhase("parsing"); setPanelOpen(true); setError(""); setEditIndex(null);
+    const outcome: IntakeOutcome = input.kind === "text" ? await requestParseText({ text: input.text, dayKey }) : await requestParseImage({ file: input.file, hint: input.hint, dayKey });
+    if (id !== requestId.current) return;
+    if (outcome.kind === "fail") { setError(outcome.message); setPhase("error"); return; }
+    setSkipped([]); askHistory.current = []; setDrafts(outcome.response.tasks); setCoverage(outcome.response.coverage); setDismissed([]); setAdopted([]);
+    if (outcome.response.coverage.uncovered.length) setPhase("uncovered");
+    else toQuestions(outcome.response.tasks);
+  }
+  function close() { setPanelOpen(false); }
+  function back() {
+    setError("");
+    if (editIndex !== null) { setEditIndex(null); return; }
+    if (phase === "review") {
+      if (asked.current) {
+        if (!pendingCount(drafts, dayKey, skipped) && askHistory.current.length) { const previous = askHistory.current.pop()!; setDrafts(previous.drafts); setSkipped(previous.skipped); }
+        setPhase("ask"); setAskRound(n => n+1); return;
+      }
+      if (coverage?.uncovered.length) { setPhase("uncovered"); return; }
+      close(); return;
+    }
+    if (phase === "ask" && askHistory.current.length) { const previous = askHistory.current.pop()!; setDrafts(previous.drafts); setSkipped(previous.skipped); setAskRound(n => n+1); return; }
+    if (phase === "ask" && coverage?.uncovered.length) { setPhase("uncovered"); return; }
+    close();
+  }
+  function adopt(line: SourceLine) {
+    setDrafts(prev => [...prev, { title: line.text.slice(0,200), start:null,end:null,durationMin:0,deadline:null,priority:2,rawTextOrigin:line.text.slice(0,500),needsReview:true,repeat:null }]);
+    setAdopted(prev => [...prev,line.lineNo]);
+  }
+  function confirm() {
+    if (unresolved.length) { setPhase("uncovered"); return; }
+    const result = addDrafts(drafts,"text");
+    if (!result.ok) { setError(result.error ?? "请检查任务信息"); return; }
+    setAddedCount(result.added ?? drafts.length); setPhase("done");
+  }
+  const title = phase === "parsing" ? "正在整理…" : phase === "uncovered" ? "还有这些内容" : phase === "ask" ? "补充一点信息" : phase === "done" ? "已经记好了。" : phase === "error" ? "这次没有整理成功" : editIndex !== null ? "把这条改好" : "核对一下，准备出发。";
+  return <section className="add-card intake-card" aria-label="整理日程">
+    <div className="intake-heading"><h2>随手一记</h2><span>{dayKey}</span></div>
+    <div className="intake-tabs" role="group" aria-label="录入方式"><button aria-pressed={mode === "text"} onClick={() => setMode("text")}>文字</button><button aria-pressed={mode === "image"} onClick={() => setMode("image")}>图片</button></div>
+    {mode === "text" ? <><textarea aria-label="粘贴日程文本" value={text} onChange={e => setText(e.target.value)} maxLength={8000} placeholder="把通知、课表或待办贴在这里…" /><div className="intake-actions"><button className="btn btn-green" onClick={() => void run({kind:"text",text})} disabled={text.trim().length < 5 || busy}>{busy ? "整理中…" : "解析成任务"}</button><button className="btn" onClick={() => setText(SAMPLE_INTAKE_TEXT)} disabled={busy}>填入示例</button><span>{text.length}/8000</span></div></> : <ImageIntake busy={busy} onSubmit={(file,hint) => void run({kind:"image",file,hint})} />}
+    {!panelOpen && phase !== "idle" && <button className="resume-intake" onClick={() => setPanelOpen(true)}>{phase === "parsing" ? "查看整理进度" : phase === "done" ? "查看入库结果" : "继续核对 ↗"}</button>}
+    {panelOpen && <Sheet title={title} caption={phase === "ask" ? "01 / 补充" : phase === "review" ? "02 / 核对" : undefined} stepKey={phase + "-" + editIndex + "-" + skipped.length + "-" + askRound} onBack={back} onClose={close} wide={phase === "review"}
+      footer={phase === "uncovered" ? <button className="btn btn-green" disabled={!!unresolved.length} onClick={() => toQuestions()}>继续</button> : phase === "review" && editIndex === null ? <><span className="sheet-count">{drafts.length} 条日程</span><button className="btn btn-green" disabled={!drafts.length || drafts.some(d => d.needsReview)} onClick={confirm}>确认入库</button></> : undefined}>
+      {phase === "parsing" && <div className="flow-loading" role="status"><span className="loading-orbit" />正在提取时间与任务</div>}
+      {phase === "error" && <div className="flow-error"><p role="alert">{error}</p><div className="settings-actions"><button className="btn btn-green" onClick={() => lastInput && void run(lastInput)}>重试</button><button className="btn" onClick={() => { close(); window.dispatchEvent(new Event("second-self:manual-open")); }}>手动添加</button></div></div>}
+      {phase === "uncovered" && coverage && <UncoveredNotice coverage={coverage} dismissedLineNos={dismissed} adoptedLineNos={adopted} onAdopt={adopt} onDismiss={n => setDismissed(prev => [...prev,n])} onRestore={n => setDismissed(prev => prev.filter(v => v !== n))} />}
+      {phase === "ask" && <ClarifyPanel key={askRound} drafts={drafts} dayKey={dayKey} onPatch={applyPatch} onFinish={() => setPhase("review")} onSkipAll={() => setPhase("review")} skipped={skipped} onAnswer={(index,patch,skip) => { askHistory.current.push({drafts,skipped}); applyPatch(index,patch); if (skip) setSkipped(prev => [...prev,index]); setAskRound(n => n+1); }} />}
+      {phase === "review" && <><TaskCorrectionTable drafts={drafts} onChange={applyPatch} onRemove={index => { setDrafts(prev => prev.filter((_,i) => i !== index)); setEditIndex(null); }} onConfirm={confirm} onCancel={close} editIndex={editIndex} onEdit={setEditIndex} hideFooter onAppend={() => { setDrafts(prev => [...prev,{title:"新日程",start:null,end:null,durationMin:0,deadline:null,priority:2,rawTextOrigin:null,needsReview:true,repeat:null}]); setEditIndex(drafts.length); }} />{error && <p className="form-error" role="alert">{error}</p>}</>}
+      {phase === "done" && <div className="flow-success"><span className="success-stamp" aria-hidden="true">✓</span><h3>已入库 {addedCount} 条</h3><div className="settings-actions"><button className="btn btn-green" onClick={() => { close(); const date = drafts.find(d => d.start || d.deadline); const iso = date?.start || date?.deadline; window.dispatchEvent(new CustomEvent("second-self:open-day", {detail: iso ? dayKeyOf(Date.parse(iso)) : dayKey})); }}>查看日程</button><button className="btn" onClick={() => { setPhase("idle"); setText(""); setDrafts([]); close(); }}>再记一条</button></div></div>}
+    </Sheet>}
+  </section>;
 }

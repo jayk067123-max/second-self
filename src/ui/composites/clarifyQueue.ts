@@ -94,7 +94,7 @@ export function resolveAnswer(
     answer.source === "skip"
       ? `${pending.draft.title}：先跳过，留到修正表里改`
       : `${pending.draft.title}：${pending.question.prompt.replace(/？$/, "")} → ${labelOf(pending.question, answer)}`;
-  return { ok: true, patch, skipDraft: answer.source === "skip", echo };
+  return { ok: true, patch, skipDraft: answer.source === "skip" || (answer.source === "option" && answer.optionId === "keep"), echo };
 }
 
 function labelOf(question: ClarifyQuestion, answer: ClarifyAnswer): string {

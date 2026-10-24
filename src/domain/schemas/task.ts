@@ -12,9 +12,9 @@ export const TaskSourceSchema = z.enum(["text", "manual"]);
 export type TaskSource = z.infer<typeof TaskSourceSchema>;
 
 export const PRIORITY_LABEL: Record<1 | 2 | 3, string> = {
-  1: "紧急",
-  2: "常规",
-  3: "弹性",
+  1: "重要",
+  2: "一般",
+  3: "轻松",
 };
 
 /**

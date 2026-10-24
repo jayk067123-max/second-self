@@ -13,7 +13,7 @@ import { Button, Card, CardText, CardTitle } from "@/ui/primitives";
  * 这张卡给视频特写用，措辞保持克制、不吓人。
  */
 export function AiFailureCard({
-  title = "这次模型输出没通过校验",
+  title = "暂时没有完成",
   message,
   issues,
   rawOutput,
@@ -39,7 +39,7 @@ export function AiFailureCard({
           <CardText className="mt-1">{message}</CardText>
         </div>
         <span className="rounded-pill bg-danger-500/15 px-2 py-0.5 text-micro text-danger-400">
-          未采用 · 未写库
+          未保存
         </span>
       </div>
 
@@ -63,9 +63,7 @@ export function AiFailureCard({
             {rawOutput.slice(0, 2000)}
           </pre>
         </details>
-      ) : (
-        <p className="text-micro text-ink-400">本次没有可展示的原始输出（在本地就被拦下了）。</p>
-      )}
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={onRetry} disabled={busy} className="h-8 px-3 text-micro">
@@ -81,9 +79,7 @@ export function AiFailureCard({
         </Button>
       </div>
 
-      <p className="border-t border-ink-700 pt-2 text-[11px] leading-relaxed text-ink-400">
-        禁止静默吞错 · 禁止白屏 · 禁止用空数据冒充成功 —— 任何一条被违反都算本次失败。
-      </p>
+
     </Card>
   );
 }

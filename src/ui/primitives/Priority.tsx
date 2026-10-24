@@ -23,7 +23,7 @@ const SHAPE: Record<PriorityLevel, string> = {
 const LABEL: Record<PriorityLevel, string> = {
   high: "重要",
   mid: "一般",
-  low: "低",
+  low: "轻松",
 };
 
 const PILL: Record<PriorityLevel, string> = {

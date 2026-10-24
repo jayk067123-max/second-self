@@ -11,9 +11,8 @@ import {
 } from "@/domain/schemas/api";
 import { dayKeyOf, formatClock, formatDuration, parseIsoToMs } from "@/domain/time";
 import { usePlannerStore } from "@/data/store";
-import { Badge, Button, Card, CardText, CardTitle } from "@/ui/primitives";
+import { Badge, Button, Card, CardTitle } from "@/ui/primitives";
 import { AiFailureCard } from "./AiFailureCard";
-import { AiStatusSteps, type AiStep } from "./AiStatusSteps";
 import { computePlanMetrics } from "./planMetrics";
 
 type Phase = "idle" | "loading" | "ready";
@@ -86,31 +85,12 @@ export function ReplanPanel({
     setAppliedTitle(plan.title);
   }
 
-  const steps: AiStep[] =
-    phase === "loading"
-      ? [
-          { label: "请求重排方案（模型只给思路）", status: "active" },
-          { label: "本地合法性校验：不重叠 / 不越界 / 不超载", status: "idle" },
-          { label: "等你挑一套", status: "idle" },
-        ]
-      : phase === "ready"
-        ? [
-            { label: "请求重排方案（模型只给思路）", status: "done" },
-            {
-              label: "本地合法性校验：不重叠 / 不越界 / 不超载",
-              status: "done",
-              detail: result ? `否决 ${result.rejected.length} 套` : undefined,
-            },
-            { label: "等你挑一套", status: "active" },
-          ]
-        : [];
-
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <CardTitle>重排建议</CardTitle>
-          <CardText className="mt-1">最多三套方案并排对比，选中才写回，可撤销</CardText>
+
         </div>
         <div className="flex items-center gap-2">
           {appliedTitle ? <Badge tone="ok">已写回 · 可撤销</Badge> : null}
@@ -124,7 +104,7 @@ export function ReplanPanel({
         <p className="text-micro text-ink-400">先入库几条任务，再来重排。</p>
       ) : null}
 
-      <AiStatusSteps steps={steps} />
+      {phase === "loading" && <p role="status">正在寻找合适的安排…</p>}
 
       {error ? (
         <AiFailureCard
@@ -143,7 +123,7 @@ export function ReplanPanel({
 
       {result?.fallback ? (
         <div className="rounded-sm bg-warn-500/10 px-3 py-2 text-micro text-warn-400 ring-1 ring-inset ring-warn-500/30">
-          模型给的方案全部没通过本地校验，已自动改用确定性兜底方案。下面是能落地的那几套。
+          已切换为本地方案
         </div>
       ) : null}
 
@@ -204,10 +184,10 @@ export function ReplanPanel({
                   ) : null}
                   {metrics.conflictsAfter > 0 ? (
                     <p className="text-micro text-warn-400">
-                      还剩 {metrics.conflictsAfter} 个冲突（未隐藏，写回后仍会红标）
+                      还剩 {metrics.conflictsAfter} 个冲突
                     </p>
                   ) : (
-                    <p className="text-micro text-ok-400">落地后冲突清零</p>
+                    <p className="text-micro text-ok-400">已避开冲突</p>
                   )}
 
                   <p className="font-mono text-micro text-ink-400">
@@ -246,7 +226,7 @@ export function ReplanPanel({
           {result.rejected.length > 0 ? (
             <details className="rounded-sm bg-ink-800/50 px-3 py-2 text-micro text-ink-300">
               <summary className="cursor-pointer select-none">
-                被本地校验否决的方案（{result.rejected.length} 套）
+                不可用的方案（{result.rejected.length} 套）
               </summary>
               <ul className="mt-2 space-y-1.5">
                 {result.rejected.map((rejected) => (
@@ -263,11 +243,7 @@ export function ReplanPanel({
             </details>
           ) : null}
 
-          {result.timings.length > 0 ? (
-            <p className="font-mono text-micro text-ink-400">
-              {result.timings.map((t) => `${t.phase} ${t.ms}ms`).join(" · ")}
-            </p>
-          ) : null}
+
         </>
       ) : null}
     </Card>

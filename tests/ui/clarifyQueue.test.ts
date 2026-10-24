@@ -56,6 +56,17 @@ describe("nextQuestion", () => {
 });
 
 describe("resolveAnswer", () => {
+  it("先不指定会继续下一条，同时保留待确认状态", () => {
+    const pending = nextQuestion([draft("交作业"), draft("体测")], DAY, [])!;
+    const outcome = resolveAnswer(pending, { source: "option", optionId: "keep" }, DAY);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.skipDraft).toBe(true);
+    expect(outcome.patch.needsReview).toBe(true);
+    expect(outcome.patch.deadline).toBeUndefined();
+    expect(nextQuestion([mergeDraftPatch(pending.draft, outcome.patch), draft("体测")], DAY, [0])?.index).toBe(1);
+  });
+
   it("点选日期 → 产出 patch，且这条不再追问（诊断条件变了）", () => {
     const drafts = [draft("交作业")];
     const pending = nextQuestion(drafts, DAY, [])!;

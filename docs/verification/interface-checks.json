@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-25",
+  "target": "production http://localhost:3018",
+  "notes": "Real local-rule parse, storage and replan; clarification/uncovered fixtures mock parser responses; no live model key.",
+  "errors": [],
+  "checks": 262,
+  "passed": 262,
+  "viewports": [
+    "320x568",
+    "390x844",
+    "390x1000",
+    "768x1024",
+    "1366x768",
+    "1440x900"
+  ],
+  "groups": [
+    "profile/save/cancel/upload",
+    "responsive dialogs and focus",
+    "real rule parse and confirmed save",
+    "clarify/back/skip fixtures",
+    "uncovered source fixture",
+    "image failure without key",
+    "manual add",
+    "edit/undo/expiry",
+    "replan/apply"
+  ]
+}
