@@ -17,10 +17,14 @@
   ],
   "format": {
     "duration": "459.503220",
-    "size": "12200220"
+    "size": "11580505"
   },
+  "date": "2026-10-25",
   "fullDecodeExit": 0,
   "fullDecodeErrors": "",
   "processReplaySeconds": 161,
-  "processDisclosure": "Existing real session and test records replay, not live chat capture; does not replace 3 missing original core Prompt chains."
+  "processDisclosure": "Existing real records replay; does not replace original core Prompt chains.",
+  "sha256": "11b85b6510522b7a44c57cc5600ff29c27f933f45ed4908d824ce7fdadd2e3dc",
+  "sourceHead": "3997e887fbc5e4c1b3a6f03eef38799dc9e3e5b0",
+  "sourceRuntimeIdentical": true
 }
