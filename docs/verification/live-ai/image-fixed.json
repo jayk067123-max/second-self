@@ -1,0 +1,54 @@
+{
+  "case": "image",
+  "status": 200,
+  "elapsedSeconds": 2.12,
+  "response": {
+    "ok": true,
+    "mode": "live",
+    "tasks": [
+      {
+        "title": "小组讨论",
+        "start": "2026-10-28T14:00:00",
+        "end": "2026-10-28T15:00:00",
+        "durationMin": 60,
+        "deadline": null,
+        "priority": 2,
+        "rawTextOrigin": "2026年10月28日 14:00–15:00 小组讨论",
+        "needsReview": false,
+        "repeat": null
+      },
+      {
+        "title": "完成实验报告",
+        "start": "2026-10-29T19:00:00",
+        "end": "2026-10-29T20:00:00",
+        "durationMin": 60,
+        "deadline": null,
+        "priority": 2,
+        "rawTextOrigin": "2026年10月29日 19:00–20:00 完成实验报告",
+        "needsReview": false,
+        "repeat": null
+      }
+    ],
+    "attempts": 1,
+    "timings": [
+      {
+        "phase": "模型调用 #1",
+        "ms": 1906
+      },
+      {
+        "phase": "校验 #1",
+        "ms": 0
+      }
+    ],
+    "droppedIssues": [],
+    "coverage": {
+      "verified": false,
+      "totalLines": 2,
+      "coveredCount": 2,
+      "contextLines": [],
+      "uncovered": [],
+      "ratio": 1,
+      "needsConfirm": false
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-25",
+  "passed": 45,
+  "pageErrors": [],
+  "cases": [
+    "removed controls",
+    "profile save",
+    "text/image review before storage and undo",
+    "one comparison",
+    "selector switch",
+    "4 viewport bounds/titles/touch targets",
+    "duplicate generation prevention",
+    "apply baseline and undo",
+    "fixed/missing blocked",
+    "error retry",
+    "fallback",
+    "stale tasks block old plan"
+  ],
+  "fixtureDisclosure": "Browser layout and flow checks replay captured real synthetic-input model responses; not additional model accuracy measurements."
+}

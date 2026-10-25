@@ -3,7 +3,6 @@ import { useRef, useState } from "react";
 import type { CoverageReport, SourceLine } from "@/domain/completeness";
 import { mergeDraftPatch } from "@/domain/clarify";
 import type { TaskDraft } from "@/domain/schemas/task";
-import { SAMPLE_INTAKE_TEXT } from "@/shared/samples";
 import { dayKeyOf } from "@/domain/time";
 import { usePlannerStore } from "@/data/store";
 import { Sheet } from "@/ui/Sheet";
@@ -80,7 +79,7 @@ export function IntakePanel() {
   return <section className="add-card intake-card" aria-label="整理日程">
     <div className="intake-heading"><h2>随手一记</h2><span>{dayKey}</span></div>
     <div className="intake-tabs" role="group" aria-label="录入方式"><button aria-pressed={mode === "text"} onClick={() => setMode("text")}>文字</button><button aria-pressed={mode === "image"} onClick={() => setMode("image")}>图片</button></div>
-    {mode === "text" ? <><textarea aria-label="粘贴日程文本" value={text} onChange={e => setText(e.target.value)} maxLength={8000} placeholder="把通知、课表或待办贴在这里…" /><div className="intake-actions"><button className="btn btn-green" onClick={() => void run({kind:"text",text})} disabled={text.trim().length < 5 || busy}>{busy ? "整理中…" : "解析成任务"}</button><button className="btn" onClick={() => setText(SAMPLE_INTAKE_TEXT)} disabled={busy}>填入示例</button><span>{text.length}/8000</span></div></> : <ImageIntake busy={busy} onSubmit={(file,hint) => void run({kind:"image",file,hint})} />}
+    {mode === "text" ? <><textarea aria-label="粘贴日程文本" value={text} onChange={e => setText(e.target.value)} maxLength={8000} placeholder="把通知、课表或待办贴在这里…" /><div className="intake-actions"><button className="btn btn-green" onClick={() => void run({kind:"text",text})} disabled={text.trim().length < 5 || busy}>{busy ? "整理中…" : "解析成任务"}</button><span>{text.length}/8000</span></div></> : <ImageIntake busy={busy} onSubmit={(file,hint) => void run({kind:"image",file,hint})} />}
     {!panelOpen && phase !== "idle" && <button className="resume-intake" onClick={() => setPanelOpen(true)}>{phase === "parsing" ? "查看整理进度" : phase === "done" ? "查看入库结果" : "继续核对 ↗"}</button>}
     {panelOpen && <Sheet title={title} caption={phase === "ask" ? "01 / 补充" : phase === "review" ? "02 / 核对" : undefined} stepKey={phase + "-" + editIndex + "-" + skipped.length + "-" + askRound} onBack={back} onClose={close} wide={phase === "review"}
       footer={phase === "uncovered" ? <button className="btn btn-green" disabled={!!unresolved.length} onClick={() => toQuestions()}>继续</button> : phase === "review" && editIndex === null ? <><span className="sheet-count">{drafts.length} 条日程</span><button className="btn btn-green" disabled={!drafts.length || drafts.some(d => d.needsReview)} onClick={confirm}>确认入库</button></> : undefined}>

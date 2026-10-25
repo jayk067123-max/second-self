@@ -1,253 +1,106 @@
 "use client";
 
-import { DEFAULT_DETECT_CONFIG } from "@/domain/conflicts";
-
 import { useState } from "react";
-import { type ReplanPlan } from "@/domain/reflow";
+import { DEFAULT_DETECT_CONFIG } from "@/domain/conflicts";
+import type { ReplanPlan } from "@/domain/reflow";
 import type { Task } from "@/domain/schemas/task";
-import {
-  ReplanResponseSchema,
-  type ReplanSuccess,
-} from "@/domain/schemas/api";
-import { dayKeyOf, formatClock, formatDuration, parseIsoToMs } from "@/domain/time";
+import { ReplanResponseSchema, type ReplanSuccess } from "@/domain/schemas/api";
 import { usePlannerStore } from "@/data/store";
-import { Badge, Button, Card, CardTitle } from "@/ui/primitives";
-import { AiFailureCard } from "./AiFailureCard";
 import { computePlanMetrics } from "./planMetrics";
+import { planChanges, timeRangeLabel } from "./planChanges";
 
 type Phase = "idle" | "loading" | "ready";
 
-/**
- * 重排建议 —— 模型只给方案与理由，合法性由 domain.validatePlan 判定。
- * 被判死的方案连同原因显示出来，用户看得见"AI 没有被无脑信任"。
- */
-export function ReplanPanel({
-  tasks,
-  dayKey,
-  now,
-  termStartDayKey = null,
-}: {
-  tasks: Task[];
-  dayKey: string;
-  /** 冲突规则要求注入 now；与页面共用同一个演示时钟 */
-  now: Date;
-  termStartDayKey?: string | null;
+export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
+  tasks: Task[]; dayKey: string; now: Date; termStartDayKey?: string | null;
 }) {
-  const [inputFingerprint, setInputFingerprint] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<ReplanSuccess | null>(null);
-  const [error, setError] = useState<{ message: string; issues: string[]; raw?: string } | null>(null);
-  const [appliedTitle, setAppliedTitle] = useState<string | null>(null);
-  const applyPlanWithSnapshot = usePlannerStore((s) => s.applyPlanWithSnapshot);
+  const [baseline, setBaseline] = useState<Task[]>([]);
+  const [fingerprint, setFingerprint] = useState("");
+  const [selected, setSelected] = useState("");
+  const [applied, setApplied] = useState("");
+  const [error, setError] = useState("");
+  const applyPlan = usePlannerStore(s => s.applyPlanWithSnapshot);
+  const active = result?.plans.find(plan => plan.id === selected);
+  const config = { ...DEFAULT_DETECT_CONFIG, termStartDayKey, repeatWindowStartDayKey: dayKey };
+  const metrics = active ? computePlanMetrics(active, baseline, now, config) : null;
+  const changes = active ? planChanges(active, baseline) : [];
+  const stale = !!result && JSON.stringify(tasks) !== fingerprint;
+  const blocked = !!metrics?.movedLockedTitles.length || changes.some(change => change.missing);
 
   async function request() {
     if (phase === "loading" || tasks.length === 0) return;
-    setPhase("loading");
-    setError(null);
-    setAppliedTitle(null);
-    const fingerprint = JSON.stringify(tasks);
+    setPhase("loading"); setError(""); setApplied(""); setResult(null);
+    const original = tasks;
     try {
-      const res = await fetch("/api/ai/replan", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tasks, dayKey, now: now.toISOString(), termStartDayKey }),
+      const response = await fetch("/api/ai/replan", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tasks: original, dayKey, now: now.toISOString(), termStartDayKey }),
       });
-      const json: unknown = await res.json();
-      const parsed = ReplanResponseSchema.safeParse(json);
-      if (!parsed.success) {
-        setError({ message: "服务端返回结构不符合契约，已拒绝使用", issues: [] });
-        setPhase("idle");
-        return;
-      }
-      if (!parsed.data.ok) {
-        setError({ message: parsed.data.error, issues: parsed.data.issues, raw: parsed.data.raw });
-        setPhase("idle");
-        return;
-      }
-      setInputFingerprint(fingerprint);
-      setResult(parsed.data);
-      setPhase("ready");
-    } catch (err) {
-      setError({
-        message: err instanceof Error ? `请求失败：${err.message}` : "请求失败，请检查网络",
-        issues: [],
-      });
-      setPhase("idle");
+      const parsed = ReplanResponseSchema.safeParse(await response.json());
+      if (!parsed.success) throw new Error("方案格式有误，请重新生成");
+      if (!parsed.data.ok) throw new Error(parsed.data.error);
+      setBaseline(original); setFingerprint(JSON.stringify(original));
+      setResult(parsed.data); setSelected(parsed.data.plans[0]?.id ?? ""); setPhase("ready");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "暂时无法生成，请稍后重试"); setPhase("idle");
     }
   }
 
   function apply(plan: ReplanPlan) {
-    if (JSON.stringify(usePlannerStore.getState().tasks) !== inputFingerprint) { setError({ message: "任务已变化，请重新生成方案", issues: [] }); return; }
-    const outcome = applyPlanWithSnapshot(plan, { dayKey, now: now.toISOString(), termStartDayKey });
-    if (!outcome.ok) {
-      setError({ message: `写回失败：${outcome.error ?? "未知原因"}`, issues: [] });
-      return;
+    if (JSON.stringify(usePlannerStore.getState().tasks) !== fingerprint) {
+      setError("日程已变化，请重新生成方案"); return;
     }
-    setAppliedTitle(plan.title);
+    const outcome = applyPlan(plan, { dayKey, now: now.toISOString(), termStartDayKey });
+    if (!outcome.ok) { setError(outcome.error ?? "未能应用，请重新生成"); return; }
+    setApplied(plan.id); setError("");
   }
 
-  return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <CardTitle>重排建议</CardTitle>
-
+  return <section className="replan-panel" aria-label="重排方案">
+    <div className="replan-toolbar"><p>{phase === "loading" ? "正在寻找合适的时间…" : applied ? "日程已更新" : "看看怎么调整"}</p>
+      <button type="button" className="btn btn-green" onClick={() => void request()} disabled={!tasks.length}
+        aria-disabled={phase === "loading" || !tasks.length} aria-busy={phase === "loading"}>
+        {phase === "loading" ? "生成中…" : result ? "重新生成" : "生成重排方案"}
+      </button>
+    </div>
+    {phase === "loading" && <div className="replan-loading" role="status"><span className="loading-orbit" aria-hidden="true" />正在整理调整方案</div>}
+    {error && <p className="replan-warning" role="alert">{error}</p>}
+    {!tasks.length && <p className="replan-empty">先添加几条日程</p>}
+    {phase === "ready" && result && <>
+      {result.fallback && <p className="replan-mode">AI暂未给出可用方案，已使用本地规划</p>}
+      {!!result.plans.length && <div className="replan-choices" role="group" aria-label="选择方案">{result.plans.map((plan, index) =>
+        <button type="button" key={plan.id} aria-pressed={selected === plan.id} onClick={() => setSelected(plan.id)}>
+          <span className="replan-choice-number">{String(index + 1).padStart(2, "0")}</span><span>{plan.title}</span>
+        </button>
+      )}</div>}
+      {active && metrics && <article className="replan-comparison" aria-label={active.title + "调整对照"}>
+        <div className="replan-overview"><div><span className="replan-eyebrow">这套方案</span><h3>{active.title}</h3></div>
+          <div className="replan-stat"><span>整体冲突</span><strong>{metrics.conflictsBefore}<i aria-hidden="true">→</i>{metrics.conflictsAfter}</strong></div>
         </div>
-        <div className="flex items-center gap-2">
-          {appliedTitle ? <Badge tone="ok">已写回 · 可撤销</Badge> : null}
-          <Button onClick={() => void request()} disabled={tasks.length === 0}
-            aria-disabled={phase === "loading" || tasks.length === 0} aria-busy={phase === "loading"}>
-            {phase === "loading" ? "重排中…" : "生成重排方案"}
-          </Button>
-        </div>
-      </div>
-
-      {tasks.length === 0 ? (
-        <p className="text-micro text-ink-400">先入库几条任务，再来重排。</p>
-      ) : null}
-
-      {phase === "loading" && <p role="status">正在寻找合适的安排…</p>}
-
-      {error ? (
-        <AiFailureCard
-          title="这次重排建议没通过本地校验"
-          message={error.message}
-          issues={error.issues}
-          rawOutput={error.raw}
-          onRetry={() => void request()}
-          onBack={() => {
-            setError(null);
-            setPhase("idle");
-          }}
-          busy={phase === "loading"}
-        />
-      ) : null}
-
-      {result?.fallback ? (
-        <div className="rounded-sm bg-warn-500/10 px-3 py-2 text-micro text-warn-400 ring-1 ring-inset ring-warn-500/30">
-          已切换为本地方案
-        </div>
-      ) : null}
-
-      {phase === "ready" && result ? (
-        <>
-          <div className="grid gap-3 lg:grid-cols-3">
-            {result.plans.map((plan) => {
-              // 方案摘要（条数/总时长/最晚结束）：本地算，不再依赖 domain 已退役的 summarizePlan
-              const intervals = plan.blocks
-                .map((block) => ({ s: parseIsoToMs(block.start), e: parseIsoToMs(block.end) }))
-                .filter((x): x is { s: number; e: number } => x.s !== null && x.e !== null);
-              const summary = {
-                count: plan.blocks.length,
-                totalMin: intervals.reduce((sum, x) => sum + Math.round((x.e - x.s) / 60_000), 0),
-                lastEnd:
-                  intervals.length === 0
-                    ? "—"
-                    : formatClock(intervals.reduce((max, x) => Math.max(max, x.e), 0)),
-              };
-              const metrics = computePlanMetrics(plan, tasks, now, { ...DEFAULT_DETECT_CONFIG, termStartDayKey, repeatWindowStartDayKey: dayKey });
-              const lockedBroken = metrics.movedLockedTitles.length > 0;
-              return (
-                <div
-                  key={plan.id}
-                  className="flex flex-col gap-2 rounded-md bg-ink-800/70 p-3 ring-1 ring-inset ring-ink-700"
-                >
-                  <p className="text-caption font-semibold text-ink-50">{plan.title}</p>
-                  <p className="text-micro leading-relaxed text-ink-300">{plan.rationale}</p>
-
-                  {/* SPEC：方案卡固定 4 个数字 */}
-                  <dl className="grid grid-cols-2 gap-x-2 gap-y-1 rounded-sm bg-ink-900/70 px-2 py-1.5 text-micro">
-                    <div className="flex justify-between gap-1">
-                      <dt className="text-ink-400">挪动</dt>
-                      <dd className="font-mono text-ink-100">{metrics.movedCount} 条</dd>
-                    </div>
-                    <div className="flex justify-between gap-1">
-                      <dt className="text-ink-400">冲突</dt>
-                      <dd className="font-mono text-ink-100">
-                        {metrics.conflictsBefore}→{metrics.conflictsAfter}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-1">
-                      <dt className="text-ink-400">偏离</dt>
-                      <dd className="font-mono text-ink-100">{metrics.deviationMin} 分</dd>
-                    </div>
-                    <div className="flex justify-between gap-1">
-                      <dt className="text-ink-400">固定课被挪</dt>
-                      <dd className={lockedBroken ? "font-mono text-danger-400" : "font-mono text-ok-400"}>
-                        {metrics.movedLockedTitles.length} 条
-                      </dd>
-                    </div>
-                  </dl>
-
-                  {lockedBroken ? (
-                    <p className="text-micro text-danger-400">
-                      动了固定课（{metrics.movedLockedTitles.slice(0, 2).join("、")}），方案作废
-                    </p>
-                  ) : null}
-                  {metrics.conflictsAfter > 0 ? (
-                    <p className="text-micro text-warn-400">
-                      还剩 {metrics.conflictsAfter} 个冲突
-                    </p>
-                  ) : (
-                    <p className="text-micro text-ok-400">已避开冲突</p>
-                  )}
-
-                  <p className="font-mono text-micro text-ink-400">
-                    {summary.count} 项 · {formatDuration(summary.totalMin)} · 最晚到 {summary.lastEnd}
-                  </p>
-                  <ul className="flex flex-col gap-1">
-                    {plan.blocks.map((block) => {
-                      const startMs = parseIsoToMs(block.start);
-                      const endMs = parseIsoToMs(block.end);
-                      const title =
-                        tasks.find((t) => t.id === block.taskId)?.title ?? "（任务已被删除）";
-                      return (
-                        <li key={`${plan.id}-${block.taskId}`} className="flex gap-2 text-micro text-ink-200">
-                          <span className="shrink-0 font-mono text-ink-400">
-                            {startMs !== null ? dayKeyOf(startMs).slice(5) + " " + formatClock(startMs) : "--:--"}–{endMs !== null ? formatClock(endMs) : "--:--"}
-                          </span>
-                          <span className="truncate">{title}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <Button
-                    variant={appliedTitle === plan.title ? "secondary" : "primary"}
-                    className="mt-auto h-8 px-3 text-micro"
-                    disabled={lockedBroken}
-                    title={lockedBroken ? "固定课被移动，方案作废" : undefined}
-                    onClick={() => apply(plan)}
-                  >
-                    {lockedBroken ? "方案作废" : appliedTitle === plan.title ? "已应用" : "用这套"}
-                  </Button>
-                </div>
-              );
-            })}
+        <div className="replan-change-head"><h4>调整 {changes.length} 项</h4><span>其余安排不变</span></div>
+        <ol className="replan-change-list">{changes.map(change => <li key={change.taskId}>
+          <h4>{change.title}</h4><div className="replan-time-change">
+            <div className="replan-time-before"><span>原安排</span><p>{timeRangeLabel(change.beforeStart, change.beforeEnd)}</p></div>
+            <span className="replan-change-arrow" aria-label="调整为">→</span>
+            <div className="replan-time-after"><span>调整后</span><p>{timeRangeLabel(change.start, change.end)}</p></div>
           </div>
-
-          {result.rejected.length > 0 ? (
-            <details className="rounded-sm bg-ink-800/50 px-3 py-2 text-micro text-ink-300">
-              <summary className="cursor-pointer select-none">
-                不可用的方案（{result.rejected.length} 套）
-              </summary>
-              <ul className="mt-2 space-y-1.5">
-                {result.rejected.map((rejected) => (
-                  <li key={rejected.title}>
-                    <span className="text-danger-400">{rejected.title}</span>
-                    <ul className="ml-3 list-inside list-disc text-ink-400">
-                      {rejected.issues.slice(0, 4).map((issue) => (
-                        <li key={issue}>{issue}</li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ) : null}
-
-
-        </>
-      ) : null}
-    </Card>
-  );
+        </li>)}</ol>
+        {!changes.length && <p className="replan-empty">这套方案没有时间变动</p>}
+        {blocked ? <p className="replan-warning" role="alert">方案涉及固定安排或已删除任务，暂不可采用</p>
+          : metrics.conflictsAfter > 0 ? <p className="replan-caution">仍有 {metrics.conflictsAfter} 处冲突需要处理</p>
+          : <p className="replan-clear">✓ 已避开冲突</p>}
+        {stale && !applied && <p className="replan-warning" role="status">日程已变化，请重新生成</p>}
+        <div className="replan-apply"><span>{applied ? "已应用 · 可撤销" : "确认后才会更新日程"}</span>
+          <button type="button" className="btn btn-green" disabled={blocked || stale || !changes.length || !!applied} onClick={() => apply(active)}>
+            {applied === active.id ? "已采用" : applied ? "已采用其他方案" : "采用这套安排"}
+          </button>
+        </div>
+      </article>}
+      {!active && <p className="replan-empty">暂时没有可行的调整，请手动修改日程</p>}
+      {result.rejected.length > 0 && <details className="replan-rejected"><summary>未采用的建议 · {result.rejected.length}</summary>
+        {result.rejected.map((plan, index) => <p key={index}><strong>{plan.title}</strong> · {plan.issues[0] ?? "未通过日程校验"}</p>)}
+      </details>}
+    </>}
+  </section>;
 }

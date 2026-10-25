@@ -16,7 +16,6 @@ import { UndoNotice } from "./UndoNotice";
 import { PriorityMark } from "./primitives/Priority";
 import { TaskEditor } from "./TaskEditor";
 import { EMPTY_SCENES } from "./emptyScenes";
-import demoSeed from "../../docs/demo-fixtures/demo-seed.json";
 
 type Tab = "today" | "add" | "future";
 const tabNames: Record<Tab, string> = { today: "今天", add: "添加", future: "未来" };
@@ -73,11 +72,6 @@ export function FinalPlanner() {
 
   function navigate(next: Tab) { setTab(next); window.location.hash = next; setShowPlan(false); window.scrollTo({ top: 0 }); }
   function chooseDay(value: string) { setSelected(value); setShowPlan(false); }
-  function loadDemo() {
-    if (store.tasks.length && !window.confirm("载入演示会替换当前任务，可撤销。建议先导出备份，继续吗？")) return;
-    const result = store.importJson(JSON.stringify(demoSeed));
-    if (result.ok) { store.setTermStart("2026-09-21"); setSelected("2026-10-20"); setMonthOffset(0); setNotice("已载入演示日程"); setSettings(false); navigate("future"); }
-  }
   const baseMonth = new Date(msFromDayKey(today, 0));
   const displayedMonth = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + monthOffset, 1);
   const first = dayKeyOf(displayedMonth.getTime());
@@ -120,7 +114,7 @@ export function FinalPlanner() {
     <nav className="tabbar" aria-label="主导航">{(["today","add","future"] as Tab[]).map(key=><button key={key} className={key==="add" ? "tab-add" : ""} aria-current={tab===key?"page":undefined} onClick={()=>navigate(key)}>{key==="add" ? <span className="tab-add-circle"><Icon name={key}/></span> : <Icon name={key}/>}<span>{tabNames[key]}</span></button>)}</nav>
     <UndoNotice />
     {notice && <div className="toast" role="status"><p>{notice}</p><button aria-label="关闭提示" onClick={()=>setNotice("")}>关闭</button></div>}
-    {settings && <ProfileSettings profile={profile} onSave={saveProfile} onClose={()=>setSettings(false)} onDemo={loadDemo} onClear={()=>{if(window.confirm("清空全部任务？可撤销。")){store.clearAll();setNotice("已清空任务");}}} />}
+    {settings && <ProfileSettings profile={profile} onSave={saveProfile} onClose={()=>setSettings(false)} onClear={()=>{if(window.confirm("清空全部任务？可撤销。")){store.clearAll();setNotice("已清空任务");}}} />}
     {editing && <TaskEditor key={editing.id} task={editing} onClose={()=>setEditing(null)} onSaved={message=>{setEditing(null);setNotice(message);}} />}
   </>;
 }

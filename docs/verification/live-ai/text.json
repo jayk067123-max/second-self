@@ -1,0 +1,35 @@
+{
+  "case": "text",
+  "status": 422,
+  "elapsedSeconds": 2.47,
+  "response": {
+    "ok": false,
+    "mode": "live",
+    "error": "模型连续返回了不符合契约的结构，已停止重试",
+    "issues": [
+      "tasks.0.repeat.kind: Invalid input: expected \"weekly\"",
+      "tasks.0.repeat.byDay: Invalid input: expected array, received undefined",
+      "tasks.1.repeat.kind: Invalid input: expected \"weekly\"",
+      "tasks.1.repeat.byDay: Invalid input: expected array, received undefined"
+    ],
+    "timings": [
+      {
+        "phase": "模型调用 #1",
+        "ms": 1290
+      },
+      {
+        "phase": "校验 #1",
+        "ms": 0
+      },
+      {
+        "phase": "模型调用 #2",
+        "ms": 1133
+      },
+      {
+        "phase": "校验 #2",
+        "ms": 0
+      }
+    ],
+    "raw": "{\"tasks\":[{\"title\":\"小组讨论\",\"start\":\"2026-10-28T14:00:00\",\"end\":\"2026-10-28T15:00:00\",\"durationMin\":60,\"deadline\":null,\"priority\":2,\"rawTextOrigin\":\"2026年10月28日 14:00-15:00 小组讨论，地点图书馆讨论室。\",\"needsReview\":false,\"repeat\":{\"type\":\"none\"}},{\"title\":\"完成实验报告\",\"start\":\"2026-10-29T19:00:00\",\"end\":\"2026-10-29T20:00:00\",\"durationMin\":60,\"deadline\":null,\"priority\":2,\"rawTextOrigin\":\"2026年10月29日 19:00-20:00 完成实验报告。\",\"needsReview\":false,\"repeat\":{\"type\":\"none\"}}]}"
+  }
+}

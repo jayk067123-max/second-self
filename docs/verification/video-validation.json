@@ -17,18 +17,20 @@
   ],
   "format": {
     "duration": "459.503220",
-    "size": "11746439"
+    "size": "11644618"
   },
   "date": "2026-10-25",
   "fullDecodeExit": 0,
   "fullDecodeErrors": "",
   "processReplaySeconds": 161,
-  "processDisclosure": "Existing real records replay; does not replace original core Prompt chains.",
-  "sha256": "553a641929a6f9a6e1bdde1b6dd3baf242c3b2c6f9eba6ef029eae0aa7c04d83",
-  "sourceBaseHead": "b8a6acfc3d942474b0607d3b19382d2a2ace36bb",
-  "sourceSnapshotSha256": "f1c465aea2bc080b8efc9771ce7bb448e83ebfada65615d10ad06f35b5b64066",
+  "processDisclosure": "Existing records replay, not original core Prompt-chain exports.",
+  "sha256": "a786794591cfbbd76d4acd2b2710b25b2a6d22f6a338546f2dd61f04c534890a",
+  "recordingPageErrors": [],
   "sourceRuntimeIdentical": true,
-  "interfaceRegressionChecks": 261,
-  "inputTargetedChecks": 153,
-  "liveModelTested": false
+  "latestUnitTests": 378,
+  "replanBrowserChecks": 45,
+  "liveModelTested": true,
+  "liveModelScope": "Synthetic two-line text and matching image, plus guarded replan; not accuracy benchmark.",
+  "applicationRecordingMode": "Explicit no-key local-rule server on port 3019",
+  "livePreviewPort": 3018
 }

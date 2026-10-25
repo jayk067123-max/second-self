@@ -6,8 +6,8 @@ import { usePlannerStore } from "@/data/store";
 import { DataPortability } from "./composites/DataPortability";
 import { Sheet } from "./Sheet";
 
-export function ProfileSettings({ profile, onSave, onClose, onDemo, onClear }: {
-  profile: Profile; onSave: (profile: Profile) => boolean; onClose: () => void; onDemo: () => void; onClear: () => void;
+export function ProfileSettings({ profile, onSave, onClose, onClear }: {
+  profile: Profile; onSave: (profile: Profile) => boolean; onClose: () => void; onClear: () => void;
 }) {
   const [name, setName] = useState(profile.name);
   const [avatar, setAvatar] = useState(profile.avatar);
@@ -41,7 +41,7 @@ export function ProfileSettings({ profile, onSave, onClose, onDemo, onClear }: {
     </div><button className={"upload-avatar" + (custom ? " is-custom" : "")} onClick={() => input.current?.click()} disabled={uploading}>{uploading ? "处理图片…" : custom ? "✓ 已选自定义头像 · 更换" : "＋ 上传自己的图片"}</button>
     <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden aria-label="上传头像" onChange={e => void upload(e.target.files?.[0])} />
     {error && <p className="form-error" role="alert">{error}</p>}</section>
-    <section className="settings-section"><h3>日程数据</h3><DataPortability /><div className="settings-actions"><button className="btn btn-green" onClick={onDemo}>载入演示数据</button><button className="btn btn-coral" disabled={!tasks} onClick={onClear}>清空任务</button></div></section>
+    <section className="settings-section"><h3>日程数据</h3><DataPortability /><div className="settings-actions"><button className="btn btn-coral" disabled={!tasks} onClick={onClear}>清空任务</button></div></section>
     <p className="settings-footnote">个人资料与日程仅保存在当前浏览器。</p>
   </Sheet>;
 }
