@@ -15,11 +15,16 @@
     "token metadata",
     "compaction handovers"
   ],
-  "knownMissingAttachments": [
+  "knownMissingAttachments": [],
+  "recoveredAttachments": [
     {
       "sourceLine": 2079,
       "name": "图片.docx",
-      "note": "缺失头像参考文档，未补造；原始10张截图和后续www.docx反馈仍保留。"
+      "receivedOn": "2026-10-25",
+      "sourceSha256": "c7ea075165f20ac61ce98bad921d34c1310156c717d58be78fc3767fe2a5a354",
+      "imageCount": 6,
+      "confirmation": "用户本次确认是此前文档",
+      "historicalByteIdentity": "not independently verified; historical hash unavailable"
     }
   ],
   "redactionPolicy": [
@@ -277,8 +282,8 @@
   ],
   "files": {
     "01-分步录入与输入修复.html": {
-      "sha256": "d0e45dcb4c0bac264242b51419a71fce9e6d4634b4ffe4c7f14d618cb1263464",
-      "bytes": 1598875
+      "sha256": "c58fffdd780bba9a09761c0524734b7ba4bf89d5be97d9b60fff0a3bd964f13c",
+      "bytes": 2756647
     },
     "02-图片上传与AI解析.html": {
       "sha256": "3356000f77a0cf6d70c5f60f6d5cb85474667fdd72e71b146f8a9056eb3e1926",
@@ -289,12 +294,12 @@
       "bytes": 844258
     },
     "README.md": {
-      "sha256": "5bbb79dd95675b56f10c7ddf22f958b0f58aa8b950c2623505d5011b904515ea",
-      "bytes": 1978
+      "sha256": "20cf79653a4592fc40e21bd8746817a8eddb49e2d2dcf01a3ecf9164439fe1ef",
+      "bytes": 2099
     },
     "records.jsonl": {
-      "sha256": "f639e305bd8d973ce2aa53e5e8080dc5b857cbf6a03d7cdcfc8a4ead87d5ba04",
-      "bytes": 2723390
+      "sha256": "3843183c9bce0d31970360fee92b6b18444f372ed80406b5fc34ff3edd07efbd",
+      "bytes": 3880759
     }
   }
 }
