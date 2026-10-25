@@ -1,5 +1,7 @@
 # AI 过程证据阅读说明
 
+015-stroke-by-stroke-loading.md为最新：根据用户反馈将014的缩放/淡入加载改为38笔顺序描绘，附逐帧和顺序验证；执行摘要并非原始聊天导出。
+
 014-planning-loading.md记录本轮主题果园加载动画、加载时旧来源隐藏与具体校验原因核对；属于执行摘要，非原始聊天导出。
 
 013-replan-user-feedback.md为最新重排补充、业务失败修复和精简展示的执行摘要；真实合成输入响应另存verification/live-ai/feedback.json。

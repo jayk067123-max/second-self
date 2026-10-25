@@ -1,40 +1,99 @@
-import { useId } from "react";
+"use client";
 
-/** A small, self-contained orchard inspired by the supplied brush animation. */
+import { useEffect, useId, useRef } from "react";
+
+type Stroke = { d: string; color: string; width: number; weight?: number; branch?: boolean };
+// Every path is one brush movement, revealed in strict order on a shared timeline.
+const STROKES: Stroke[] = [
+  { d: "M38 103Q92 83 140 101T279 101", color: "#dce5bf", width: 16, weight: 2 },
+  { d: "M43 115Q95 103 145 113T275 112", color: "#c8d8a7", width: 11, weight: 1.6 },
+  { d: "M246 27a11 11 0 1 1-.1 0", color: "#ecd57b", width: 9, weight: 1.5 },
+  { d: "M91 111Q94 82 88 43", color: "#6e8561", width: 3.5, weight: 1.4, branch: true },
+  { d: "M92 87Q76 76 67 60", color: "#6e8561", width: 2.5, branch: true },
+  { d: "M91 77Q107 66 114 48", color: "#6e8561", width: 2.5, branch: true },
+  { d: "M58 63Q62 42 76 43", color: "#b8cd8e", width: 14, weight: 1.3 },
+  { d: "M74 38Q89 26 103 39", color: "#c6d9a0", width: 15, weight: 1.3 },
+  { d: "M103 42Q120 39 126 57", color: "#a8c383", width: 13 },
+  { d: "M61 68Q78 57 94 58", color: "#a6c17f", width: 15, weight: 1.2 },
+  { d: "M92 62Q111 53 124 66", color: "#afc88a", width: 14 },
+  { d: "M66 76Q82 84 96 73", color: "#93b372", width: 12 },
+  { d: "M96 76Q111 83 120 74", color: "#86a768", width: 10 },
+  { d: "M193 114Q190 89 194 56", color: "#6e8561", width: 3, weight: 1.2, branch: true },
+  { d: "M192 92Q180 81 174 69", color: "#6e8561", width: 2, branch: true },
+  { d: "M192 82Q207 72 212 60", color: "#6e8561", width: 2, branch: true },
+  { d: "M166 72Q166 56 180 55", color: "#bed398", width: 13 },
+  { d: "M181 50Q194 40 207 52", color: "#cfddac", width: 14 },
+  { d: "M208 57Q222 55 224 71", color: "#b3cb8b", width: 12 },
+  { d: "M169 77Q184 67 199 73", color: "#abc584", width: 14 },
+  { d: "M185 84Q204 91 219 80", color: "#9dbb78", width: 12 },
+  { d: "M72 47l1 1", color: "#e9bdb0", width: 5, weight: .35 },
+  { d: "M99 39l1 1", color: "#e9bdb0", width: 6, weight: .35 },
+  { d: "M114 61l1 1", color: "#f0cabc", width: 5, weight: .35 },
+  { d: "M78 70l1 1", color: "#efd0bc", width: 4, weight: .35 },
+  { d: "M181 65l1 1", color: "#e9bdb0", width: 5, weight: .35 },
+  { d: "M209 74l1 1", color: "#efc8b7", width: 5, weight: .35 },
+  { d: "M134 76v23", color: "#fdfbf4", width: 15, weight: .6 },
+  { d: "M146 76v23", color: "#fdfbf4", width: 15, weight: .6 },
+  { d: "M157 76v23", color: "#fdfbf4", width: 15, weight: .6 },
+  { d: "M134 66h23q8 0 8 8v27q0 8-8 8h-23q-8 0-8-8V74q0-8 8-8Z", color: "#9eb781", width: 1.8, weight: 2 },
+  { d: "M128 78h35", color: "#c8d8a7", width: 1.5, weight: .7 },
+  { d: "M136 62v8", color: "#78965f", width: 3, weight: .4 },
+  { d: "M154 62v8", color: "#78965f", width: 3, weight: .4 },
+  { d: "M135 92l6 6 13-14", color: "#6b9350", width: 3, weight: 1.2 },
+  { d: "M53 114l-2-7m3 7 4-5", color: "#89a66d", width: 2, weight: .5 },
+  { d: "M218 118l3-9m-1 9 7-4", color: "#89a66d", width: 2, weight: .5 },
+  { d: "M112 122l-2-6m2 6 5-4", color: "#89a66d", width: 2, weight: .5 },
+];
+const TOTAL_WEIGHT = STROKES.reduce((sum, stroke) => sum + (stroke.weight ?? 1), 0);
+const CYCLE_MS = 6200;
+
 export function PlanningLoading({ label }: { label: string }) {
   const paperId = useId();
+  const drawing = useRef<SVGGElement>(null);
+  useEffect(() => {
+    const strokes = Array.from(drawing.current?.querySelectorAll<SVGGElement>(".orchard-stroke") ?? []);
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let animations: Animation[] = [];
+    const play = () => {
+      animations.forEach(animation => animation.cancel());
+      animations = [];
+      let cursor = 0;
+      strokes.forEach((element, index) => {
+        const stroke = STROKES[index];
+        if (!stroke) return;
+        element.style.strokeDashoffset = preference.matches ? "0" : "1";
+        element.style.opacity = preference.matches ? "1" : "0";
+        if (preference.matches) return;
+        const start = .02 + cursor / TOTAL_WEIGHT * .78;
+        cursor += stroke.weight ?? 1;
+        const end = .02 + cursor / TOTAL_WEIGHT * .78;
+        animations.push(element.animate([
+          { strokeDashoffset: "1", opacity: 0, offset: 0 },
+          { strokeDashoffset: "1", opacity: 0, offset: start },
+          { strokeDashoffset: "1", opacity: 1, offset: start + .0001 },
+          { strokeDashoffset: "0", opacity: 1, offset: end },
+          { strokeDashoffset: "0", opacity: 1, offset: .94 },
+          { strokeDashoffset: "0", opacity: 0, offset: 1 },
+        ], { duration: CYCLE_MS, iterations: Infinity, easing: "linear" }));
+      });
+      if (animations.length) {
+        const origin = document.timeline.currentTime;
+        animations.forEach(animation => { animation.startTime = origin; });
+      }
+    };
+    play();
+    preference.addEventListener("change", play);
+    return () => { preference.removeEventListener("change", play); animations.forEach(animation => animation.cancel()); };
+  }, []);
+
   return <div className="planning-loading" role="status" aria-live="polite" aria-atomic="true">
     <svg className="planning-orchard" viewBox="0 0 320 140" width="320" height="140" aria-hidden="true" focusable="false">
-      <defs><filter id={paperId} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".65" numOctaves="2" seed="8" /><feColorMatrix type="saturate" values="0" /><feComponentTransfer><feFuncA type="linear" slope=".055" /></feComponentTransfer><feBlend in="SourceGraphic" mode="multiply" /></filter></defs>
-      <g filter={"url(#" + paperId + ")"}>
-        <path fill="#f5f1e7" d="M23 96C9 70 34 19 83 26c38-27 74-6 99-7 44-9 105 13 111 49 8 44-49 59-103 53-62 18-146 12-167-25Z" />
-        <circle className="orchard-sun" cx="242" cy="36" r="16" fill="#f1dd85" />
-        <path fill="#dde6bf" d="M26 101c30-26 61-19 88-5 35-32 74-27 106-9 27-14 50-6 68 15-42 26-211 31-262-1Z" />
-        <path fill="#c9d9a5" d="M30 108c42-15 74 4 107-2 43-22 91-5 141 3-48 21-196 23-248-1Z" />
-        <g className="orchard-tree orchard-tree-one" style={{ transformOrigin: "91px 108px" }}>
-          <path className="orchard-branch" d="M91 109c1-19-3-42-1-65m1 41L73 68m18 9 17-19" />
-          <g className="orchard-crown" style={{ transformOrigin: "90px 61px" }}>
-            <path fill="#9fbe7b" d="M58 69c-13-17-4-36 12-37 3-18 26-19 35-7 19-5 34 15 23 29 10 20-7 34-24 29-19 12-43 5-46-14Z" />
-            <path fill="#bfd394" d="M59 54c-3-16 11-22 21-17 6-14 25-13 30 0 11-1 17 7 13 16-20-6-36 11-64 1Z" />
-            <path fill="#789e66" opacity=".45" d="M60 71c18 8 33-8 47-5 12-1 16-9 23-9 5 18-9 28-26 24-17 10-38 7-44-10Z" />
-          </g>
-        </g>
-        <g className="orchard-tree orchard-tree-two" style={{ transformOrigin: "192px 112px" }}>
-          <path className="orchard-branch" d="M192 114c-2-21 3-38 0-53m0 31-15-14m16 6 15-14" />
-          <g className="orchard-crown" style={{ transformOrigin: "193px 68px" }}>
-            <path fill="#b3cb8e" d="M165 77c-9-12-3-27 10-29 1-13 18-17 28-7 14-5 29 7 24 20 9 15-2 29-16 29-18 11-39 3-46-13Z" />
-            <path fill="#d1dfad" d="M168 63c-1-12 11-17 20-13 6-10 19-9 23 1 12-2 15 6 12 14-20-8-32 9-55-2Z" />
-          </g>
-        </g>
-        <g className="orchard-blossoms" fill="#efc8b7">
-          <circle cx="72" cy="47" r="3" /><circle cx="100" cy="39" r="3.5" /><circle cx="115" cy="61" r="3" /><circle cx="78" cy="70" r="2.5" /><circle cx="181" cy="65" r="3" /><circle cx="209" cy="73" r="3.5" />
-        </g>
-        <g className="orchard-note" style={{ transformOrigin: "145px 93px" }}>
-          <rect x="125" y="65" width="40" height="43" rx="8" fill="#fdfbf4" stroke="#b4c69b" />
-          <path d="M126 77h38" stroke="#d9e4c1" /><path d="M136 62v7m17-7v7" stroke="#78965f" strokeWidth="3" strokeLinecap="round" />
-          <path className="orchard-check" d="m135 91 6 6 12-13" fill="none" stroke="#6f9654" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        </g>
-        <path className="orchard-grass" d="m54 113-2-7m3 8 3-5m161 8 3-8m-2 9 7-4m-110 8-2-6m-1 6 5-4" fill="none" stroke="#89a66d" strokeWidth="2" strokeLinecap="round" />
+      <defs><filter id={paperId} x="-10%" y="-15%" width="120%" height="130%"><feTurbulence type="fractalNoise" baseFrequency=".055" numOctaves="2" seed="8" result="grain" /><feDisplacementMap in="SourceGraphic" in2="grain" scale="1.2" xChannelSelector="R" yChannelSelector="G" /></filter></defs>
+      <g ref={drawing} filter={"url(#" + paperId + ")"} fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {STROKES.map((stroke, index) => <g key={index} className={"orchard-stroke" + (stroke.branch ? " orchard-branch" : "")} data-stroke={index} stroke={stroke.color}>
+          <path d={stroke.d} pathLength={1} strokeWidth={stroke.width * 1.3} opacity={.2} />
+          <path d={stroke.d} pathLength={1} strokeWidth={stroke.width} opacity={.85} />
+        </g>)}
       </g>
     </svg>
     <span className="planning-loading-label">{label}<span className="planning-loading-dots" aria-hidden="true"><i /><i /><i /></span></span>
