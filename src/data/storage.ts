@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TaskListSchema, TaskSchema } from "@/domain/schemas/task";
+import { TaskListSchema } from "@/domain/schemas/task";
 
 /** 本地缓存与JSON导入导出契约；账号权威副本由server/accounts的SQLite保存。 */
 
@@ -9,7 +9,7 @@ export const PAYLOAD_VERSION = 2;
 /** localStorage 里实际存放的业务数据形状（与 store 的 partialize 对齐） */
 export const PlannerPayloadSchema = z.object({
   tasks: TaskListSchema,
-  snapshot: z.array(TaskSchema).nullable(),
+  snapshot: TaskListSchema.nullable(),
 });
 export type PlannerPayload = z.infer<typeof PlannerPayloadSchema>;
 

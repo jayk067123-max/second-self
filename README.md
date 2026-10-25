@@ -15,6 +15,8 @@ npm ci
 npm run dev
 ~~~
 
+2026-10-25纯净副本实测：npm ci、verify及build合计约2分24秒，随后生产启动、注册和保存通过；当前网络与npm缓存环境，不含配置模型密钥。
+
 打开 http://localhost:3000 。端口占用时运行 npm run dev -- --port 3022。
 生产模式：npm run build，然后 npm run start。
 

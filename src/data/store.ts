@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { accountStorageKey } from "./account-cache";
-import { TaskListSchema, TaskSchema, type Task, type TaskDraft } from "@/domain/schemas/task";
+import { MAX_TASKS, TaskListSchema, TaskSchema, type Task, type TaskDraft } from "@/domain/schemas/task";
 import { guardPlan, type PlanContext } from "@/domain/planGuard";
 import { applyPlan, type ReplanPlan } from "@/domain/reflow";
 import { formatTimetableSummary, type TimetablePlan } from "@/domain/schedule";
@@ -105,6 +105,11 @@ export const usePlannerStore = create<PlannerState>()(
       demoClock: { iso: new Date().toISOString(), source: "system" as const },
 
       addDrafts: (drafts, source = "manual") => {
+        if (get().tasks.length + drafts.length > MAX_TASKS) {
+          const error = `最多保存${MAX_TASKS}条日程，请先导出并整理`;
+          set({ lastError: error });
+          return { ok: false, error };
+        }
         // 铁律：needsReview=true 是"AI 自己说没把握"的条目，必须先过人工修正表
         const unconfirmed = drafts.filter((draft) => draft.needsReview === true).length;
         if (unconfirmed > 0) {
@@ -140,6 +145,11 @@ export const usePlannerStore = create<PlannerState>()(
       },
 
       addManualTask: (input) => {
+        if (get().tasks.length >= MAX_TASKS) {
+          const error = `最多保存${MAX_TASKS}条日程，请先导出并整理`;
+          set({ lastError: error });
+          return { ok: false, error };
+        }
         const id = newId();
         const parsed = TaskSchema.safeParse({
           id,

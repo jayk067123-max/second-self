@@ -14,7 +14,7 @@ export const AccountProfileSchema = z.object({
   avatar: z.string().max(500_000).refine(value => AVATARS.includes(value) || /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(value)),
 });
 export const AccountPlannerSchema = z.object({
-  tasks: TaskListSchema.max(5000), snapshot: TaskListSchema.max(5000).nullable(),
+  tasks: TaskListSchema, snapshot: TaskListSchema.nullable(),
   snapshotTermStart: day, snapshotClock: clock.nullable(), demoClock: clock, termStartDayKey: day,
 });
 export const AccountWorkspaceSchema = z.object({ planner: AccountPlannerSchema, profile: AccountProfileSchema });

@@ -93,9 +93,11 @@ function fillV3Defaults(task: unknown): unknown {
 function validate(candidate: unknown): Result<PlannerPayload> {
   if (typeof candidate === "object" && candidate !== null) {
     const record = candidate as Record<string, unknown>;
-    if (Array.isArray(record.tasks)) {
-      candidate = { ...record, tasks: record.tasks.map(fillV3Defaults) };
-    }
+    candidate = {
+      ...record,
+      ...(Array.isArray(record.tasks) ? { tasks: record.tasks.map(fillV3Defaults) } : {}),
+      ...(Array.isArray(record.snapshot) ? { snapshot: record.snapshot.map(fillV3Defaults) } : {}),
+    };
   }
   const parsed = PlannerPayloadSchema.safeParse(candidate);
   if (!parsed.success) {

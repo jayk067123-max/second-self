@@ -43,7 +43,7 @@ export function priorityBandOf(priority: number): PriorityBand {
   return "low";
 }
 
-const isoOrNull = z.string().nullable();
+const isoOrNull = z.string().refine(value => Number.isFinite(Date.parse(value)), "时间不是合法的时间戳").nullable();
 const minutesField = z.number().int().min(0).max(24 * 60);
 const priorityField = z.number().int().min(1).max(3);
 
@@ -181,7 +181,15 @@ export const TaskDraftSchema = z
   .superRefine(refineTimeBlock);
 export type TaskDraft = z.infer<typeof TaskDraftSchema>;
 
-export const TaskListSchema = z.array(TaskSchema);
+export const MAX_TASKS = 5000;
+export const TaskListSchema = z.array(TaskSchema).max(MAX_TASKS, `最多保存${MAX_TASKS}条日程`).superRefine((tasks, ctx) => {
+  const ids = new Set<string>();
+  for (let index = 0; index < tasks.length; index += 1) {
+    const id = tasks[index]!.id;
+    if (ids.has(id)) ctx.addIssue({ code: "custom", message: "日程id重复，请检查导入文件", path: [index, "id"] });
+    ids.add(id);
+  }
+});
 export const TaskDraftListSchema = z.array(TaskDraftSchema).min(1).max(60);
 
 /** AI 结构化输出契约：只允许这 9 个字段，多一个都不要 */

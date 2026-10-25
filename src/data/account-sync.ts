@@ -148,7 +148,9 @@ export class AccountSync {
     const state = usePlannerStore.getState(), ids = new Set(state.tasks.map(task => task.id));
     const extra = result.value.tasks.filter(task => !ids.has(task.id));
     if (!extra.length) throw new Error("这些日程已经在当前账号中");
-    usePlannerStore.setState({ tasks: [...state.tasks, ...extra], snapshot: state.tasks, snapshotClock: state.demoClock, snapshotTermStart: state.termStartDayKey });
+    const merged = AccountWorkspaceSchema.shape.planner.shape.tasks.safeParse([...state.tasks, ...extra]);
+    if (!merged.success) throw new Error(merged.error.issues[0]?.message ?? "原本机日程无法导入");
+    usePlannerStore.setState({ tasks: merged.data, snapshot: state.tasks, snapshotClock: state.demoClock, snapshotTermStart: state.termStartDayKey });
     return extra.length;
   }
   stop() {
