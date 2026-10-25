@@ -1,4 +1,5 @@
 "use client";
+import { FixedArrangementField } from "@/ui/FixedArrangementField";
 import { useEffect, useState, type FormEvent } from "react";
 import { localInputToIso } from "@/shared/datetime";
 import { usePlannerStore } from "@/data/store";
@@ -23,6 +24,6 @@ export function ManualAddForm(){
     <label>开始时间<input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/></label><label>结束时间<input type="datetime-local" value={end} onChange={e=>setEnd(e.target.value)}/></label>
     <label className="full">截止时间<input type="datetime-local" value={deadline} onChange={e=>setDeadline(e.target.value)}/></label>
     <div className="full"><p className="field-label">优先级</p><PriorityPicker value={priority} onChange={setPriority}/></div><label className="full">地点<input value={location} maxLength={60} onChange={e=>setLocation(e.target.value)}/></label>
-    <label className="full checkbox-field"><input type="checkbox" checked={locked} onChange={e=>setLocked(e.target.checked)}/>固定安排</label></div>{error&&<p className="form-error" role="alert">{error}</p>}</form></Sheet>}
+    <FixedArrangementField className="full" checked={locked} onChange={setLocked} /></div>{error&&<p className="form-error" role="alert">{error}</p>}</form></Sheet>}
   </>;
 }

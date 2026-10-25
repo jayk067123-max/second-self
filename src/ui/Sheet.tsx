@@ -26,7 +26,17 @@ export function Sheet({ title, caption, onBack, onClose, children, footer, stepK
   }, [stepKey]);
   return <dialog ref={ref} className={"app-sheet" + (wide ? " app-sheet-wide" : "")} aria-labelledby={id}
     onCancel={event => { event.preventDefault(); onClose(); }}
-    onBlurCapture={() => queueMicrotask(() => { const dialog = ref.current; if (dialog?.open && !dialog.contains(document.activeElement)) heading.current?.focus({preventScroll:true}); })}
+    onKeyDown={event => {
+      if (event.key !== "Tab") return;
+      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+        'button, input, select, textarea, a[href], summary, [tabindex]:not([tabindex="-1"])'
+      )).filter(element => !element.matches(":disabled") && !element.closest("[inert]") && element.getClientRects().length > 0);
+      const index = controls.indexOf(document.activeElement as HTMLElement);
+      if (!controls.length || index === -1 || (event.shiftKey ? index === 0 : index === controls.length - 1)) {
+        event.preventDefault();
+        (event.shiftKey ? controls.at(-1) : controls[0])?.focus({ preventScroll: true });
+      }
+    }}
     onClick={event => {
       if (event.target !== event.currentTarget) return;
       const box = event.currentTarget.getBoundingClientRect();

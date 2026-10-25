@@ -41,6 +41,7 @@ export function ReplanPanel({
   const applyPlanWithSnapshot = usePlannerStore((s) => s.applyPlanWithSnapshot);
 
   async function request() {
+    if (phase === "loading" || tasks.length === 0) return;
     setPhase("loading");
     setError(null);
     setAppliedTitle(null);
@@ -94,7 +95,8 @@ export function ReplanPanel({
         </div>
         <div className="flex items-center gap-2">
           {appliedTitle ? <Badge tone="ok">已写回 · 可撤销</Badge> : null}
-          <Button onClick={() => void request()} disabled={phase === "loading" || tasks.length === 0}>
+          <Button onClick={() => void request()} disabled={tasks.length === 0}
+            aria-disabled={phase === "loading" || tasks.length === 0} aria-busy={phase === "loading"}>
             {phase === "loading" ? "重排中…" : "生成重排方案"}
           </Button>
         </div>

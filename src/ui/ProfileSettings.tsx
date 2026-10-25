@@ -15,9 +15,6 @@ export function ProfileSettings({ profile, onSave, onClose, onDemo, onClear }: {
   const [uploading, setUploading] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const tasks = usePlannerStore(s => s.tasks.length);
-  const term = usePlannerStore(s => s.termStartDayKey);
-  const setTerm = usePlannerStore(s => s.setTermStart);
-  const [termDraft, setTermDraft] = useState(term ?? "");
   const custom = !AVATARS.includes(avatar);
   async function upload(file?: File) {
     if (!file) return; setUploading(true); setError("");
@@ -28,7 +25,6 @@ export function ProfileSettings({ profile, onSave, onClose, onDemo, onClear }: {
   function save() {
     if (!name.trim()) { setError("给自己起个名字吧"); return; }
     if (!onSave({ name: name.trim(), avatar })) { setError("浏览器无法保存，请检查存储空间"); return; }
-    setTerm(termDraft || null);
     onClose();
   }
   return <Sheet title="我的设置" onBack={onClose} onClose={onClose} footer={<button className="btn btn-green" disabled={uploading} onClick={save}>保存设置</button>}>
@@ -46,7 +42,6 @@ export function ProfileSettings({ profile, onSave, onClose, onDemo, onClear }: {
     <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden aria-label="上传头像" onChange={e => void upload(e.target.files?.[0])} />
     {error && <p className="form-error" role="alert">{error}</p>}</section>
     <section className="settings-section"><h3>日程数据</h3><DataPortability /><div className="settings-actions"><button className="btn btn-green" onClick={onDemo}>载入演示数据</button><button className="btn btn-coral" disabled={!tasks} onClick={onClear}>清空任务</button></div></section>
-    <section className="settings-section term-setting"><label htmlFor="term-start">学期开始日</label><input id="term-start" type="date" value={termDraft} onChange={e => setTermDraft(e.target.value)} /></section>
     <p className="settings-footnote">个人资料与日程仅保存在当前浏览器。</p>
   </Sheet>;
 }

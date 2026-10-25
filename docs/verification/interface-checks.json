@@ -2,26 +2,2641 @@
   "date": "2026-10-25",
   "target": "production http://localhost:3018",
   "notes": "Real local-rule parse, storage and replan; clarification/uncovered fixtures mock parser responses; no live model key.",
-  "errors": [],
-  "checks": 262,
-  "passed": 262,
-  "viewports": [
-    "320x568",
-    "390x844",
-    "390x1000",
-    "768x1024",
-    "1366x768",
-    "1440x900"
+  "checks": [
+    {
+      "name": "今天 320 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "今天 320 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "添加 320 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "添加 320 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "未来 320 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "未来 320 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "settings 320x568 bounds",
+      "pass": true
+    },
+    {
+      "name": "settings 320x568 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "settings 320x568 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "settings 320x568 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "settings 320x568 green back target",
+      "pass": true
+    },
+    {
+      "name": "settings 320x568 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "six avatar images 320",
+      "pass": true
+    },
+    {
+      "name": "settings focus restored 320",
+      "pass": true
+    },
+    {
+      "name": "今天 390 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "今天 390 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "添加 390 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "添加 390 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "未来 390 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "未来 390 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "settings 390x844 bounds",
+      "pass": true
+    },
+    {
+      "name": "settings 390x844 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "settings 390x844 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "settings 390x844 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "settings 390x844 green back target",
+      "pass": true
+    },
+    {
+      "name": "settings 390x844 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "six avatar images 390",
+      "pass": true
+    },
+    {
+      "name": "settings focus restored 390",
+      "pass": true
+    },
+    {
+      "name": "今天 390 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "今天 390 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "添加 390 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "添加 390 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "未来 390 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "未来 390 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "settings 390x1000 bounds",
+      "pass": true
+    },
+    {
+      "name": "settings 390x1000 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "settings 390x1000 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "settings 390x1000 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "settings 390x1000 green back target",
+      "pass": true
+    },
+    {
+      "name": "settings 390x1000 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "six avatar images 390",
+      "pass": true
+    },
+    {
+      "name": "settings focus restored 390",
+      "pass": true
+    },
+    {
+      "name": "今天 768 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "今天 768 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "添加 768 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "添加 768 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "未来 768 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "未来 768 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "settings 768x1024 bounds",
+      "pass": true
+    },
+    {
+      "name": "settings 768x1024 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "settings 768x1024 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "settings 768x1024 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "settings 768x1024 green back target",
+      "pass": true
+    },
+    {
+      "name": "six avatar images 768",
+      "pass": true
+    },
+    {
+      "name": "settings focus restored 768",
+      "pass": true
+    },
+    {
+      "name": "今天 1366 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "今天 1366 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "添加 1366 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "添加 1366 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "未来 1366 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "未来 1366 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "settings 1366x768 bounds",
+      "pass": true
+    },
+    {
+      "name": "settings 1366x768 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "settings 1366x768 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "settings 1366x768 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "settings 1366x768 green back target",
+      "pass": true
+    },
+    {
+      "name": "six avatar images 1366",
+      "pass": true
+    },
+    {
+      "name": "settings focus restored 1366",
+      "pass": true
+    },
+    {
+      "name": "今天 1440 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "今天 1440 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "添加 1440 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "添加 1440 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "未来 1440 no page overflow",
+      "pass": true
+    },
+    {
+      "name": "未来 1440 bottom navigation",
+      "pass": true
+    },
+    {
+      "name": "settings 1440x900 bounds",
+      "pass": true
+    },
+    {
+      "name": "settings 1440x900 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "settings 1440x900 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "settings 1440x900 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "settings 1440x900 green back target",
+      "pass": true
+    },
+    {
+      "name": "six avatar images 1440",
+      "pass": true
+    },
+    {
+      "name": "settings focus restored 1440",
+      "pass": true
+    },
+    {
+      "name": "no term setting",
+      "pass": true
+    },
+    {
+      "name": "profile persisted",
+      "pass": true
+    },
+    {
+      "name": "cancel leaves profile",
+      "pass": true
+    },
+    {
+      "name": "invalid avatar rejected",
+      "pass": true
+    },
+    {
+      "name": "custom avatar saved",
+      "pass": true
+    },
+    {
+      "name": "verbose diagnostics removed",
+      "pass": true
+    },
+    {
+      "name": "no writes before confirmation",
+      "pass": true
+    },
+    {
+      "name": "review 320 bounds",
+      "pass": true
+    },
+    {
+      "name": "review 320 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "review 320 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "review 320 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "review 320 green back target",
+      "pass": true
+    },
+    {
+      "name": "review 320 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "draft editor 320 bounds",
+      "pass": true
+    },
+    {
+      "name": "draft editor 320 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "draft editor 320 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "draft editor 320 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "draft editor 320 green back target",
+      "pass": true
+    },
+    {
+      "name": "draft editor 320 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "review 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "review 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "review 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "review 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "review 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "review 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "review 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "review 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "review 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "review 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "review 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "review 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "draft editor 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "review 768 bounds",
+      "pass": true
+    },
+    {
+      "name": "review 768 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "review 768 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "review 768 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "review 768 green back target",
+      "pass": true
+    },
+    {
+      "name": "draft editor 768 bounds",
+      "pass": true
+    },
+    {
+      "name": "draft editor 768 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "draft editor 768 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "draft editor 768 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "draft editor 768 green back target",
+      "pass": true
+    },
+    {
+      "name": "review 1366 bounds",
+      "pass": true
+    },
+    {
+      "name": "review 1366 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "review 1366 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "review 1366 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "review 1366 green back target",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1366 bounds",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1366 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1366 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1366 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1366 green back target",
+      "pass": true
+    },
+    {
+      "name": "review 1440 bounds",
+      "pass": true
+    },
+    {
+      "name": "review 1440 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "review 1440 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "review 1440 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "review 1440 green back target",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1440 bounds",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1440 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1440 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1440 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "draft editor 1440 green back target",
+      "pass": true
+    },
+    {
+      "name": "review back returns intake",
+      "pass": true
+    },
+    {
+      "name": "exactly one saved task",
+      "pass": true
+    },
+    {
+      "name": "saved day selected",
+      "pass": true
+    },
+    {
+      "name": "calendar arrows styled",
+      "pass": true
+    },
+    {
+      "name": "saved task edit bounds",
+      "pass": true
+    },
+    {
+      "name": "saved task edit no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "saved task edit content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "saved task edit body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "saved task edit green back target",
+      "pass": true
+    },
+    {
+      "name": "edit undo works",
+      "pass": true
+    },
+    {
+      "name": "undo expires",
+      "pass": true
+    },
+    {
+      "name": "reload does not revive undo notice",
+      "pass": true
+    },
+    {
+      "name": "back restores prior question",
+      "pass": true
+    },
+    {
+      "name": "clarification 320 bounds",
+      "pass": true
+    },
+    {
+      "name": "clarification 320 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "clarification 320 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "clarification 320 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "clarification 320 green back target",
+      "pass": true
+    },
+    {
+      "name": "clarification 320 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "clarification 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "clarification 768 bounds",
+      "pass": true
+    },
+    {
+      "name": "clarification 768 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "clarification 768 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "clarification 768 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "clarification 768 green back target",
+      "pass": true
+    },
+    {
+      "name": "clarification 1366 bounds",
+      "pass": true
+    },
+    {
+      "name": "clarification 1366 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "clarification 1366 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "clarification 1366 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "clarification 1366 green back target",
+      "pass": true
+    },
+    {
+      "name": "clarification 1440 bounds",
+      "pass": true
+    },
+    {
+      "name": "clarification 1440 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "clarification 1440 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "clarification 1440 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "clarification 1440 green back target",
+      "pass": true
+    },
+    {
+      "name": "pending prevents final save",
+      "pass": true
+    },
+    {
+      "name": "review back returns last question",
+      "pass": true
+    },
+    {
+      "name": "keep unspecified advances",
+      "pass": true
+    },
+    {
+      "name": "clarified save count",
+      "pass": true
+    },
+    {
+      "name": "uncovered lines gate next",
+      "pass": true
+    },
+    {
+      "name": "uncovered source becomes reviewable draft",
+      "pass": true
+    },
+    {
+      "name": "image failure truthful",
+      "pass": true
+    },
+    {
+      "name": "image failure does not save",
+      "pass": true
+    },
+    {
+      "name": "manual form 320 bounds",
+      "pass": true
+    },
+    {
+      "name": "manual form 320 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "manual form 320 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "manual form 320 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "manual form 320 green back target",
+      "pass": true
+    },
+    {
+      "name": "manual form 320 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "manual form 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "manual form 768 bounds",
+      "pass": true
+    },
+    {
+      "name": "manual form 768 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "manual form 768 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "manual form 768 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "manual form 768 green back target",
+      "pass": true
+    },
+    {
+      "name": "manual form 1366 bounds",
+      "pass": true
+    },
+    {
+      "name": "manual form 1366 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "manual form 1366 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "manual form 1366 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "manual form 1366 green back target",
+      "pass": true
+    },
+    {
+      "name": "manual form 1440 bounds",
+      "pass": true
+    },
+    {
+      "name": "manual form 1440 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "manual form 1440 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "manual form 1440 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "manual form 1440 green back target",
+      "pass": true
+    },
+    {
+      "name": "manual add stores priority",
+      "pass": true
+    },
+    {
+      "name": "replan 320 bounds",
+      "pass": true
+    },
+    {
+      "name": "replan 320 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "replan 320 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "replan 320 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "replan 320 green back target",
+      "pass": true
+    },
+    {
+      "name": "replan 320 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "replan 390 bounds",
+      "pass": true
+    },
+    {
+      "name": "replan 390 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "replan 390 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "replan 390 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "replan 390 green back target",
+      "pass": true
+    },
+    {
+      "name": "replan 390 bottom sheet flush",
+      "pass": true
+    },
+    {
+      "name": "replan 1440 bounds",
+      "pass": true
+    },
+    {
+      "name": "replan 1440 no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "replan 1440 content scrolls below fixed header",
+      "pass": true
+    },
+    {
+      "name": "replan 1440 body locked and focus contained",
+      "pass": true
+    },
+    {
+      "name": "replan 1440 green back target",
+      "pass": true
+    },
+    {
+      "name": "replan apply works",
+      "pass": true
+    },
+    {
+      "name": "no browser errors",
+      "pass": true
+    }
   ],
-  "groups": [
-    "profile/save/cancel/upload",
-    "responsive dialogs and focus",
-    "real rule parse and confirmed save",
-    "clarify/back/skip fixtures",
-    "uncovered source fixture",
-    "image failure without key",
-    "manual add",
-    "edit/undo/expiry",
-    "replan/apply"
+  "errors": [],
+  "metrics": [
+    {
+      "label": "settings 320x568",
+      "width": 320,
+      "height": 568,
+      "box": {
+        "x": 0,
+        "y": 45.453125,
+        "right": 320,
+        "bottom": 568,
+        "width": 320,
+        "height": 522.546875
+      },
+      "content": {
+        "x": 1,
+        "y": 125.453125,
+        "right": 319,
+        "bottom": 491,
+        "width": 318,
+        "height": 365.546875
+      },
+      "footer": {
+        "x": 1,
+        "y": 491,
+        "right": 319,
+        "bottom": 568,
+        "width": 318,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 46.453125,
+        "right": 319,
+        "bottom": 125.453125,
+        "width": 318,
+        "height": 79
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 64.453125,
+        "right": 63,
+        "bottom": 108.453125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "settings 390x844",
+      "width": 390,
+      "height": 844,
+      "box": {
+        "x": 0,
+        "y": 67.53125,
+        "right": 390,
+        "bottom": 844,
+        "width": 390,
+        "height": 776.46875
+      },
+      "content": {
+        "x": 1,
+        "y": 147.53125,
+        "right": 389,
+        "bottom": 767,
+        "width": 388,
+        "height": 619.46875
+      },
+      "footer": {
+        "x": 1,
+        "y": 767,
+        "right": 389,
+        "bottom": 844,
+        "width": 388,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 68.53125,
+        "right": 389,
+        "bottom": 147.53125,
+        "width": 388,
+        "height": 79
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 86.53125,
+        "right": 63,
+        "bottom": 130.53125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "settings 390x1000",
+      "width": 390,
+      "height": 1000,
+      "box": {
+        "x": 0,
+        "y": 122.15625,
+        "right": 390,
+        "bottom": 1000,
+        "width": 390,
+        "height": 877.84375
+      },
+      "content": {
+        "x": 1,
+        "y": 202.15625,
+        "right": 389,
+        "bottom": 923,
+        "width": 388,
+        "height": 720.84375
+      },
+      "footer": {
+        "x": 1,
+        "y": 923,
+        "right": 389,
+        "bottom": 1000,
+        "width": 388,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 123.15625,
+        "right": 389,
+        "bottom": 202.15625,
+        "width": 388,
+        "height": 79
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 141.15625,
+        "right": 63,
+        "bottom": 185.15625,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "settings 768x1024",
+      "width": 768,
+      "height": 1024,
+      "box": {
+        "x": 64,
+        "y": 114.5,
+        "right": 704,
+        "bottom": 909.5,
+        "width": 640,
+        "height": 795
+      },
+      "content": {
+        "x": 65,
+        "y": 208.5,
+        "right": 703,
+        "bottom": 827.5,
+        "width": 638,
+        "height": 619
+      },
+      "footer": {
+        "x": 65,
+        "y": 827.5,
+        "right": 703,
+        "bottom": 908.5,
+        "width": 638,
+        "height": 81
+      },
+      "header": {
+        "x": 65,
+        "y": 115.5,
+        "right": 703,
+        "bottom": 208.5,
+        "width": 638,
+        "height": 93
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 93,
+        "y": 139.5,
+        "right": 141,
+        "bottom": 187.5,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "settings 1366x768",
+      "width": 1366,
+      "height": 768,
+      "box": {
+        "x": 363,
+        "y": 46.078125,
+        "right": 1003,
+        "bottom": 721.90625,
+        "width": 640,
+        "height": 675.828125
+      },
+      "content": {
+        "x": 364,
+        "y": 140.078125,
+        "right": 1002,
+        "bottom": 639.90625,
+        "width": 638,
+        "height": 499.828125
+      },
+      "footer": {
+        "x": 364,
+        "y": 639.90625,
+        "right": 1002,
+        "bottom": 720.90625,
+        "width": 638,
+        "height": 81
+      },
+      "header": {
+        "x": 364,
+        "y": 47.078125,
+        "right": 1002,
+        "bottom": 140.078125,
+        "width": 638,
+        "height": 93
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 392,
+        "y": 71.078125,
+        "right": 440,
+        "bottom": 119.078125,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "settings 1440x900",
+      "width": 1440,
+      "height": 900,
+      "box": {
+        "x": 400,
+        "y": 54,
+        "right": 1040,
+        "bottom": 846,
+        "width": 640,
+        "height": 792
+      },
+      "content": {
+        "x": 401,
+        "y": 148,
+        "right": 1039,
+        "bottom": 764,
+        "width": 638,
+        "height": 616
+      },
+      "footer": {
+        "x": 401,
+        "y": 764,
+        "right": 1039,
+        "bottom": 845,
+        "width": 638,
+        "height": 81
+      },
+      "header": {
+        "x": 401,
+        "y": 55,
+        "right": 1039,
+        "bottom": 148,
+        "width": 638,
+        "height": 93
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 429,
+        "y": 79,
+        "right": 477,
+        "bottom": 127,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "review 320",
+      "width": 320,
+      "height": 568,
+      "box": {
+        "x": 0,
+        "y": 91.8125,
+        "right": 320,
+        "bottom": 568,
+        "width": 320,
+        "height": 476.1875
+      },
+      "content": {
+        "x": 1,
+        "y": 205.5,
+        "right": 319,
+        "bottom": 491,
+        "width": 318,
+        "height": 285.5
+      },
+      "footer": {
+        "x": 1,
+        "y": 491,
+        "right": 319,
+        "bottom": 568,
+        "width": 318,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 92.8125,
+        "right": 319,
+        "bottom": 205.5,
+        "width": 318,
+        "height": 112.6875
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 127.65625,
+        "right": 63,
+        "bottom": 171.65625,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "draft editor 320",
+      "width": 320,
+      "height": 568,
+      "box": {
+        "x": 0,
+        "y": 45.453125,
+        "right": 320,
+        "bottom": 568,
+        "width": 320,
+        "height": 522.546875
+      },
+      "content": {
+        "x": 1,
+        "y": 130.796875,
+        "right": 319,
+        "bottom": 568,
+        "width": 318,
+        "height": 437.203125
+      },
+      "footer": null,
+      "header": {
+        "x": 1,
+        "y": 46.453125,
+        "right": 319,
+        "bottom": 130.796875,
+        "width": 318,
+        "height": 84.34375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 67.125,
+        "right": 63,
+        "bottom": 111.125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "review 390",
+      "width": 390,
+      "height": 844,
+      "box": {
+        "x": 0,
+        "y": 417.15625,
+        "right": 390,
+        "bottom": 844,
+        "width": 390,
+        "height": 426.84375
+      },
+      "content": {
+        "x": 1,
+        "y": 502.5,
+        "right": 389,
+        "bottom": 767,
+        "width": 388,
+        "height": 264.5
+      },
+      "footer": {
+        "x": 1,
+        "y": 767,
+        "right": 389,
+        "bottom": 844,
+        "width": 388,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 418.15625,
+        "right": 389,
+        "bottom": 502.5,
+        "width": 388,
+        "height": 84.34375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 438.828125,
+        "right": 63,
+        "bottom": 482.828125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "draft editor 390",
+      "width": 390,
+      "height": 844,
+      "box": {
+        "x": 0,
+        "y": 67.53125,
+        "right": 390,
+        "bottom": 844,
+        "width": 390,
+        "height": 776.46875
+      },
+      "content": {
+        "x": 1,
+        "y": 152.875,
+        "right": 389,
+        "bottom": 844,
+        "width": 388,
+        "height": 691.125
+      },
+      "footer": null,
+      "header": {
+        "x": 1,
+        "y": 68.53125,
+        "right": 389,
+        "bottom": 152.875,
+        "width": 388,
+        "height": 84.34375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 89.203125,
+        "right": 63,
+        "bottom": 133.203125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "review 390",
+      "width": 390,
+      "height": 1000,
+      "box": {
+        "x": 0,
+        "y": 573.15625,
+        "right": 390,
+        "bottom": 1000,
+        "width": 390,
+        "height": 426.84375
+      },
+      "content": {
+        "x": 1,
+        "y": 658.5,
+        "right": 389,
+        "bottom": 923,
+        "width": 388,
+        "height": 264.5
+      },
+      "footer": {
+        "x": 1,
+        "y": 923,
+        "right": 389,
+        "bottom": 1000,
+        "width": 388,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 574.15625,
+        "right": 389,
+        "bottom": 658.5,
+        "width": 388,
+        "height": 84.34375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 594.828125,
+        "right": 63,
+        "bottom": 638.828125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "draft editor 390",
+      "width": 390,
+      "height": 1000,
+      "box": {
+        "x": 0,
+        "y": 80,
+        "right": 390,
+        "bottom": 1000,
+        "width": 390,
+        "height": 920
+      },
+      "content": {
+        "x": 1,
+        "y": 165.34375,
+        "right": 389,
+        "bottom": 1000,
+        "width": 388,
+        "height": 834.65625
+      },
+      "footer": null,
+      "header": {
+        "x": 1,
+        "y": 81,
+        "right": 389,
+        "bottom": 165.34375,
+        "width": 388,
+        "height": 84.34375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 101.671875,
+        "right": 63,
+        "bottom": 145.671875,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "review 768",
+      "width": 768,
+      "height": 1024,
+      "box": {
+        "x": 20,
+        "y": 273.203125,
+        "right": 748,
+        "bottom": 750.796875,
+        "width": 728,
+        "height": 477.59375
+      },
+      "content": {
+        "x": 21,
+        "y": 375.296875,
+        "right": 747,
+        "bottom": 668.796875,
+        "width": 726,
+        "height": 293.5
+      },
+      "footer": {
+        "x": 21,
+        "y": 668.796875,
+        "right": 747,
+        "bottom": 749.796875,
+        "width": 726,
+        "height": 81
+      },
+      "header": {
+        "x": 21,
+        "y": 274.203125,
+        "right": 747,
+        "bottom": 375.296875,
+        "width": 726,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 49,
+        "y": 302.25,
+        "right": 97,
+        "bottom": 350.25,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "draft editor 768",
+      "width": 768,
+      "height": 1024,
+      "box": {
+        "x": 20,
+        "y": 126.203125,
+        "right": 748,
+        "bottom": 897.796875,
+        "width": 728,
+        "height": 771.59375
+      },
+      "content": {
+        "x": 21,
+        "y": 228.296875,
+        "right": 747,
+        "bottom": 896.796875,
+        "width": 726,
+        "height": 668.5
+      },
+      "footer": null,
+      "header": {
+        "x": 21,
+        "y": 127.203125,
+        "right": 747,
+        "bottom": 228.296875,
+        "width": 726,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 49,
+        "y": 155.25,
+        "right": 97,
+        "bottom": 203.25,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "review 1366",
+      "width": 1366,
+      "height": 768,
+      "box": {
+        "x": 283,
+        "y": 145.203125,
+        "right": 1083,
+        "bottom": 622.796875,
+        "width": 800,
+        "height": 477.59375
+      },
+      "content": {
+        "x": 284,
+        "y": 247.296875,
+        "right": 1082,
+        "bottom": 540.796875,
+        "width": 798,
+        "height": 293.5
+      },
+      "footer": {
+        "x": 284,
+        "y": 540.796875,
+        "right": 1082,
+        "bottom": 621.796875,
+        "width": 798,
+        "height": 81
+      },
+      "header": {
+        "x": 284,
+        "y": 146.203125,
+        "right": 1082,
+        "bottom": 247.296875,
+        "width": 798,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 312,
+        "y": 174.25,
+        "right": 360,
+        "bottom": 222.25,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "draft editor 1366",
+      "width": 1366,
+      "height": 768,
+      "box": {
+        "x": 283,
+        "y": 46.078125,
+        "right": 1083,
+        "bottom": 721.90625,
+        "width": 800,
+        "height": 675.828125
+      },
+      "content": {
+        "x": 284,
+        "y": 148.171875,
+        "right": 1082,
+        "bottom": 720.90625,
+        "width": 798,
+        "height": 572.734375
+      },
+      "footer": null,
+      "header": {
+        "x": 284,
+        "y": 47.078125,
+        "right": 1082,
+        "bottom": 148.171875,
+        "width": 798,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 312,
+        "y": 75.125,
+        "right": 360,
+        "bottom": 123.125,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "review 1440",
+      "width": 1440,
+      "height": 900,
+      "box": {
+        "x": 320,
+        "y": 211.203125,
+        "right": 1120,
+        "bottom": 688.796875,
+        "width": 800,
+        "height": 477.59375
+      },
+      "content": {
+        "x": 321,
+        "y": 313.296875,
+        "right": 1119,
+        "bottom": 606.796875,
+        "width": 798,
+        "height": 293.5
+      },
+      "footer": {
+        "x": 321,
+        "y": 606.796875,
+        "right": 1119,
+        "bottom": 687.796875,
+        "width": 798,
+        "height": 81
+      },
+      "header": {
+        "x": 321,
+        "y": 212.203125,
+        "right": 1119,
+        "bottom": 313.296875,
+        "width": 798,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 349,
+        "y": 240.25,
+        "right": 397,
+        "bottom": 288.25,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "draft editor 1440",
+      "width": 1440,
+      "height": 900,
+      "box": {
+        "x": 320,
+        "y": 64.203125,
+        "right": 1120,
+        "bottom": 835.796875,
+        "width": 800,
+        "height": 771.59375
+      },
+      "content": {
+        "x": 321,
+        "y": 166.296875,
+        "right": 1119,
+        "bottom": 834.796875,
+        "width": 798,
+        "height": 668.5
+      },
+      "footer": null,
+      "header": {
+        "x": 321,
+        "y": 65.203125,
+        "right": 1119,
+        "bottom": 166.296875,
+        "width": 798,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 349,
+        "y": 93.25,
+        "right": 397,
+        "bottom": 141.25,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "saved task edit",
+      "width": 1440,
+      "height": 900,
+      "box": {
+        "x": 400,
+        "y": 65.90625,
+        "right": 1040,
+        "bottom": 834.09375,
+        "width": 640,
+        "height": 768.1875
+      },
+      "content": {
+        "x": 401,
+        "y": 159.90625,
+        "right": 1039,
+        "bottom": 833.09375,
+        "width": 638,
+        "height": 673.1875
+      },
+      "footer": null,
+      "header": {
+        "x": 401,
+        "y": 66.90625,
+        "right": 1039,
+        "bottom": 159.90625,
+        "width": 638,
+        "height": 93
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 429,
+        "y": 90.90625,
+        "right": 477,
+        "bottom": 138.90625,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "clarification 320",
+      "width": 320,
+      "height": 568,
+      "box": {
+        "x": 0,
+        "y": 45.453125,
+        "right": 320,
+        "bottom": 568,
+        "width": 320,
+        "height": 522.546875
+      },
+      "content": {
+        "x": 1,
+        "y": 130.796875,
+        "right": 319,
+        "bottom": 568,
+        "width": 318,
+        "height": 437.203125
+      },
+      "footer": null,
+      "header": {
+        "x": 1,
+        "y": 46.453125,
+        "right": 319,
+        "bottom": 130.796875,
+        "width": 318,
+        "height": 84.34375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 67.125,
+        "right": 63,
+        "bottom": 111.125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "clarification 390",
+      "width": 390,
+      "height": 844,
+      "box": {
+        "x": 0,
+        "y": 300.65625,
+        "right": 390,
+        "bottom": 844,
+        "width": 390,
+        "height": 543.34375
+      },
+      "content": {
+        "x": 1,
+        "y": 386,
+        "right": 389,
+        "bottom": 844,
+        "width": 388,
+        "height": 458
+      },
+      "footer": null,
+      "header": {
+        "x": 1,
+        "y": 301.65625,
+        "right": 389,
+        "bottom": 386,
+        "width": 388,
+        "height": 84.34375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 322.328125,
+        "right": 63,
+        "bottom": 366.328125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "clarification 390",
+      "width": 390,
+      "height": 1000,
+      "box": {
+        "x": 0,
+        "y": 456.65625,
+        "right": 390,
+        "bottom": 1000,
+        "width": 390,
+        "height": 543.34375
+      },
+      "content": {
+        "x": 1,
+        "y": 542,
+        "right": 389,
+        "bottom": 1000,
+        "width": 388,
+        "height": 458
+      },
+      "footer": null,
+      "header": {
+        "x": 1,
+        "y": 457.65625,
+        "right": 389,
+        "bottom": 542,
+        "width": 388,
+        "height": 84.34375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 478.328125,
+        "right": 63,
+        "bottom": 522.328125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "clarification 768",
+      "width": 768,
+      "height": 1024,
+      "box": {
+        "x": 64,
+        "y": 220.953125,
+        "right": 704,
+        "bottom": 803.046875,
+        "width": 640,
+        "height": 582.09375
+      },
+      "content": {
+        "x": 65,
+        "y": 323.046875,
+        "right": 703,
+        "bottom": 802.046875,
+        "width": 638,
+        "height": 479
+      },
+      "footer": null,
+      "header": {
+        "x": 65,
+        "y": 221.953125,
+        "right": 703,
+        "bottom": 323.046875,
+        "width": 638,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 93,
+        "y": 250,
+        "right": 141,
+        "bottom": 298,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "clarification 1366",
+      "width": 1366,
+      "height": 768,
+      "box": {
+        "x": 363,
+        "y": 92.953125,
+        "right": 1003,
+        "bottom": 675.046875,
+        "width": 640,
+        "height": 582.09375
+      },
+      "content": {
+        "x": 364,
+        "y": 195.046875,
+        "right": 1002,
+        "bottom": 674.046875,
+        "width": 638,
+        "height": 479
+      },
+      "footer": null,
+      "header": {
+        "x": 364,
+        "y": 93.953125,
+        "right": 1002,
+        "bottom": 195.046875,
+        "width": 638,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 392,
+        "y": 122,
+        "right": 440,
+        "bottom": 170,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "clarification 1440",
+      "width": 1440,
+      "height": 900,
+      "box": {
+        "x": 400,
+        "y": 158.953125,
+        "right": 1040,
+        "bottom": 741.046875,
+        "width": 640,
+        "height": 582.09375
+      },
+      "content": {
+        "x": 401,
+        "y": 261.046875,
+        "right": 1039,
+        "bottom": 740.046875,
+        "width": 638,
+        "height": 479
+      },
+      "footer": null,
+      "header": {
+        "x": 401,
+        "y": 159.953125,
+        "right": 1039,
+        "bottom": 261.046875,
+        "width": 638,
+        "height": 101.09375
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 429,
+        "y": 188,
+        "right": 477,
+        "bottom": 236,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "manual form 320",
+      "width": 320,
+      "height": 568,
+      "box": {
+        "x": 0,
+        "y": 45.453125,
+        "right": 320,
+        "bottom": 568,
+        "width": 320,
+        "height": 522.546875
+      },
+      "content": {
+        "x": 1,
+        "y": 125.453125,
+        "right": 319,
+        "bottom": 491,
+        "width": 318,
+        "height": 365.546875
+      },
+      "footer": {
+        "x": 1,
+        "y": 491,
+        "right": 319,
+        "bottom": 568,
+        "width": 318,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 46.453125,
+        "right": 319,
+        "bottom": 125.453125,
+        "width": 318,
+        "height": 79
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 64.453125,
+        "right": 63,
+        "bottom": 108.453125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "manual form 390",
+      "width": 390,
+      "height": 844,
+      "box": {
+        "x": 0,
+        "y": 67.53125,
+        "right": 390,
+        "bottom": 844,
+        "width": 390,
+        "height": 776.46875
+      },
+      "content": {
+        "x": 1,
+        "y": 147.53125,
+        "right": 389,
+        "bottom": 767,
+        "width": 388,
+        "height": 619.46875
+      },
+      "footer": {
+        "x": 1,
+        "y": 767,
+        "right": 389,
+        "bottom": 844,
+        "width": 388,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 68.53125,
+        "right": 389,
+        "bottom": 147.53125,
+        "width": 388,
+        "height": 79
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 86.53125,
+        "right": 63,
+        "bottom": 130.53125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "manual form 390",
+      "width": 390,
+      "height": 1000,
+      "box": {
+        "x": 0,
+        "y": 201.8125,
+        "right": 390,
+        "bottom": 1000,
+        "width": 390,
+        "height": 798.1875
+      },
+      "content": {
+        "x": 1,
+        "y": 281.8125,
+        "right": 389,
+        "bottom": 923,
+        "width": 388,
+        "height": 641.1875
+      },
+      "footer": {
+        "x": 1,
+        "y": 923,
+        "right": 389,
+        "bottom": 1000,
+        "width": 388,
+        "height": 77
+      },
+      "header": {
+        "x": 1,
+        "y": 202.8125,
+        "right": 389,
+        "bottom": 281.8125,
+        "width": 388,
+        "height": 79
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 220.8125,
+        "right": 63,
+        "bottom": 264.8125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "manual form 768",
+      "width": 768,
+      "height": 1024,
+      "box": {
+        "x": 64,
+        "y": 142.90625,
+        "right": 704,
+        "bottom": 881.09375,
+        "width": 640,
+        "height": 738.1875
+      },
+      "content": {
+        "x": 65,
+        "y": 236.90625,
+        "right": 703,
+        "bottom": 799.09375,
+        "width": 638,
+        "height": 562.1875
+      },
+      "footer": {
+        "x": 65,
+        "y": 799.09375,
+        "right": 703,
+        "bottom": 880.09375,
+        "width": 638,
+        "height": 81
+      },
+      "header": {
+        "x": 65,
+        "y": 143.90625,
+        "right": 703,
+        "bottom": 236.90625,
+        "width": 638,
+        "height": 93
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 93,
+        "y": 167.90625,
+        "right": 141,
+        "bottom": 215.90625,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "manual form 1366",
+      "width": 1366,
+      "height": 768,
+      "box": {
+        "x": 363,
+        "y": 46.078125,
+        "right": 1003,
+        "bottom": 721.90625,
+        "width": 640,
+        "height": 675.828125
+      },
+      "content": {
+        "x": 364,
+        "y": 140.078125,
+        "right": 1002,
+        "bottom": 639.90625,
+        "width": 638,
+        "height": 499.828125
+      },
+      "footer": {
+        "x": 364,
+        "y": 639.90625,
+        "right": 1002,
+        "bottom": 720.90625,
+        "width": 638,
+        "height": 81
+      },
+      "header": {
+        "x": 364,
+        "y": 47.078125,
+        "right": 1002,
+        "bottom": 140.078125,
+        "width": 638,
+        "height": 93
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 392,
+        "y": 71.078125,
+        "right": 440,
+        "bottom": 119.078125,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "manual form 1440",
+      "width": 1440,
+      "height": 900,
+      "box": {
+        "x": 400,
+        "y": 80.90625,
+        "right": 1040,
+        "bottom": 819.09375,
+        "width": 640,
+        "height": 738.1875
+      },
+      "content": {
+        "x": 401,
+        "y": 174.90625,
+        "right": 1039,
+        "bottom": 737.09375,
+        "width": 638,
+        "height": 562.1875
+      },
+      "footer": {
+        "x": 401,
+        "y": 737.09375,
+        "right": 1039,
+        "bottom": 818.09375,
+        "width": 638,
+        "height": 81
+      },
+      "header": {
+        "x": 401,
+        "y": 81.90625,
+        "right": 1039,
+        "bottom": 174.90625,
+        "width": 638,
+        "height": 93
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 429,
+        "y": 105.90625,
+        "right": 477,
+        "bottom": 153.90625,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    },
+    {
+      "label": "replan 320",
+      "width": 320,
+      "height": 568,
+      "box": {
+        "x": 0,
+        "y": 45.453125,
+        "right": 320,
+        "bottom": 568,
+        "width": 320,
+        "height": 522.546875
+      },
+      "content": {
+        "x": 1,
+        "y": 125.453125,
+        "right": 319,
+        "bottom": 568,
+        "width": 318,
+        "height": 442.546875
+      },
+      "footer": null,
+      "header": {
+        "x": 1,
+        "y": 46.453125,
+        "right": 319,
+        "bottom": 125.453125,
+        "width": 318,
+        "height": 79
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 64.453125,
+        "right": 63,
+        "bottom": 108.453125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "replan 390",
+      "width": 390,
+      "height": 844,
+      "box": {
+        "x": 0,
+        "y": 67.53125,
+        "right": 390,
+        "bottom": 844,
+        "width": 390,
+        "height": 776.46875
+      },
+      "content": {
+        "x": 1,
+        "y": 147.53125,
+        "right": 389,
+        "bottom": 844,
+        "width": 388,
+        "height": 696.46875
+      },
+      "footer": null,
+      "header": {
+        "x": 1,
+        "y": 68.53125,
+        "right": 389,
+        "bottom": 147.53125,
+        "width": 388,
+        "height": 79
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 19,
+        "y": 86.53125,
+        "right": 63,
+        "bottom": 130.53125,
+        "width": 44,
+        "height": 44
+      },
+      "focus": true,
+      "bottomSheet": true,
+      "spills": []
+    },
+    {
+      "label": "replan 1440",
+      "width": 1440,
+      "height": 900,
+      "box": {
+        "x": 320,
+        "y": 155.921875,
+        "right": 1120,
+        "bottom": 744.0625,
+        "width": 800,
+        "height": 588.140625
+      },
+      "content": {
+        "x": 321,
+        "y": 249.921875,
+        "right": 1119,
+        "bottom": 743.0625,
+        "width": 798,
+        "height": 493.140625
+      },
+      "footer": null,
+      "header": {
+        "x": 321,
+        "y": 156.921875,
+        "right": 1119,
+        "bottom": 249.921875,
+        "width": 798,
+        "height": 93
+      },
+      "overflow": false,
+      "locked": "hidden",
+      "back": {
+        "x": 349,
+        "y": 180.921875,
+        "right": 397,
+        "bottom": 228.921875,
+        "width": 48,
+        "height": 48
+      },
+      "focus": true,
+      "bottomSheet": false,
+      "spills": []
+    }
   ]
 }

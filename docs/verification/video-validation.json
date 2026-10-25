@@ -17,14 +17,18 @@
   ],
   "format": {
     "duration": "459.503220",
-    "size": "11580505"
+    "size": "11746439"
   },
   "date": "2026-10-25",
   "fullDecodeExit": 0,
   "fullDecodeErrors": "",
   "processReplaySeconds": 161,
   "processDisclosure": "Existing real records replay; does not replace original core Prompt chains.",
-  "sha256": "11b85b6510522b7a44c57cc5600ff29c27f933f45ed4908d824ce7fdadd2e3dc",
-  "sourceHead": "3997e887fbc5e4c1b3a6f03eef38799dc9e3e5b0",
-  "sourceRuntimeIdentical": true
+  "sha256": "553a641929a6f9a6e1bdde1b6dd3baf242c3b2c6f9eba6ef029eae0aa7c04d83",
+  "sourceBaseHead": "b8a6acfc3d942474b0607d3b19382d2a2ace36bb",
+  "sourceSnapshotSha256": "f1c465aea2bc080b8efc9771ce7bb448e83ebfada65615d10ad06f35b5b64066",
+  "sourceRuntimeIdentical": true,
+  "interfaceRegressionChecks": 261,
+  "inputTargetedChecks": 153,
+  "liveModelTested": false
 }

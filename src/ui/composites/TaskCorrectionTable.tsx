@@ -1,4 +1,5 @@
 "use client";
+import { FixedArrangementField } from "@/ui/FixedArrangementField";
 import { useState } from "react";
 import { TaskDraftSchema, type TaskDraft } from "@/domain/schemas/task";
 import { formatClock, formatDuration } from "@/domain/time";
@@ -33,11 +34,11 @@ export function TaskCorrectionTable({drafts,onChange,onRemove,onConfirm,onCancel
     <label className="full">标题<input aria-label={"第 "+(index+1)+" 条标题"} value={draft.title} maxLength={200} onChange={e=>onChange(index,{title:e.target.value})}/></label>
     <label>开始<input aria-label={"第 "+(index+1)+" 条开始时间"} type="datetime-local" value={isoToLocalInput(draft.start)} onChange={e=>patchTime(index,"start",e.target.value)}/></label>
     <label>结束<input aria-label={"第 "+(index+1)+" 条结束时间"} type="datetime-local" value={isoToLocalInput(draft.end)} onChange={e=>patchTime(index,"end",e.target.value)}/></label>
-    <label>预计时长（分钟）<input aria-label={"第 "+(index+1)+" 条时长"} type="number" min={0} max={1440} value={minutesToInput(draft.durationMin)} onChange={e=>onChange(index,{durationMin:Math.min(1440,Math.max(0,Number(e.target.value)||0))})}/></label>
+    <label>预计时长（分钟）<input aria-label={"第 "+(index+1)+" 条时长"} type="number" min={0} max={1440} placeholder="0" value={draft.durationMin === 0 ? "" : minutesToInput(draft.durationMin)} onChange={e=>onChange(index,{durationMin:Math.min(1440,Math.max(0,Number(e.target.value)||0))})}/></label>
     <div><p className="field-label">优先级</p><PriorityPicker label={"第 "+(index+1)+" 条优先级"} value={draft.priority} onChange={p=>onChange(index,{priority:p})}/></div>
     <label className="full">截止时间<input aria-label={"第 "+(index+1)+" 条截止时间"} type="datetime-local" value={isoToLocalInput(draft.deadline)} onChange={e=>onChange(index,{deadline:localInputToIso(e.target.value)})}/></label>
     <label>地点<input value={draft.location??""} maxLength={60} onChange={e=>onChange(index,{location:e.target.value||null})}/></label>
-    <label className="checkbox-field"><input type="checkbox" checked={draft.locked??false} onChange={e=>onChange(index,{locked:e.target.checked})}/>固定安排</label>
+    <FixedArrangementField checked={draft.locked??false} onChange={locked=>onChange(index,{locked})} />
   </div>
   {draft.rawTextOrigin&&<details className="review-source"><summary>查看原文</summary><p>{draft.rawTextOrigin}</p></details>}
   {error&&<p className="form-error" role="alert">{error}</p>}

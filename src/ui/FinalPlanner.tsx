@@ -49,7 +49,11 @@ export function FinalPlanner() {
   const load = minutesOnDay(todayTasks.filter(t => !t.done), today);
   const stateLabel = load >= 600 ? "有点满" : load >= 420 ? "慢慢来" : "从容";
   const looseTasks = store.tasks.filter(t => !t.start && !t.deadline);
-  const scene = EMPTY_SCENES[Number(today.slice(-2)) % EMPTY_SCENES.length]!;
+  const [sceneIndex, setSceneIndex] = useState(0);
+  useEffect(() => {
+    queueMicrotask(() => setSceneIndex(previous => (previous + 1 + Math.floor(Math.random() * (EMPTY_SCENES.length - 1))) % EMPTY_SCENES.length));
+  }, [day]);
+  const scene = EMPTY_SCENES[sceneIndex]!;
 
   useEffect(() => {
     function sync() { const hash = window.location.hash.slice(1); setTab(hash === "add" || hash === "future" ? hash : "today"); }
@@ -92,7 +96,7 @@ export function FinalPlanner() {
     return <>
       <section className="today-card" aria-label={tab === "today" ? "今天的安排" : "所选日安排"}>
         {tab === "future" && <div className="day-head px-6 pt-6"><div className="day-badge">{day.slice(-2)}</div><div><h2 className="day-label">{weekdayLabel(day)}</h2><p className="day-date">{day}</p></div><span className="day-load">{formatDuration(minutesOnDay(dayTasks.filter(t => !t.done), day))}</span></div>}
-        {!ready ? <p className="empty" role="status">正在读取本地日程…</p> : dayTasks.length ? renderRows(dayTasks, day) : <div className="today-empty"><div className="empty-art" aria-hidden="true" dangerouslySetInnerHTML={{ __html: scene.svg }} /><div><p className="empty-kicker">留一点空白给自己</p><h2>这天，<br /><mark>自由发挥。</mark></h2><p>{scene.line}</p><button className="btn btn-green" onClick={() => navigate("add")}>＋ 记一条</button></div></div>}
+        {!ready ? <p className="empty" role="status">正在读取本地日程…</p> : dayTasks.length ? renderRows(dayTasks, day) : <div className="today-empty"><div className="empty-art" data-scene={scene.name} aria-hidden="true" dangerouslySetInnerHTML={{ __html: scene.svg }} /><div><p className="empty-kicker">留一点空白给自己</p><h2>这天，<br /><mark>自由发挥。</mark></h2><p>{scene.line}</p><button className="btn btn-green" onClick={() => navigate("add")}>＋ 记一条</button></div></div>}
         {dayConflicts.map(c => <div className="note" key={c.conflictId}><span className="note-dot" /><div><h3 className="note-title">{c.humanMessage}</h3><p className="note-detail">{c.involvedTaskIds.map(id => store.tasks.find(t => t.id === id)?.title).filter(Boolean).join(" / ")}</p></div></div>)}
       </section>
       {dayConflicts.length > 0 && dayTasks.some(t => !t.done && !t.locked && !t.repeat && t.durationMin > 0) && <div className="plan-entry"><button className="btn btn-green" onClick={() => setShowPlan(!showPlan)} aria-expanded={showPlan}>{showPlan ? "收起建议" : "帮我重排这一天 ↗"}</button></div>}

@@ -1,0 +1,629 @@
+{
+  "date": "2026-10-25",
+  "checks": [
+    {
+      "name": "term-start setting removed",
+      "pass": true
+    },
+    {
+      "name": "profile username receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "profile username accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "profile username keeps focus",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 0",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 1",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 2",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 3",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 4",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 5",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 6",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 7",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 8",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 9",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 10",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 11",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 12",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 13",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 14",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 15",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 16",
+      "pass": true
+    },
+    {
+      "name": "profile Tab 17",
+      "pass": true
+    },
+    {
+      "name": "profile ShiftTab 0",
+      "pass": true
+    },
+    {
+      "name": "profile ShiftTab 1",
+      "pass": true
+    },
+    {
+      "name": "profile ShiftTab 2",
+      "pass": true
+    },
+    {
+      "name": "profile ShiftTab 3",
+      "pass": true
+    },
+    {
+      "name": "profile ShiftTab 4",
+      "pass": true
+    },
+    {
+      "name": "profile ShiftTab 5",
+      "pass": true
+    },
+    {
+      "name": "typed username persists after reload",
+      "pass": true
+    },
+    {
+      "name": "main intake receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "main intake accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "main intake keeps focus",
+      "pass": true
+    },
+    {
+      "name": "clarification date receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "clarification date accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "clarification date keeps focus",
+      "pass": true
+    },
+    {
+      "name": "clarification duration receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "clarification duration accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "clarification duration keeps focus",
+      "pass": true
+    },
+    {
+      "name": "correction title receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "correction title accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "correction title keeps focus",
+      "pass": true
+    },
+    {
+      "name": "correction location receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "correction location accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "correction location keeps focus",
+      "pass": true
+    },
+    {
+      "name": "correction duration receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "correction duration accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "correction duration keeps focus",
+      "pass": true
+    },
+    {
+      "name": "correction explanation linked",
+      "pass": true
+    },
+    {
+      "name": "correction can be checked",
+      "pass": true
+    },
+    {
+      "name": "correction checkbox stays compact",
+      "pass": true
+    },
+    {
+      "name": "correction-320 dialog fits",
+      "pass": true
+    },
+    {
+      "name": "correction-320 explanation fits",
+      "pass": true
+    },
+    {
+      "name": "correction-390 dialog fits",
+      "pass": true
+    },
+    {
+      "name": "correction-390 explanation fits",
+      "pass": true
+    },
+    {
+      "name": "correction-1440 dialog fits",
+      "pass": true
+    },
+    {
+      "name": "correction-1440 explanation fits",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 0",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 1",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 2",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 3",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 4",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 5",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 6",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 7",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 8",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 9",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 10",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 11",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 12",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 13",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 14",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 15",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 16",
+      "pass": true
+    },
+    {
+      "name": "correction Tab 17",
+      "pass": true
+    },
+    {
+      "name": "correction ShiftTab 0",
+      "pass": true
+    },
+    {
+      "name": "correction ShiftTab 1",
+      "pass": true
+    },
+    {
+      "name": "correction ShiftTab 2",
+      "pass": true
+    },
+    {
+      "name": "correction ShiftTab 3",
+      "pass": true
+    },
+    {
+      "name": "correction ShiftTab 4",
+      "pass": true
+    },
+    {
+      "name": "correction ShiftTab 5",
+      "pass": true
+    },
+    {
+      "name": "parse does not save without confirmation",
+      "pass": true
+    },
+    {
+      "name": "corrected fields saved",
+      "pass": true
+    },
+    {
+      "name": "image hint receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "image hint accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "image hint keeps focus",
+      "pass": true
+    },
+    {
+      "name": "manual title receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "manual title accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "manual title keeps focus",
+      "pass": true
+    },
+    {
+      "name": "manual location receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "manual location accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "manual location keeps focus",
+      "pass": true
+    },
+    {
+      "name": "manual explanation linked",
+      "pass": true
+    },
+    {
+      "name": "manual can be checked",
+      "pass": true
+    },
+    {
+      "name": "manual checkbox stays compact",
+      "pass": true
+    },
+    {
+      "name": "manual-1440 dialog fits",
+      "pass": true
+    },
+    {
+      "name": "manual-1440 explanation fits",
+      "pass": true
+    },
+    {
+      "name": "manual fields saved",
+      "pass": true
+    },
+    {
+      "name": "search receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "search accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "search keeps focus",
+      "pass": true
+    },
+    {
+      "name": "task editor title receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "task editor title accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "task editor title keeps focus",
+      "pass": true
+    },
+    {
+      "name": "task editor location receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "task editor location accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "task editor location keeps focus",
+      "pass": true
+    },
+    {
+      "name": "task editor explanation linked",
+      "pass": true
+    },
+    {
+      "name": "task editor can be checked",
+      "pass": true
+    },
+    {
+      "name": "task editor checkbox stays compact",
+      "pass": true
+    },
+    {
+      "name": "task-edit-320 dialog fits",
+      "pass": true
+    },
+    {
+      "name": "task-edit-320 explanation fits",
+      "pass": true
+    },
+    {
+      "name": "task-edit-390 dialog fits",
+      "pass": true
+    },
+    {
+      "name": "task-edit-390 explanation fits",
+      "pass": true
+    },
+    {
+      "name": "task-edit-1440 dialog fits",
+      "pass": true
+    },
+    {
+      "name": "task-edit-1440 explanation fits",
+      "pass": true
+    },
+    {
+      "name": "fixed task remains manually editable",
+      "pass": true
+    },
+    {
+      "name": "clear search receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "clear search accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "clear search keeps focus",
+      "pass": true
+    },
+    {
+      "name": "empty days have varied illustrations",
+      "pass": true
+    },
+    {
+      "name": "search scene stability receives mouse focus",
+      "pass": true
+    },
+    {
+      "name": "search scene stability accepts keyboard typing",
+      "pass": true
+    },
+    {
+      "name": "search scene stability keeps focus",
+      "pass": true
+    },
+    {
+      "name": "unrelated typing leaves illustration stable",
+      "pass": true
+    },
+    {
+      "name": "replan loading retains focus",
+      "pass": true
+    },
+    {
+      "name": "loading does not submit twice",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 0",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 1",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 2",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 3",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 4",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 5",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 6",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 7",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 8",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 9",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 10",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 11",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 12",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 13",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 14",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 15",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 16",
+      "pass": true
+    },
+    {
+      "name": "replan loading Tab 17",
+      "pass": true
+    },
+    {
+      "name": "replan loading ShiftTab 0",
+      "pass": true
+    },
+    {
+      "name": "replan loading ShiftTab 1",
+      "pass": true
+    },
+    {
+      "name": "replan loading ShiftTab 2",
+      "pass": true
+    },
+    {
+      "name": "replan loading ShiftTab 3",
+      "pass": true
+    },
+    {
+      "name": "replan loading ShiftTab 4",
+      "pass": true
+    },
+    {
+      "name": "replan loading ShiftTab 5",
+      "pass": true
+    },
+    {
+      "name": "replan still applies",
+      "pass": true
+    },
+    {
+      "name": "Escape closes sheet",
+      "pass": true
+    },
+    {
+      "name": "no browser runtime errors",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "scenes": [
+    "大树",
+    "书",
+    "风筝",
+    "篮球",
+    "耳机",
+    "足球",
+    "太阳",
+    "篮球"
+  ],
+  "notes": "Actual mouse clicks + keyboard typing; clarification uses a controlled parser response. Replan uses local rules, no live model key."
+}
