@@ -14,7 +14,7 @@ import nextVitals from "eslint-config-next/core-web-vitals";
  */
 export default defineConfig([
   ...nextVitals,
-  globalIgnores([".next/**", "node_modules/**", "coverage/**", "data/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", "node_modules/**", "coverage/**", "data/**", "next-env.d.ts", "public/animations/orchard/p5.js", "public/animations/orchard/p5.brush.min.js"]),
   {
     // 展示层与业务逻辑层：不许直连持久化适配层的底层实现，更不许碰 AI 编排层。
     // 例外：`@/data/store` 是 UI 读取/写入状态的唯一入口（store 本身就是状态层）。
