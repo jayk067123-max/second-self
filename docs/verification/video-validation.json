@@ -17,20 +17,21 @@
   ],
   "format": {
     "duration": "459.503220",
-    "size": "11644618"
+    "size": "11811381"
   },
   "date": "2026-10-25",
   "fullDecodeExit": 0,
   "fullDecodeErrors": "",
   "processReplaySeconds": 161,
   "processDisclosure": "Existing records replay, not original core Prompt-chain exports.",
-  "sha256": "a786794591cfbbd76d4acd2b2710b25b2a6d22f6a338546f2dd61f04c534890a",
+  "sha256": "a549b54dbd698f63c87065f27918f0fb69cfc46d7f43306c9259e5428b177500",
   "recordingPageErrors": [],
   "sourceRuntimeIdentical": true,
-  "latestUnitTests": 378,
-  "replanBrowserChecks": 45,
+  "latestUnitTests": 385,
+  "refinementBrowserChecks": 44,
+  "historicalReplanBrowserChecks": 45,
   "liveModelTested": true,
-  "liveModelScope": "Synthetic two-line text and matching image, plus guarded replan; not accuracy benchmark.",
-  "applicationRecordingMode": "Explicit no-key local-rule server on port 3019",
+  "liveModelScope": "Synthetic two-line text and matching image, guarded replan and one natural-language feedback sample returning three guarded plans; not accuracy benchmark.",
+  "applicationRecordingMode": "Refinement and undo segments recorded on explicit no-key local-rule server port 3020; other application footage retains explicitly disclosed local-rule mode.",
   "livePreviewPort": 3018
 }

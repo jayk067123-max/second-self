@@ -13,7 +13,9 @@ import type {
   ParseTasksResponse,
   ReplanResponse,
   RejectedPlan,
+  ReplanRequest,
 } from "@/domain/schemas/api";
+import { DEFAULT_DETECT_CONFIG, detectConflicts } from "@/domain/conflicts";
 import { readAiConfig, type AiRuntimeConfig } from "./client";
 import { guardPlan } from "@/domain/planGuard";
 import { demoParseTasks, demoReplanPlans } from "./demo";
@@ -200,7 +202,7 @@ export async function parseTasksFromImage(
 }
 
 export async function replanForDay(
-  input: { tasks: Task[]; dayKey: string; now?: string; termStartDayKey?: string | null },
+  input: ReplanRequest,
   config: AiRuntimeConfig = readAiConfig(),
 ): Promise<ReplanResponse> {
   const schedulable = input.tasks.filter((t) => !t.done && t.durationMin > 0);
@@ -215,13 +217,17 @@ export async function replanForDay(
   }
 
   if (config.mode === "demo") {
+    if (input.feedback?.trim()) return { ok: false, mode: "demo", error: "补充调整需要AI服务，当前未配置。原方案已保留。", issues: [], timings: [] };
     const plans = demoReplanPlans(input.tasks, input.dayKey, input.now ? new Date(input.now) : undefined, input.termStartDayKey ?? null);
     return finalizePlans(plans, input, "demo", [], false, [
       { phase: "本地确定性重排", ms: 0 },
     ]);
   }
 
-  const user = buildReplanUser(input.dayKey, input.tasks);
+  const user = buildReplanUser(input.dayKey, input.tasks, { now: input.now, feedback: input.feedback, previousPlan: input.previousPlan,
+    constraints: { gapMin: DEFAULT_DETECT_CONFIG.gapMin, dayCapacityMin: DEFAULT_DETECT_CONFIG.dayCapacityMin,
+      conflicts: detectConflicts(input.tasks, { ...DEFAULT_DETECT_CONFIG, termStartDayKey: input.termStartDayKey ?? null, repeatWindowStartDayKey: input.dayKey }, new Date(input.now ?? input.dayKey + "T00:00:00+08:00")).map(conflict => ({ date: conflict.date, taskIds: conflict.involvedTaskIds, reason: conflict.humanMessage })) } });
+  let guardFailures: RejectedPlan[] = [];
   const result = await callStructuredJson({
     schema: AiReplanOutputSchema,
     system: REPLAN_SYSTEM,
@@ -229,9 +235,19 @@ export async function replanForDay(
     buildRepairUser: (issues) => buildRepairUser(user, issues),
     config,
     maxOutputTokens: 2500,
+    validate: output => {
+      const verdicts = output.plans.map((plan, index) => ({ plan, verdict: guardPlan({ ...plan, id: "candidate-" + index }, input.tasks, input) }));
+      guardFailures = verdicts.filter(item => !item.verdict.ok).map(item => ({ title: item.plan.title, issues: item.verdict.issues }));
+      return verdicts.some(item => item.verdict.ok) ? [] : [...new Set(guardFailures.flatMap(plan => plan.issues))].slice(0, 12);
+    },
   });
 
   if (!result.ok) {
+    if (guardFailures.length) {
+      if (input.feedback?.trim()) return { ok: false, mode: "live", error: "暂时没有通过校验的调整，请换个要求重试。原方案已保留。", issues: result.issues, timings: result.timings };
+      const plans = demoReplanPlans(input.tasks, input.dayKey, input.now ? new Date(input.now) : undefined, input.termStartDayKey ?? null);
+      return finalizePlans(plans, input, "live", guardFailures, true, result.timings);
+    }
     return {
       ok: false,
       mode: "live",
@@ -260,6 +276,7 @@ export async function replanForDay(
   }
 
   if (legal.length === 0) {
+    if (input.feedback?.trim()) return { ok: false, mode: "live", error: "暂时没有通过校验的调整，请换个要求重试。原方案已保留。", issues: rejected.flatMap(plan => plan.issues), timings: result.timings };
     // 模型方案全部不可落地：改用确定性兜底，并把否决理由如实回传
     const plans = demoReplanPlans(input.tasks, input.dayKey, input.now ? new Date(input.now) : undefined, input.termStartDayKey ?? null);
     return finalizePlans(plans, input, "live", rejected, true, result.timings);

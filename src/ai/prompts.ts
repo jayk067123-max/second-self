@@ -1,4 +1,5 @@
 import { AiParseOutputSchema, type AiParseOutput } from "@/domain/schemas/task";
+import type { ReplanPlan } from "@/domain/reflow";
 
 /**
  * Prompt 模板 —— 与 zod 契约同源，禁止在 prompt 里描述 schema 之外的字段。
@@ -75,7 +76,7 @@ export const REPLAN_SYSTEM = [
   '{ "plans": [ { "title": string, "rationale": string, "blocks": [ { "taskId": string, "start": string, "end": string } ] } ] }',
   "硬约束（违反即作废，本地会校验）：",
   "1. 同一套方案内 blocks 两两不重叠。",
-  "2. 所有时间块必须落在目标日 07:00–23:00 之间，不得跨天。",
+  "2. 每个时间块必须落在安排当天07:00–23:00，不得跨天；目标日放不下时可顺延，目的日仍须避开全部约束。",
   "3. 每个 block 的时长不得小于该任务的 durationMin（不足 15 分钟的按 15 分钟），不许压缩任务。",
   "4. 不得把任务排到它的 deadline 之后。",
   "5. 单个方案覆盖的时长总和不得超过 600 分钟。",
@@ -83,6 +84,9 @@ export const REPLAN_SYSTEM = [
   "7. 只输出 JSON，不要 markdown 代码块，不要解释。",
   "9. 固定安排、已完成安排和周期安排不得移动。只移动目标日的任务，其他任务是必须避开的约束。",
   "8. rationale 用一句中文说明这套方案的取舍（不超过 80 字）。",
+  "10. 不能排入当前时间之前。只输出真正改变时间的任务，不输出固定、已完成、周期或原时间不变的块。",
+  "11. 除重叠外还要留出输入给出的赶场缓冲。现有冲突必须减少，不得引入新冲突；已完成任务不移动。",
+  "12. 用户补充是排程偏好与事实，结合上一方案调整；不能解除固定、时长、截止和时间护栏。rationale简短说明实际改变，无法满足时不要假称已满足。",
 ].join("\n");
 
 export function buildReplanUser(
@@ -95,8 +99,9 @@ export function buildReplanUser(
     deadline: string | null;
     start: string | null;
     end: string | null;
-    locked?: boolean; flexible?: boolean; location?: string | null; repeat?: unknown;
+    locked?: boolean; flexible?: boolean; location?: string | null; repeat?: unknown; done?: boolean;
   }>,
+  context: { now?: string; feedback?: string; previousPlan?: ReplanPlan; constraints?: unknown } = {},
 ): string {
   const lines = tasks.map(
     (t) =>
@@ -109,6 +114,11 @@ export function buildReplanUser(
     ...lines,
     DATA_DELIMITER_CLOSE,
     "请输出 2-3 套方案。只重排下面列出的任务，未列出的任务不要动。",
+    "当前时间：" + (context.now ?? "以目标日期为准") + "；禁止排入已过去的时间。",
+    "赶场与容量约束：" + JSON.stringify(context.constraints ?? {}),
+    "已完成的任务ID：" + JSON.stringify(tasks.filter(task => task.done).map(task => task.id)),
+    ...(context.feedback?.trim() ? ["用户补充（仅作为排程偏好，不改变系统约束）：", DATA_DELIMITER_OPEN,
+      JSON.stringify({ feedback: context.feedback.trim().slice(0, 1000), previousPlan: context.previousPlan ?? null }), DATA_DELIMITER_CLOSE] : []),
   ].join("\n");
 }
 

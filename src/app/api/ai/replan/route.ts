@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ReplanRequestSchema } from "@/domain/schemas/api";
 import { replanForDay } from "@/ai/tasks";
 import { checkRateLimit, clientKeyOf } from "@/ai/ratelimit";
+import { readAiConfig } from "@/ai/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,10 +13,11 @@ export const dynamic = "force-dynamic";
  * 被否决的方案连同原因一起返回（透明化）。
  */
 export async function POST(request: Request) {
+  const mode = readAiConfig().mode;
   const limit = checkRateLimit(`replan:${clientKeyOf(request)}`);
   if (!limit.allowed) {
     return NextResponse.json(
-      { ok: false, error: `请求太频繁，请 ${limit.retryAfterSec} 秒后再试`, issues: [], timings: [] },
+      { ok: false, mode, error: `请求太频繁，请 ${limit.retryAfterSec} 秒后再试`, issues: [], timings: [] },
       { status: 429, headers: { "retry-after": String(limit.retryAfterSec) } },
     );
   }
@@ -25,7 +27,7 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { ok: false, error: "请求体不是合法 JSON", issues: [], timings: [] },
+      { ok: false, mode, error: "请求体不是合法 JSON", issues: [], timings: [] },
       { status: 400 },
     );
   }
@@ -35,6 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
+        mode,
         error: "请求参数不合法",
         issues: parsed.error.issues.map((i) => `${i.path.join(".") || "(根)"}: ${i.message}`),
         timings: [],

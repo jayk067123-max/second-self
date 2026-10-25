@@ -40,6 +40,8 @@ export interface StructuredCallOptions<T> {
   config: AiRuntimeConfig;
   /** 输出 token 上限，防止某次调用把费用打爆 */
   maxOutputTokens?: number;
+  /** JSON结构通过后继续核验业务约束；失败原因进入同一有界修复轮。 */
+  validate?: (data: T) => string[];
 }
 
 function now(): number {
@@ -125,6 +127,11 @@ export async function callStructuredJson<T>(
     const result = schema.safeParse(parsedJson);
     timings.push({ phase: `校验 #${attempt}`, ms: now() - tValidate });
     if (result.success) {
+      issues = options.validate?.(result.data) ?? [];
+      if (issues.length) {
+        timings.push({ phase: "业务约束校验", ms: now() - tValidate });
+        continue;
+      }
       return { ok: true, data: result.data, attempts: attempt, timings };
     }
     issues = formatIssues(result.error);
@@ -132,7 +139,7 @@ export async function callStructuredJson<T>(
 
   return {
     ok: false,
-    error: "模型连续返回了不符合契约的结构，已停止重试",
+    error: "模型返回内容未通过校验，已停止重试",
     issues,
     attempts: attemptsAllowed,
     timings,

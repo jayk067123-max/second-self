@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-25",
+  "input": {
+    "tasks": [
+      {
+        "start": "2026-10-28T14:00:00+08:00",
+        "end": "2026-10-28T15:00:00+08:00",
+        "durationMin": 60,
+        "deadline": null,
+        "priority": 2,
+        "source": "manual",
+        "done": false,
+        "rawTextOrigin": null,
+        "location": "图书馆",
+        "repeat": null,
+        "needsReview": false,
+        "id": "fixed",
+        "title": "固定课程",
+        "locked": true
+      },
+      {
+        "start": "2026-10-28T14:00:00+08:00",
+        "end": "2026-10-28T15:00:00+08:00",
+        "durationMin": 60,
+        "deadline": null,
+        "priority": 2,
+        "source": "manual",
+        "done": false,
+        "rawTextOrigin": null,
+        "location": "图书馆",
+        "repeat": null,
+        "needsReview": false,
+        "id": "move",
+        "title": "实验报告",
+        "locked": false
+      }
+    ],
+    "dayKey": "2026-10-28",
+    "now": "2026-10-25T17:00:00+08:00",
+    "feedback": "实验报告请放在10月28日晚上19:00以后，21:30之前结束，固定课程不要动。",
+    "previousPlan": {
+      "id": "ai-plan-1",
+      "title": "方案一：上午优先",
+      "rationale": "把整理实验报告放在上午精力较好时段，避开固定课程。",
+      "blocks": [
+        {
+          "taskId": "move",
+          "start": "2026-10-28T09:00:00+08:00",
+          "end": "2026-10-28T10:00:00+08:00"
+        }
+      ]
+    }
+  },
+  "status": 200,
+  "elapsedSeconds": 2.0,
+  "response": {
+    "ok": true,
+    "mode": "live",
+    "plans": [
+      {
+        "id": "ai-plan-1",
+        "title": "方案一：晚间实验报告",
+        "rationale": "将实验报告移到19:00-20:00，避开固定课程并满足晚间偏好。",
+        "blocks": [
+          {
+            "taskId": "move",
+            "start": "2026-10-28T19:00:00+08:00",
+            "end": "2026-10-28T20:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "id": "ai-plan-2",
+        "title": "方案二：晚间稍后",
+        "rationale": "将实验报告安排在20:00-21:00，仍在21:30前结束且不与课程冲突。",
+        "blocks": [
+          {
+            "taskId": "move",
+            "start": "2026-10-28T20:00:00+08:00",
+            "end": "2026-10-28T21:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "id": "ai-plan-3",
+        "title": "方案三：晚间收尾",
+        "rationale": "将实验报告放在20:30-21:30，卡在偏好截止前完成。",
+        "blocks": [
+          {
+            "taskId": "move",
+            "start": "2026-10-28T20:30:00+08:00",
+            "end": "2026-10-28T21:30:00+08:00"
+          }
+        ]
+      }
+    ],
+    "rejected": [],
+    "fallback": false,
+    "timings": [
+      {
+        "phase": "模型调用 #1",
+        "ms": 1535
+      },
+      {
+        "phase": "校验 #1",
+        "ms": 1
+      }
+    ]
+  }
+}

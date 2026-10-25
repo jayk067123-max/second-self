@@ -21,6 +21,8 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
   const [selected, setSelected] = useState("");
   const [applied, setApplied] = useState("");
   const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [includedFeedback, setIncludedFeedback] = useState("");
   const applyPlan = usePlannerStore(s => s.applyPlanWithSnapshot);
   const active = result?.plans.find(plan => plan.id === selected);
   const config = { ...DEFAULT_DETECT_CONFIG, termStartDayKey, repeatWindowStartDayKey: dayKey };
@@ -28,23 +30,26 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
   const changes = active ? planChanges(active, baseline) : [];
   const stale = !!result && JSON.stringify(tasks) !== fingerprint;
   const blocked = !!metrics?.movedLockedTitles.length || changes.some(change => change.missing);
+  const feedbackChanged = !!result && feedback.trim() !== includedFeedback;
 
   async function request() {
     if (phase === "loading" || tasks.length === 0) return;
-    setPhase("loading"); setError(""); setApplied(""); setResult(null);
+    setPhase("loading"); setError("");
     const original = tasks;
     try {
       const response = await fetch("/api/ai/replan", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tasks: original, dayKey, now: now.toISOString(), termStartDayKey }),
+        body: JSON.stringify({ tasks: original, dayKey, now: now.toISOString(), termStartDayKey,
+          feedback: feedback.trim() || undefined, previousPlan: feedback.trim() ? active : undefined }),
       });
       const parsed = ReplanResponseSchema.safeParse(await response.json());
       if (!parsed.success) throw new Error("方案格式有误，请重新生成");
       if (!parsed.data.ok) throw new Error(parsed.data.error);
-      setBaseline(original); setFingerprint(JSON.stringify(original));
+      setBaseline(original); setFingerprint(JSON.stringify(original)); setApplied("");
+      setIncludedFeedback(feedback.trim());
       setResult(parsed.data); setSelected(parsed.data.plans[0]?.id ?? ""); setPhase("ready");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "暂时无法生成，请稍后重试"); setPhase("idle");
+      setError(cause instanceof Error ? cause.message : "暂时无法生成，请稍后重试"); setPhase(result ? "ready" : "idle");
     }
   }
 
@@ -67,10 +72,10 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
     {phase === "loading" && <div className="replan-loading" role="status"><span className="loading-orbit" aria-hidden="true" />正在整理调整方案</div>}
     {error && <p className="replan-warning" role="alert">{error}</p>}
     {!tasks.length && <p className="replan-empty">先添加几条日程</p>}
-    {phase === "ready" && result && <>
-      {result.fallback && <p className="replan-mode">AI暂未给出可用方案，已使用本地规划</p>}
+    {result && <>
+      {(result.fallback || result.mode === "demo") && <span className="replan-source" title={result.fallback ? "AI方案未通过时间与冲突校验，当前由本地规则生成" : "当前未配置AI，使用本地规则生成"}>本地方案</span>}
       {!!result.plans.length && <div className="replan-choices" role="group" aria-label="选择方案">{result.plans.map((plan, index) =>
-        <button type="button" key={plan.id} aria-pressed={selected === plan.id} onClick={() => setSelected(plan.id)}>
+        <button type="button" key={plan.id} disabled={phase === "loading"} aria-pressed={selected === plan.id} onClick={() => setSelected(plan.id)}>
           <span className="replan-choice-number">{String(index + 1).padStart(2, "0")}</span><span>{plan.title}</span>
         </button>
       )}</div>}
@@ -78,6 +83,7 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
         <div className="replan-overview"><div><span className="replan-eyebrow">这套方案</span><h3>{active.title}</h3></div>
           <div className="replan-stat"><span>整体冲突</span><strong>{metrics.conflictsBefore}<i aria-hidden="true">→</i>{metrics.conflictsAfter}</strong></div>
         </div>
+        {includedFeedback && <p className="replan-answer">{active.rationale}</p>}
         <div className="replan-change-head"><h4>调整 {changes.length} 项</h4><span>其余安排不变</span></div>
         <ol className="replan-change-list">{changes.map(change => <li key={change.taskId}>
           <h4>{change.title}</h4><div className="replan-time-change">
@@ -92,15 +98,20 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
           : <p className="replan-clear">✓ 已避开冲突</p>}
         {stale && !applied && <p className="replan-warning" role="status">日程已变化，请重新生成</p>}
         <div className="replan-apply"><span>{applied ? "已应用 · 可撤销" : "确认后才会更新日程"}</span>
-          <button type="button" className="btn btn-green" disabled={blocked || stale || !changes.length || !!applied} onClick={() => apply(active)}>
+          <button type="button" className="btn btn-green" disabled={phase === "loading" || blocked || stale || feedbackChanged || !changes.length || !!applied} onClick={() => apply(active)}>
             {applied === active.id ? "已采用" : applied ? "已采用其他方案" : "采用这套安排"}
           </button>
         </div>
       </article>}
       {!active && <p className="replan-empty">暂时没有可行的调整，请手动修改日程</p>}
-      {result.rejected.length > 0 && <details className="replan-rejected"><summary>未采用的建议 · {result.rejected.length}</summary>
-        {result.rejected.map((plan, index) => <p key={index}><strong>{plan.title}</strong> · {plan.issues[0] ?? "未通过日程校验"}</p>)}
-      </details>}
+      <form className="replan-feedback" onSubmit={event => { event.preventDefault(); void request(); }}>
+        <label htmlFor="replan-feedback">想怎么调整？</label>
+        <textarea id="replan-feedback" value={feedback} readOnly={phase === "loading"} onChange={event => setFeedback(event.target.value)} maxLength={1000}
+          placeholder="比如：晚饭后留出一小时，实验报告优先安排。" />
+        <div><span role="status">{feedbackChanged ? "补充尚未应用" : includedFeedback ? "已结合补充调整" : "补充偏好或说明"}</span>
+          <button type="submit" className="btn btn-green" disabled={!feedback.trim() || !!applied || stale} aria-disabled={phase === "loading"} aria-busy={phase === "loading"}>{phase === "loading" ? "正在调整…" : "按补充调整"}</button></div>
+        {applied && <p>已采用当前方案。需要继续调整时，请先重新生成。</p>}
+      </form>
     </>}
   </section>;
 }

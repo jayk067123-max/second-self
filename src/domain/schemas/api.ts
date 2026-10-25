@@ -101,6 +101,8 @@ export type ParseImageResponse = ParseTasksResponse;
 
 export const ReplanRequestSchema = z.object({
   tasks: z.array(TaskSchema).max(300),
+  feedback: z.string().trim().max(1000, "补充要求请控制在1000字以内").optional(),
+  previousPlan: ReplanPlanSchema.optional(),
   now: z.string().datetime({ offset: true }).optional(),
   termStartDayKey: z.string().regex(DAY_KEY_RE).nullable().optional(),
   dayKey: z.string().regex(DAY_KEY_RE, "dayKey 必须是 YYYY-MM-DD"),
