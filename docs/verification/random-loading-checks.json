@@ -1,0 +1,266 @@
+{
+  "date": "2026-10-25",
+  "playbackRate": 2,
+  "passed": 124,
+  "runs": [
+    {
+      "date": "2026-10-25",
+      "passed": 44,
+      "checks": [
+        "garden uses actual 2x engine clock",
+        "garden does not signal halfway",
+        "garden canvas really changes in reduced-motion mode",
+        "garden completes all original brush strokes",
+        "garden keeps full 0.75s hold at 2x",
+        "garden cannot skip full visible cycle",
+        "garden fits mobile frame",
+        "dawn uses actual 2x engine clock",
+        "dawn does not signal halfway",
+        "dawn canvas really changes in reduced-motion mode",
+        "dawn completes all original brush strokes",
+        "dawn keeps full 0.75s hold at 2x",
+        "dawn cannot skip full visible cycle",
+        "dawn fits mobile frame",
+        "wisteria uses actual 2x engine clock",
+        "wisteria does not signal halfway",
+        "wisteria canvas really changes in reduced-motion mode",
+        "wisteria completes all original brush strokes",
+        "wisteria keeps full 0.75s hold at 2x",
+        "wisteria cannot skip full visible cycle",
+        "wisteria fits mobile frame",
+        "roses uses actual 2x engine clock",
+        "roses does not signal halfway",
+        "roses canvas really changes in reduced-motion mode",
+        "roses completes all original brush strokes",
+        "roses keeps full 0.75s hold at 2x",
+        "roses cannot skip full visible cycle",
+        "roses fits mobile frame",
+        "koi uses actual 2x engine clock",
+        "koi does not signal halfway",
+        "koi canvas really changes in reduced-motion mode",
+        "koi completes all original brush strokes",
+        "koi keeps full 0.75s hold at 2x",
+        "koi cannot skip full visible cycle",
+        "koi fits mobile frame",
+        "oranges uses actual 2x engine clock",
+        "oranges does not signal halfway",
+        "oranges canvas really changes in reduced-motion mode",
+        "oranges completes all original brush strokes",
+        "oranges keeps full 0.75s hold at 2x",
+        "oranges cannot skip full visible cycle",
+        "oranges fits mobile frame",
+        "all six styles zero page errors",
+        "all assets local no external animation requests"
+      ],
+      "samples": [
+        {
+          "id": "garden",
+          "wallMs": 7485,
+          "visibleFirstCycleMs": 7440.5,
+          "strokes": 55,
+          "frames": 183
+        },
+        {
+          "id": "dawn",
+          "wallMs": 6050,
+          "visibleFirstCycleMs": 6034.89999999851,
+          "strokes": 114,
+          "frames": 253
+        },
+        {
+          "id": "wisteria",
+          "wallMs": 5650,
+          "visibleFirstCycleMs": 5632.599999997765,
+          "strokes": 61,
+          "frames": 287
+        },
+        {
+          "id": "roses",
+          "wallMs": 5658,
+          "visibleFirstCycleMs": 5644.699999999255,
+          "strokes": 42,
+          "frames": 264
+        },
+        {
+          "id": "koi",
+          "wallMs": 5498,
+          "visibleFirstCycleMs": 5480.599999997765,
+          "strokes": 35,
+          "frames": 293
+        },
+        {
+          "id": "oranges",
+          "wallMs": 5647,
+          "visibleFirstCycleMs": 5634.300000000745,
+          "strokes": 47,
+          "frames": 278
+        }
+      ],
+      "pageErrors": [],
+      "externalRequests": []
+    },
+    {
+      "date": "2026-10-25",
+      "passed": 66,
+      "checks": [
+        "canvas autoplay 0",
+        "no play control 0",
+        "reduced motion still advances real drawing frames",
+        "initial hydration keeps 2x full drawing and hold",
+        "initial hydration received actual completion",
+        "canvas autoplay 1",
+        "no play control 1",
+        "new parse starts from drawing",
+        "actual canvas pixels change",
+        "fast text response keeps 2x full drawing and hold",
+        "fast text response received actual completion",
+        "canvas autoplay 2",
+        "no play control 2",
+        "fast parse failure keeps 2x full drawing and hold",
+        "fast parse failure received actual completion",
+        "error displayed only after cycle",
+        "canvas autoplay 3",
+        "no play control 3",
+        "parse retry keeps 2x full drawing and hold",
+        "parse retry received actual completion",
+        "canvas autoplay 4",
+        "no play control 4",
+        "image parsing keeps 2x full drawing and hold",
+        "image parsing received actual completion",
+        "canvas autoplay 5",
+        "no play control 5",
+        "avatar save blocked during processing",
+        "avatar processing keeps 2x full drawing and hold",
+        "avatar processing received actual completion",
+        "custom avatar prepared",
+        "canvas autoplay 6",
+        "no play control 6",
+        "JSON import keeps 2x full drawing and hold",
+        "JSON import received actual completion",
+        "import reported",
+        "tabbar at viewport bottom 320",
+        "no page overflow 320",
+        "tabbar at viewport bottom 390",
+        "no page overflow 390",
+        "tabbar at viewport bottom 768",
+        "no page overflow 768",
+        "tabbar at viewport bottom 1366",
+        "no page overflow 1366",
+        "tabbar at viewport bottom 1440",
+        "no page overflow 1440",
+        "canvas autoplay 7",
+        "no play control 7",
+        "slow request continues after completed first cycle",
+        "slow request keeps cycling",
+        "slow plan generation keeps 2x full drawing and hold",
+        "slow plan generation received actual completion",
+        "canvas autoplay 8",
+        "no play control 8",
+        "apply blocked while refining",
+        "refine failure keeps 2x full drawing and hold",
+        "refine failure received actual completion",
+        "failed refine retains input",
+        "failed refine does not change data",
+        "canvas autoplay 9",
+        "no play control 9",
+        "refine success keeps 2x full drawing and hold",
+        "refine success received actual completion",
+        "first six actual waits use all six supplied animations",
+        "successive waits do not repeat one style",
+        "zero page errors",
+        "zero external asset requests"
+      ],
+      "times": [
+        {
+          "name": "initial hydration",
+          "elapsedMs": 7989
+        },
+        {
+          "name": "fast text response",
+          "elapsedMs": 6239
+        },
+        {
+          "name": "fast parse failure",
+          "elapsedMs": 5850
+        },
+        {
+          "name": "parse retry",
+          "elapsedMs": 5831
+        },
+        {
+          "name": "image parsing",
+          "elapsedMs": 5839
+        },
+        {
+          "name": "avatar processing",
+          "elapsedMs": 5929
+        },
+        {
+          "name": "JSON import",
+          "elapsedMs": 5790
+        },
+        {
+          "name": "slow plan generation",
+          "elapsedMs": 6269
+        },
+        {
+          "name": "refine failure",
+          "elapsedMs": 6260
+        },
+        {
+          "name": "refine success",
+          "elapsedMs": 5843
+        }
+      ],
+      "chosen": [
+        "dawn",
+        "koi",
+        "garden",
+        "oranges",
+        "wisteria",
+        "roses",
+        "koi",
+        "garden",
+        "dawn",
+        "wisteria"
+      ],
+      "pageErrors": [],
+      "externalRequests": [],
+      "scope": "Real Chromium reduced-motion autoplay and 2x-speed complete visible drawing cycles. Controlled API responses reuse captured real synthetic results; no paid calls. Viewport screenshots, no full-page fixed navigation artifacts."
+    },
+    {
+      "date": "2026-10-25",
+      "passed": 6,
+      "cases": [
+        "animation error cannot masquerade as cycle complete",
+        "failed animation does not unlock waiting",
+        "retry starts a new live drawing from scratch",
+        "retry recovers only after real full cycle",
+        "explicit close cancels animation wait",
+        "closed parse never writes late tasks to account"
+      ],
+      "scope": "Controlled local asset failure and delayed synthetic API response. No paid model call."
+    },
+    {
+      "date": "2026-10-25",
+      "passed": 8,
+      "cases": [
+        "production autoplay at2x 1",
+        "production session wait finishes actual complete cycle",
+        "production autoplay at2x 2",
+        "production registration waits full painting",
+        "production autoplay at2x 3",
+        "production uses different variants across waits",
+        "logout also waits complete cycle",
+        "production zero page errors"
+      ],
+      "styles": [
+        "wisteria",
+        "garden",
+        "oranges"
+      ],
+      "pageErrors": [],
+      "port": 3021
+    }
+  ]
+}

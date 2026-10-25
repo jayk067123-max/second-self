@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>橘子逐笔绘画</title>
+  <style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f5f1e4}
+body{display:flex;align-items:center;justify-content:center}
+.frame,.sheet{width:100%;height:100%}.sheet canvas{display:block!important;width:100%!important;height:100%!important}#status{display:none}
+</style>
+  <!-- Load order matters: p5 first, then p5.brush (it registers itself as a p5 addon). -->
+  <script src="../shared/player.js"></script>
+  <script src="../shared/p5.js"></script>
+  <script src="../shared/p5.brush.min.js"></script>
+</head>
+<body>
+<main class="frame">
+  <div class="sheet" id="sheet"></div>
+  <div id="status" aria-live="polite"></div>
+</main>
+
+<script src="../shared/engine.js"></script>
+<script>
+// engine.js module state. Only functions are serialised below, so the two
+// non-function bindings the engine relies on are declared here by hand:
+// canvas dimensions (read by the vocabulary at call time) and the
+// scaleBrushes once-only guard.
+let W = 600, H = 600, m = 600;
+let brushScale = null;
+
+// The dials this style was tuned with.
+const S = {
+  "water": 0.55,
+  "coverage": 0.84,
+  "density": 0.5,
+  "scale": 1.1,
+  "soft": 0.7,
+  "glaze": 0.3,
+  "touch": 0.2,
+  "detail": 0.45,
+  "brushSize": 1.49,
+  "vivid": 0.45,
+  "flower": 1.8
+};
+
+const PALETTE = {
+  "seed": 1874,
+  "ground": "#eef0ea",
+  "washes": [
+    "#b7cfe2",
+    "#9fbfd9",
+    "#d7e3ea",
+    "#c2d4b0"
+  ],
+  "foliage": [
+    "#6f9a3f",
+    "#3f6b2f",
+    "#24401f",
+    "#a9c35a"
+  ],
+  "accents": [
+    "#f28c1e",
+    "#e5731a",
+    "#f7a23a",
+    "#c95a12"
+  ],
+  "highlights": [
+    "#fff6e0",
+    "#fdf1c9"
+  ],
+  "phrases": [
+    "creating…",
+    "clearing the sky…",
+    "growing the leaves…",
+    "ripening…",
+    "finished"
+  ]
+};
+
+const rr = (a, b) => random(a, b);
+
+const pickOne = (arr) => arr[Math.floor(random(arr.length))];
+
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+function hexRgb(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join(''); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+
+function mixHex(a, b, t) { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+
+function hexHsl(hex) {
+  const [r, g, b] = hexRgb(hex).map((v) => v / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (max !== min) { const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min); if (max === r) h = (g - b) / d + (g < b ? 6 : 0); else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h /= 6; }
+  return [h, s, l];
+}
+
+function hslHex(h, s, l) {
+  const f = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p + (q - p) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6; return p; };
+  let r, g, b;
+  if (s === 0) { r = g = b = l; } else { const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; r = f(p, q, h + 1 / 3); g = f(p, q, h); b = f(p, q, h - 1 / 3); }
+  return '#' + [r, g, b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+}
+
+function vivid(hex, amt) { if (!amt) return hex; const [h, s, l] = hexHsl(hex); return hslHex(h, s + (1 - s) * amt, l - (l - 0.45) * amt * 0.5); }
+
+function jitterEllipse(cx, cy, rx, ry, n, jitter, rot = 0) {
+  const pts = [], a0 = rr(0, TWO_PI), cr = Math.cos(rot), sr = Math.sin(rot);
+  for (let i = 0; i < n; i++) {
+    const a = a0 + (i / n) * TWO_PI, k = 1 + rr(-jitter, jitter);
+    const x = Math.cos(a) * rx * k, y = Math.sin(a) * ry * k;
+    pts.push([cx + x * cr - y * sr, cy + x * sr + y * cr]);
+  }
+  return pts;
+}
+
+function bandPolygon(y0, y1, wobble, n = 9) {
+  const top = [], bottom = [];
+  for (let i = 0; i <= n; i++) { const x = -10 + (W + 20) * (i / n); top.push([x, y0 + rr(-wobble, wobble)]); bottom.push([x, y1 + rr(-wobble, wobble)]); }
+  return top.concat(bottom.reverse());
+}
+
+const bboxOf = (pts, pad) => {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; }
+  return [Math.max(0, Math.floor(x0 - pad)), Math.max(0, Math.floor(y0 - pad)), Math.min(W, Math.ceil(x1 + pad)), Math.min(H, Math.ceil(y1 + pad))];
+};
+
+function fillStyle(color, opacity, bleed, texture, border) { brush.noStroke(); brush.noHatch(); brush.noWash(); brush.fill(color, opacity); brush.fillBleed(bleed, 'out'); brush.fillTexture(texture, border); }
+
+function washStyle(color, opacity) { brush.noStroke(); brush.noHatch(); brush.noFill(); brush.wash(color, opacity); }
+
+function strokeStyle(name, color, weight) { brush.noFill(); brush.noWash(); brush.noHatch(); brush.set(name, color, weight); }
+
+const D = (fn, bb, axis, dir, dur, gap = 60) => ({ fn, bb, axis, dir, dur, gap });
+
+const rdir = () => (random() < 0.5 ? 1 : -1);
+
+const raxis = () => (random() < 0.5 ? 'x' : 'y');
+
+function flushWash() {
+  brush.noStroke(); brush.noHatch(); brush.noWash();
+  brush.fill('#000000', 0); brush.fillBleed(0); brush.fillTexture(0, 0);
+  brush.polygon([[-8, -8], [-6, -8], [-6, -6]]);
+}
+
+function ensureBrushes(scale) {
+  if (brushScale !== null) {
+    if (Math.abs(brushScale - scale) > 1e-6) {
+      console.warn(`engine: brushes already scaled to ${brushScale}; ignoring request for ${scale}. ` +
+                   'scaleBrushes multiplies in place, so all canvases on a page must share one size.');
+    }
+    return;
+  }
+  brush.add('flick', { weight: 0.7, vibration: 0.12, definition: 0.9, quality: 0.8, opacity: 200, spacing: 0.1, pressure: { curve: [0.25, 0.25], min_max: [1.1, 0.85] } });
+  brush.add('rim', { weight: 0.45, vibration: 0.35, definition: 0.7, quality: 0.8, opacity: 190, spacing: 0.1, pressure: { curve: [0.15, 0.2], min_max: [1.2, 1] } });
+  brush.scaleBrushes(scale);
+  brushScale = scale;
+}
+
+function softBlobDraw(x, y, rx, ry, color, opacity, bleed, texture, rot = 0, jit = 0.12) {
+    const w = S.water - 0.5;
+    fillStyle(color, Math.round(opacity - w * 60), clamp01(bleed + w * 0.4), clamp01(texture + w * 0.2), 0.3);
+    brush.polygon(jitterEllipse(x, y, rx, ry, 14, jit, rot));
+  }
+
+function centerDot(x, y, r, color, opacity = 250) { washStyle(color, opacity); brush.polygon(jitterEllipse(x, y, r, r * rr(0.85, 1), 12, 0.14)); }
+
+function foliageCols(C) { const f = C.foliage; return { light: f[3] || mixHex(f[0], '#ffffff', 0.35), mid: f[0], deep: f[1] || f[0], shade: f[2] || mixHex(f[0], '#1f2f2a', 0.5) }; }
+
+function flickDraw(x, y, len, a, color, weight) { strokeStyle('flick', color, weight * S.brushSize); brush.line(x - Math.cos(a) * len / 2, y - Math.sin(a) * len / 2, x + Math.cos(a) * len / 2, y + Math.sin(a) * len / 2); }
+
+function dWash(color, opacity) {
+    const pts = [[-10, -10], [W + 10, -10], [W + 10, H + 10], [-10, H + 10]];
+    return D(() => { washStyle(color, opacity); brush.polygon(pts); }, [0, 0, W, H], 'x', rdir(), 700, 120);
+  }
+
+function dBand(y0, y1, color, opacity, wobble) {
+    const pts = bandPolygon(y0, y1, wobble), water = S.water;
+    const bleed = 0.25 + water * 0.5, texture = 0.3 + water * 0.5;
+    return D(() => { fillStyle(color, opacity, bleed, texture, 0.3); brush.polygon(pts); }, bboxOf(pts, m * 0.25), 'x', rdir(), 600, 100);
+  }
+
+function dBlob(x, y, rx, ry, color, opacity, bleed, texture, rot = 0, jit = 0.12, dur = 420) {
+    const big = Math.max(rx, ry), pad = big * 0.9 + 14;
+    const bb = [Math.max(0, x - big - pad), Math.max(0, y - big - pad), Math.min(W, x + big + pad), Math.min(H, y + big + pad)];
+    return D(() => softBlobDraw(x, y, rx, ry, color, opacity, bleed, texture, rot, jit), bb.map(Math.round), raxis(), rdir(), dur, 80);
+  }
+
+function dMarks(marks, dur = 220, gap = 40) {
+    const items = [];
+    for (let i = 0; i < marks.length; i += 8) {
+      const b = marks.slice(i, i + 8);
+      let pts = [];
+      for (const d of b) pts = pts.concat(d.pts);
+      items.push(D(() => { for (const d of b) { washStyle(d.color, d.op); brush.polygon(d.pts); } }, bboxOf(pts, 10), raxis(), rdir(), dur, gap));
+    }
+    return items;
+  }
+
+function dFlick(x, y, len, a, color, weight) {
+    const bb = bboxOf([[x - Math.cos(a) * len / 2, y - Math.sin(a) * len / 2], [x + Math.cos(a) * len / 2, y + Math.sin(a) * len / 2]], 10 + weight * 5);
+    const axis = Math.abs(Math.cos(a)) >= Math.abs(Math.sin(a)) ? 'x' : 'y';
+    return D(() => flickDraw(x, y, len, a, color, weight), bb, axis, rdir(), 90, 25);
+  }
+
+function dTouches(points, C, count, angleFn, sizeMul = 1) {
+    const items = [];
+    count = Math.round(count * (0.4 + 0.6 * S.detail));
+    for (let i = 0; i < count; i++) {
+      const p = points.length ? pickOne(points) : [rr(0, W), rr(0, H), 10];
+      const x = p[0] + rr(-p[2], p[2]), y = p[1] + rr(-p[2] * 0.6, p[2] * 0.6);
+      const color = random() < 0.85 ? pickOne(C.highlights) : pickOne(C.accents);
+      items.push(dFlick(x, y, rr(6, 16) * S.scale * sizeMul * (m / 600) * 3, angleFn(), color, rr(0.6, 1.1) * S.scale));
+    }
+    return items;
+  }
+
+function petalPts(cx, cy, rx, ry, rot, n = 14, jit = 0.05) {
+    const pts = [], cr = Math.cos(rot), sr = Math.sin(rot);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TWO_PI, c = Math.cos(a), k = 1 + rr(-jit, jit);
+      const px = rx * c * k, py = ry * Math.sin(a) * Math.sqrt(1 - 0.9 * c) / 1.1 * k;
+      pts.push([cx + px * cr - py * sr, cy + px * sr + py * cr]);
+    }
+    return pts;
+  }
+
+function drawOrange(x, y, r, O) {
+    // mostly a solid wash disc: the bleed is kept low so the fruit has a rind, not a halo
+    const rot = rr(0, TWO_PI);
+    washStyle(O.mid, 252); brush.polygon(jitterEllipse(x, y, r * 0.94, r * 0.9, 14, 0.05, rot));
+    fillStyle(O.mid, 235, 0.12 + S.water * 0.1, 0.4, 0.3); brush.polygon(jitterEllipse(x, y, r, r * 0.96, 14, 0.05, rot));
+    washStyle(O.deep, 120); brush.polygon(jitterEllipse(x + r * 0.16, y + r * 0.2, r * 0.7, r * 0.6, 12, 0.08, 0.6));
+    washStyle(O.light, 140); brush.polygon(jitterEllipse(x - r * 0.22, y - r * 0.26, r * 0.4, r * 0.3, 10, 0.1, 0.7));
+    centerDot(x - r * 0.36, y - r * 0.4, r * 0.1, O.glint, 150);
+  }
+
+function boxAround(x, y, r) { return [Math.max(0, x - r), Math.max(0, y - r), Math.min(W, x + r), Math.min(H, y + r)].map(Math.round); }
+
+function dLeafDabs(cx, cy, rx, ry, n, cols, size, rotBias = null, op = [170, 235]) {
+    const marks = [];
+    n = Math.max(2, Math.round(n * (0.3 + 0.7 * S.detail)));
+    size *= S.brushSize * (1.4 - 0.4 * S.detail);
+    for (let i = 0; i < n; i++) {
+      const a = rr(0, TWO_PI), d = Math.sqrt(random());
+      const x = cx + Math.cos(a) * rx * d, y = cy + Math.sin(a) * ry * d, r = size * rr(0.6, 1.4);
+      const rot = rotBias ? rotBias(x, y) + rr(-0.5, 0.5) : rr(0, TWO_PI);
+      marks.push({ color: pickOne(cols), pts: petalPts(x, y, r * 2, r * 0.7, rot, 10, 0.1), op: Math.round(rr(op[0], op[1]) - S.water * 40) });
+    }
+    return dMarks(marks);
+  }
+
+function buildOranges(C) {
+    const out = [], { density: dens, scale: sc, detail: det, brushSize: bs } = S;
+    const water = 0.45;
+    const { washes, foliage, accents, highlights } = C;
+    const G = foliageCols(C);
+    const O = { light: vivid(accents[2] || accents[0], S.vivid), mid: vivid(accents[0], S.vivid), deep: accents[3] || accents[1] || accents[0], glint: highlights[1] || highlights[0] };
+    const canopyX = W * 0.62, canopyY = H * 0.58;
+
+    // a blue sky, brightest upper left, a pale ground behind the leaves lower right
+    if (S.coverage > 0.02) out.push(dWash(washes[2] || washes[0], Math.round(S.coverage * 200)));
+    out.push(dBand(-20, H * 0.45, washes[0], Math.round(200 - water * 40), m * 0.04));
+    out.push(dBlob(W * 0.15, H * 0.2, W * 0.3, H * 0.28, washes[1] || washes[0], 190, 0.6, 0.5, 0.2, 0.2, 480));
+    out.push(dBlob(W * 0.1, H * 0.5, W * 0.16, H * 0.2, mixHex(washes[0], highlights[0], 0.5), 150, 0.7, 0.5, 0, 0.25, 360));
+    out.push(dBand(H * 0.4, H + 20, washes[3] || washes[2] || washes[0], Math.round(190 - water * 40), m * 0.04));
+
+    // canopy masses lower right and top right, blossom specks where the sky meets the leaves
+    out.push(dBlob(canopyX, canopyY, W * 0.44, H * 0.4, mixHex(G.deep, G.shade, 0.5), 235, 0.35 + water * 0.2, 0.5, 0.2, 0.25, 540));
+    out.push(dBlob(W * 0.8, H * 0.14, W * 0.26, H * 0.14, G.deep, 205, 0.45, 0.5, -0.3, 0.25, 400));
+    out.push(dBlob(W * 0.5, H * 0.85, W * 0.36, H * 0.16, G.shade, 215, 0.4, 0.5, 0.1, 0.25, 420));
+    out.push(dBlob(W * 0.85, H * 0.62, W * 0.2, H * 0.24, G.shade, 200, 0.4, 0.5, 0, 0.25, 380));
+    out.push(dBlob(W * 0.35, H * 0.42, W * 0.18, H * 0.14, G.mid, 190, 0.5, 0.5, 0.4, 0.25, 340));
+    const specks = [];
+    for (let i = 0; i < Math.round((24 + dens * 30) * (0.4 + 0.6 * det)); i++) {
+      const x = rr(0, W * 0.55), y = rr(0, H * 0.5), r = m * rr(0.004, 0.008) * sc * bs;
+      specks.push({ color: random() < 0.7 ? highlights[0] : (highlights[1] || highlights[0]), pts: jitterEllipse(x, y, r, r * rr(0.8, 1), 8, 0.2), op: Math.round(rr(170, 240)) });
+    }
+    out.push(...dMarks(specks));
+
+    // the fruit is planned now so the leaf pass can fan around it
+    const fruit = [
+      { x: W * 0.42, y: H * 0.36, r: m * 0.09 * sc },
+      { x: W * 0.8, y: H * 0.28, r: m * 0.075 * sc },
+      { x: W * 0.56, y: H * 0.66, r: m * 0.085 * sc },
+    ];
+    if (dens > 0.4) fruit.push({ x: W * 0.1, y: H * 0.9, r: m * 0.06 * sc });
+    if (dens > 0.7) fruit.push({ x: W * 0.92, y: H * 0.86, r: m * 0.055 * sc });
+
+    // the leaf pass, fanning out from the canopy centre, then the oranges
+    const leafCols = [G.shade, G.deep, G.mid, G.light, mixHex(G.mid, highlights[1] || highlights[0], 0.35), foliage[0]];
+    const fan = (x, y) => Math.atan2(y - canopyY, x - canopyX);
+    out.push(...dLeafDabs(canopyX, canopyY, W * 0.48, H * 0.44, Math.round(150 + dens * 150), leafCols, m * 0.013 * sc, fan, [150, 235]));
+    out.push(...dLeafDabs(W * 0.8, H * 0.14, W * 0.26, H * 0.14, Math.round(26 + dens * 30), leafCols, m * 0.012 * sc, fan, [150, 235]));
+    out.push(...dLeafDabs(W * 0.3, H * 0.42, W * 0.2, H * 0.14, Math.round(18 + dens * 20), [G.mid, G.light, leafCols[4]], m * 0.011 * sc, fan, [150, 235]));
+    for (const f of fruit) out.push(D(() => drawOrange(f.x, f.y, f.r, O), boxAround(f.x, f.y, f.r * 1.6 + 16), 'y', 1, 380, 90));
+
+    // small half-hidden oranges, a few leaves crossing the fruit, light on the rinds
+    const small = [];
+    for (let i = 0; i < 3 + Math.round(dens * 4); i++) {
+      const x = rr(W * 0.2, W * 0.98), y = rr(H * 0.2, H * 0.98), r = m * rr(0.02, 0.035) * sc;
+      small.push({ color: random() < 0.5 ? O.mid : O.deep, pts: jitterEllipse(x, y, r, r * 0.95, 10, 0.1), op: 215 });
+    }
+    out.push(...dMarks(small, 260));
+    const over = [];
+    for (const f of fruit) for (let k = 0; k < 2; k++) {
+      const a = rr(0, TWO_PI), x = f.x + Math.cos(a) * f.r * 0.9, y = f.y + Math.sin(a) * f.r * 0.9, r = m * rr(0.012, 0.02) * sc * bs;
+      over.push({ color: random() < 0.5 ? G.deep : G.mid, pts: petalPts(x, y, r * 2, r * 0.7, a + rr(-0.6, 0.6), 10, 0.1), op: 200 });
+    }
+    out.push(...dMarks(over));
+    out.push(...dTouches(fruit.map((f) => [f.x - f.r * 0.3, f.y - f.r * 0.4, f.r * 0.5]), C, Math.round(S.touch * 14), () => rr(-0.5, 0.5), 0.6));
+    return out;
+  }
+
+const CONFIG = {
+  label: "Oranges",
+  canvasSize: 600,
+  loopMs: 9000,
+  holdMs: 1500,
+  palette: PALETTE,
+  strokes: (palette) => buildOranges(palette),
+};
+
+const engine = createEngine(CONFIG, {
+  mount: document.getElementById('sheet'),
+  statusEl: document.getElementById('status'),
+});
+
+</script>
+</body>
+</html>

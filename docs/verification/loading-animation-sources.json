@@ -1,0 +1,41 @@
+{
+  "playbackRate": 2,
+  "variants": [
+    {
+      "id": "garden",
+      "label": "花园",
+      "sourceTitle": "Garden",
+      "sourceSha256": "c3d55260956dff69b16f1d32c5211e7c6f06e8fb35bfc298078c7acbb205da1a"
+    },
+    {
+      "id": "dawn",
+      "label": "晨光",
+      "sourceTitle": "Dawn",
+      "sourceSha256": "26199b91b0057920ead6417af24b720446e9c1217c222bdd2da9576ce67b111e"
+    },
+    {
+      "id": "wisteria",
+      "label": "紫藤",
+      "sourceTitle": "Wisteria",
+      "sourceSha256": "6a6f70a8664ccc6b985af6a47ca0228af0508c61e7daf2c7f9174f89211253fc"
+    },
+    {
+      "id": "roses",
+      "label": "玫瑰",
+      "sourceTitle": "Roses",
+      "sourceSha256": "39eea8b924b7654717c5ec0011a41476f2b7ae0c6984f2eda294caa434abc827"
+    },
+    {
+      "id": "koi",
+      "label": "锦鲤",
+      "sourceTitle": "Koi",
+      "sourceSha256": "141d417e1d59576d23fde1fb09bb5665f24b7fb33b8bedbc06bba9576edbd862"
+    },
+    {
+      "id": "oranges",
+      "label": "橘子",
+      "sourceTitle": "Oranges",
+      "sourceSha256": "437cedd8f37ae34f9f6bacd308cc14d850df5f1631f2d132e6228e135a5eeedd"
+    }
+  ]
+}

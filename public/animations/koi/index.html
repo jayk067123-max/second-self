@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>锦鲤逐笔绘画</title>
+  <style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f5f1e4}
+body{display:flex;align-items:center;justify-content:center}
+.frame,.sheet{width:100%;height:100%}.sheet canvas{display:block!important;width:100%!important;height:100%!important}#status{display:none}
+</style>
+  <!-- Load order matters: p5 first, then p5.brush (it registers itself as a p5 addon). -->
+  <script src="../shared/player.js"></script>
+  <script src="../shared/p5.js"></script>
+  <script src="../shared/p5.brush.min.js"></script>
+</head>
+<body>
+<main class="frame">
+  <div class="sheet" id="sheet"></div>
+  <div id="status" aria-live="polite"></div>
+</main>
+
+<script src="../shared/engine.js"></script>
+<script>
+// engine.js module state. Only functions are serialised below, so the two
+// non-function bindings the engine relies on are declared here by hand:
+// canvas dimensions (read by the vocabulary at call time) and the
+// scaleBrushes once-only guard.
+let W = 600, H = 600, m = 600;
+let brushScale = null;
+
+// The dials this style was tuned with.
+const S = {
+  "water": 0.55,
+  "coverage": 0.84,
+  "density": 0.5,
+  "scale": 1.1,
+  "soft": 0.7,
+  "glaze": 0.3,
+  "touch": 0.2,
+  "detail": 0.45,
+  "brushSize": 1.49,
+  "vivid": 0.45,
+  "flower": 1.8
+};
+
+const PALETTE = {
+  "seed": 1874,
+  "ground": "#3f7f8a",
+  "washes": [
+    "#4f9aa0",
+    "#7fc0b8",
+    "#2f6e8a",
+    "#a8d4c6"
+  ],
+  "foliage": [
+    "#2a5d70",
+    "#1f4a60",
+    "#173a4a",
+    "#5f9a90"
+  ],
+  "accents": [
+    "#e8621e",
+    "#f08a2a",
+    "#c9471a",
+    "#f6b06a"
+  ],
+  "highlights": [
+    "#f3efc9",
+    "#e9e6a8"
+  ],
+  "phrases": [
+    "creating…",
+    "stirring the water…",
+    "swirling…",
+    "the koi come up…",
+    "finished"
+  ]
+};
+
+const rr = (a, b) => random(a, b);
+
+const pickOne = (arr) => arr[Math.floor(random(arr.length))];
+
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+function hexRgb(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join(''); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+
+function mixHex(a, b, t) { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+
+function hexHsl(hex) {
+  const [r, g, b] = hexRgb(hex).map((v) => v / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (max !== min) { const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min); if (max === r) h = (g - b) / d + (g < b ? 6 : 0); else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h /= 6; }
+  return [h, s, l];
+}
+
+function hslHex(h, s, l) {
+  const f = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p + (q - p) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6; return p; };
+  let r, g, b;
+  if (s === 0) { r = g = b = l; } else { const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; r = f(p, q, h + 1 / 3); g = f(p, q, h); b = f(p, q, h - 1 / 3); }
+  return '#' + [r, g, b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+}
+
+function vivid(hex, amt) { if (!amt) return hex; const [h, s, l] = hexHsl(hex); return hslHex(h, s + (1 - s) * amt, l - (l - 0.45) * amt * 0.5); }
+
+function jitterEllipse(cx, cy, rx, ry, n, jitter, rot = 0) {
+  const pts = [], a0 = rr(0, TWO_PI), cr = Math.cos(rot), sr = Math.sin(rot);
+  for (let i = 0; i < n; i++) {
+    const a = a0 + (i / n) * TWO_PI, k = 1 + rr(-jitter, jitter);
+    const x = Math.cos(a) * rx * k, y = Math.sin(a) * ry * k;
+    pts.push([cx + x * cr - y * sr, cy + x * sr + y * cr]);
+  }
+  return pts;
+}
+
+const bboxOf = (pts, pad) => {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; }
+  return [Math.max(0, Math.floor(x0 - pad)), Math.max(0, Math.floor(y0 - pad)), Math.min(W, Math.ceil(x1 + pad)), Math.min(H, Math.ceil(y1 + pad))];
+};
+
+function fillStyle(color, opacity, bleed, texture, border) { brush.noStroke(); brush.noHatch(); brush.noWash(); brush.fill(color, opacity); brush.fillBleed(bleed, 'out'); brush.fillTexture(texture, border); }
+
+function washStyle(color, opacity) { brush.noStroke(); brush.noHatch(); brush.noFill(); brush.wash(color, opacity); }
+
+function strokeStyle(name, color, weight) { brush.noFill(); brush.noWash(); brush.noHatch(); brush.set(name, color, weight); }
+
+const D = (fn, bb, axis, dir, dur, gap = 60) => ({ fn, bb, axis, dir, dur, gap });
+
+const rdir = () => (random() < 0.5 ? 1 : -1);
+
+const raxis = () => (random() < 0.5 ? 'x' : 'y');
+
+function flushWash() {
+  brush.noStroke(); brush.noHatch(); brush.noWash();
+  brush.fill('#000000', 0); brush.fillBleed(0); brush.fillTexture(0, 0);
+  brush.polygon([[-8, -8], [-6, -8], [-6, -6]]);
+}
+
+function ensureBrushes(scale) {
+  if (brushScale !== null) {
+    if (Math.abs(brushScale - scale) > 1e-6) {
+      console.warn(`engine: brushes already scaled to ${brushScale}; ignoring request for ${scale}. ` +
+                   'scaleBrushes multiplies in place, so all canvases on a page must share one size.');
+    }
+    return;
+  }
+  brush.add('flick', { weight: 0.7, vibration: 0.12, definition: 0.9, quality: 0.8, opacity: 200, spacing: 0.1, pressure: { curve: [0.25, 0.25], min_max: [1.1, 0.85] } });
+  brush.add('rim', { weight: 0.45, vibration: 0.35, definition: 0.7, quality: 0.8, opacity: 190, spacing: 0.1, pressure: { curve: [0.15, 0.2], min_max: [1.2, 1] } });
+  brush.scaleBrushes(scale);
+  brushScale = scale;
+}
+
+function softBlobDraw(x, y, rx, ry, color, opacity, bleed, texture, rot = 0, jit = 0.12) {
+    const w = S.water - 0.5;
+    fillStyle(color, Math.round(opacity - w * 60), clamp01(bleed + w * 0.4), clamp01(texture + w * 0.2), 0.3);
+    brush.polygon(jitterEllipse(x, y, rx, ry, 14, jit, rot));
+  }
+
+function bloomFill(color, opacity, bleed) { fillStyle(color, opacity, clamp01(bleed + S.water * 0.3), 0.5, 0.4); }
+
+function centerDot(x, y, r, color, opacity = 250) { washStyle(color, opacity); brush.polygon(jitterEllipse(x, y, r, r * rr(0.85, 1), 12, 0.14)); }
+
+function flickDraw(x, y, len, a, color, weight) { strokeStyle('flick', color, weight * S.brushSize); brush.line(x - Math.cos(a) * len / 2, y - Math.sin(a) * len / 2, x + Math.cos(a) * len / 2, y + Math.sin(a) * len / 2); }
+
+function dWash(color, opacity) {
+    const pts = [[-10, -10], [W + 10, -10], [W + 10, H + 10], [-10, H + 10]];
+    return D(() => { washStyle(color, opacity); brush.polygon(pts); }, [0, 0, W, H], 'x', rdir(), 700, 120);
+  }
+
+function dBlob(x, y, rx, ry, color, opacity, bleed, texture, rot = 0, jit = 0.12, dur = 420) {
+    const big = Math.max(rx, ry), pad = big * 0.9 + 14;
+    const bb = [Math.max(0, x - big - pad), Math.max(0, y - big - pad), Math.min(W, x + big + pad), Math.min(H, y + big + pad)];
+    return D(() => softBlobDraw(x, y, rx, ry, color, opacity, bleed, texture, rot, jit), bb.map(Math.round), raxis(), rdir(), dur, 80);
+  }
+
+function dMarks(marks, dur = 220, gap = 40) {
+    const items = [];
+    for (let i = 0; i < marks.length; i += 8) {
+      const b = marks.slice(i, i + 8);
+      let pts = [];
+      for (const d of b) pts = pts.concat(d.pts);
+      items.push(D(() => { for (const d of b) { washStyle(d.color, d.op); brush.polygon(d.pts); } }, bboxOf(pts, 10), raxis(), rdir(), dur, gap));
+    }
+    return items;
+  }
+
+function dFlick(x, y, len, a, color, weight) {
+    const bb = bboxOf([[x - Math.cos(a) * len / 2, y - Math.sin(a) * len / 2], [x + Math.cos(a) * len / 2, y + Math.sin(a) * len / 2]], 10 + weight * 5);
+    const axis = Math.abs(Math.cos(a)) >= Math.abs(Math.sin(a)) ? 'x' : 'y';
+    return D(() => flickDraw(x, y, len, a, color, weight), bb, axis, rdir(), 90, 25);
+  }
+
+function dTouches(points, C, count, angleFn, sizeMul = 1) {
+    const items = [];
+    count = Math.round(count * (0.4 + 0.6 * S.detail));
+    for (let i = 0; i < count; i++) {
+      const p = points.length ? pickOne(points) : [rr(0, W), rr(0, H), 10];
+      const x = p[0] + rr(-p[2], p[2]), y = p[1] + rr(-p[2] * 0.6, p[2] * 0.6);
+      const color = random() < 0.85 ? pickOne(C.highlights) : pickOne(C.accents);
+      items.push(dFlick(x, y, rr(6, 16) * S.scale * sizeMul * (m / 600) * 3, angleFn(), color, rr(0.6, 1.1) * S.scale));
+    }
+    return items;
+  }
+
+function ringPts(cx, cy, r, a0, a1, n = 10) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * (i / n); pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); }
+    return pts;
+  }
+
+function taperedBody(x, y, len, wid, angle, jit = 0.06) {
+    const ca = Math.cos(angle), sa = Math.sin(angle);
+    const P = (t, v) => { const u = len / 2 - t * len; return [x + u * ca - v * sa, y + u * sa + v * ca]; };
+    const T = [0, 0.1, 0.3, 0.5, 0.7, 0.82, 0.92, 1], HW = [0.3, 0.72, 1, 0.9, 0.62, 0.3, 0.55, 0.85];
+    const top = [], bottom = [];
+    for (let i = 0; i < T.length; i++) {
+      const h = HW[i] * (wid / 2) * (1 + rr(-jit, jit));
+      top.push(P(T[i], -h)); bottom.push(P(T[i], h));
+    }
+    return top.concat([P(0.88, 0)], bottom.reverse());
+  }
+
+function drawKoi(x, y, len, angle, K) {
+    const ca = Math.cos(angle), sa = Math.sin(angle);
+    const off = (u, v) => [x + u * ca - v * sa, y + u * sa + v * ca];
+    washStyle(K.body, 250); brush.polygon(taperedBody(x, y, len, len * 0.3, angle, 0.04));
+    bloomFill(K.body, 235, 0.22); brush.polygon(taperedBody(x, y, len * 1.04, len * 0.33, angle, 0.08));
+    // a deeper saddle along the back, a paler belly, cream flecks, an eye
+    const [bx, by] = off(len * 0.08, -len * 0.06);
+    washStyle(K.deep, 200); brush.polygon(jitterEllipse(bx, by, len * 0.28, len * 0.07, 10, 0.15, angle));
+    const [px, py] = off(len * 0.05, len * 0.08);
+    washStyle(K.pale, 170); brush.polygon(jitterEllipse(px, py, len * 0.26, len * 0.05, 10, 0.15, angle));
+    for (let i = 0; i < 3; i++) { const [fx, fy] = off(rr(-len * 0.2, len * 0.35), rr(-len * 0.08, len * 0.08)); centerDot(fx, fy, len * rr(0.02, 0.04), K.fleck, 220); }
+    const [ex, ey] = off(len * 0.4, -len * 0.04); centerDot(ex, ey, len * 0.018, K.eye, 230);
+  }
+
+function boxAround(x, y, r) { return [Math.max(0, x - r), Math.max(0, y - r), Math.min(W, x + r), Math.min(H, y + r)].map(Math.round); }
+
+function buildKoi(C) {
+    const out = [], { density: dens, scale: sc, detail: det, brushSize: bs } = S;
+    const water = 0.6, coverage = 0.9, glaze = 0.7, touch = 0.3;
+    const { washes, foliage, accents, highlights } = C;
+    const cx0 = W * 0.68, cy0 = H * 0.34;
+    const K = { body: vivid(accents[0], S.vivid), deep: accents[2] || accents[0], pale: accents[3] || mixHex(accents[1] || accents[0], '#ffffff', 0.4), fleck: highlights[0], eye: foliage[2] };
+
+    // the water: a lighter zone around the swirl, dark zones at the corners, a bright eye
+    out.push(dWash(washes[0], Math.round(coverage * 200)));
+    out.push(dBlob(cx0, cy0, W * 0.36, H * 0.3, washes[1] || washes[0], 200, 0.6, 0.5, 0.3, 0.25, 520));
+    out.push(dBlob(W * 0.15, H * 0.15, W * 0.3, H * 0.28, foliage[0], 210, 0.5, 0.5, 0.4, 0.25, 460));
+    out.push(dBlob(W * 0.2, H * 0.85, W * 0.34, H * 0.26, washes[2] || washes[0], 200, 0.5, 0.5, -0.3, 0.25, 460));
+    out.push(dBlob(W * 0.9, H * 0.9, W * 0.2, H * 0.2, foliage[1], 190, 0.5, 0.5, 0, 0.25, 380));
+    out.push(dBlob(W * 0.55, H * 0.55, W * 0.3, H * 0.14, washes[3] || washes[1] || washes[0], 150, 0.6, 0.5, -0.5, 0.25, 420));
+    out.push(dBlob(cx0, cy0, W * 0.1, H * 0.08, highlights[0], 90, 0.7, 0.5, 0, 0.25, 300));
+
+    // the swirl: marker glazes along arcs around the eye, opening out a little as
+    // they go, inside first and four to a stroke; then the ripple rings at the eye
+    const swirlCols = [washes[1] || washes[0], washes[3] || washes[1] || washes[0], washes[2] || washes[0], highlights[0], foliage[3] || washes[0], washes[0], highlights[1] || highlights[0]];
+    const nArc = Math.round((40 + glaze * 60) * (0.5 + 0.5 * det));
+    const arcs = [];
+    for (let i = 0; i < nArc; i++) {
+      const r = m * (0.05 + 0.62 * Math.pow(random(), 0.8)) * sc;
+      const a0 = rr(0, TWO_PI), span = rr(0.4, 1.6) * (r < m * 0.15 ? 1.6 : 1);
+      const pts = ringPts(cx0, cy0, r, a0, a0 + span, 9).map(([px, py], k) => { const g = 1 + k * 0.012; return [cx0 + (px - cx0) * g, cy0 + (py - cy0) * g]; });
+      arcs.push({ r, pts, color: pickOne(swirlCols), w: rr(1.4, 5) * bs * (0.6 + 0.4 * sc) });
+    }
+    arcs.sort((a, b) => a.r - b.r);
+    for (let i = 0; i < arcs.length; i += 4) {
+      const b = arcs.slice(i, i + 4);
+      const bb = bboxOf(b.flatMap((A) => A.pts), 14 + Math.max(...b.map((A) => A.w)) * 4);
+      out.push(D(() => { for (const A of b) { brush.field('waves'); strokeStyle('marker', A.color, A.w); brush.spline(A.pts, 0.5); brush.noField(); } }, bb, raxis(), rdir(), 260, 40));
+    }
+    const rings = [];
+    for (let k = 0; k < 4; k++) {
+      const r = m * (0.03 + k * 0.03) * sc, a0 = rr(0, TWO_PI);
+      const pts = ringPts(cx0 + rr(-2, 2), cy0 + rr(-2, 2), r, a0, a0 + TWO_PI * rr(0.7, 0.95), 14);
+      rings.push({ pts, color: k % 2 ? (highlights[1] || highlights[0]) : highlights[0], w: rr(1.5, 2.5) * bs });
+    }
+    out.push(D(() => { for (const R of rings) { strokeStyle('marker', R.color, R.w); brush.spline(R.pts, 0.5); } }, bboxOf(rings.flatMap((R) => R.pts), 24), 'y', -1, 320, 60));
+
+    // two shadow koi deep in the water, then the orange ones, each revealed tail to head
+    const shadows = [{ x: W * 0.28, y: H * 0.3, len: m * 0.3 * sc, a: 0.5 }, { x: W * 0.7, y: H * 0.78, len: m * 0.26 * sc, a: -2.6 }];
+    for (const s of shadows) {
+      const body = taperedBody(s.x, s.y, s.len, s.len * 0.3, s.a, 0.08);
+      out.push(D(() => { fillStyle(foliage[1], 130, 0.35 + water * 0.2, 0.5, 0.3); brush.polygon(body); }, bboxOf(body, s.len * 0.3 + 20), 'x', Math.sign(Math.cos(s.a)) || 1, 340, 60));
+    }
+    const koi = [
+      { x: W * 0.6, y: H * 0.3, len: m * 0.3 * sc, a: -0.5 + rr(-0.15, 0.15) },
+      { x: W * 0.3, y: H * 0.68, len: m * 0.36 * sc, a: 0.35 + rr(-0.15, 0.15) },
+    ];
+    if (dens > 0.75) koi.push({ x: W * 0.85, y: H * 0.65, len: m * 0.2 * sc, a: 2.4 });
+    for (const k of koi) out.push(D(() => drawKoi(k.x, k.y, k.len, k.a, K), boxAround(k.x, k.y, k.len * 0.55 + 20), 'x', Math.sign(Math.cos(k.a)) || 1, 440, 100));
+
+    // cream flecks riding the swirl, a glaze back over each tail so the fish sit in the water, light at the eye
+    const flecks = [];
+    for (let i = 0; i < Math.round((30 + dens * 30) * (0.4 + 0.6 * det)); i++) {
+      const r = m * rr(0.06, 0.6) * sc, a = rr(0, TWO_PI), x = cx0 + Math.cos(a) * r, y = cy0 + Math.sin(a) * r;
+      if (x < -5 || x > W + 5 || y < -5 || y > H + 5) continue;
+      const len = m * rr(0.01, 0.03) * sc * bs, h = m * rr(0.002, 0.004) * bs;
+      flecks.push({ color: random() < 0.6 ? highlights[0] : (highlights[1] || highlights[0]), pts: jitterEllipse(x, y, len, h, 8, 0.2, a + HALF_PI + rr(-0.2, 0.2)), op: Math.round(rr(150, 230)) });
+    }
+    out.push(...dMarks(flecks));
+    for (const k of koi) {
+      const tx = k.x - Math.cos(k.a) * k.len * 0.35, ty = k.y - Math.sin(k.a) * k.len * 0.35;
+      const th = Math.atan2(ty - cy0, tx - cx0), r = Math.hypot(tx - cx0, ty - cy0);
+      const pts = ringPts(cx0, cy0, r, th - 0.3, th + 0.3, 6), w = rr(3, 5) * bs;
+      out.push(D(() => { brush.field('waves'); strokeStyle('marker', washes[1] || washes[0], w); brush.spline(pts, 0.5); brush.noField(); }, bboxOf(pts, 14 + w * 4), raxis(), rdir(), 200, 40));
+    }
+    const eyePts = [];
+    for (let i = 0; i < 8; i++) { const a = rr(0, TWO_PI), r = m * rr(0.05, 0.4); eyePts.push([cx0 + Math.cos(a) * r, cy0 + Math.sin(a) * r, 10]); }
+    out.push(...dTouches(eyePts, C, Math.round(touch * 16), () => rr(0, TWO_PI), 0.6));
+    return out;
+  }
+
+const CONFIG = {
+  label: "Koi",
+  canvasSize: 600,
+  loopMs: 9000,
+  holdMs: 1500,
+  palette: PALETTE,
+  strokes: (palette) => buildKoi(palette),
+};
+
+const engine = createEngine(CONFIG, {
+  mount: document.getElementById('sheet'),
+  statusEl: document.getElementById('status'),
+});
+
+</script>
+</body>
+</html>

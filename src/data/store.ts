@@ -387,7 +387,7 @@ export const usePlannerStore = create<PlannerState>()(
  * hydration mismatch；页面在 ready 之前渲染骨架。
  */
 export function usePlannerHydration(): boolean {
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() => usePlannerStore.persist.hasHydrated());
 
   useEffect(() => {
     let cancelled = false;
