@@ -8,6 +8,7 @@ import { ReplanResponseSchema, type ReplanSuccess } from "@/domain/schemas/api";
 import { usePlannerStore } from "@/data/store";
 import { computePlanMetrics } from "./planMetrics";
 import { planChanges, timeRangeLabel } from "./planChanges";
+import { PlanningLoading } from "./PlanningLoading";
 
 type Phase = "idle" | "loading" | "ready";
 
@@ -23,6 +24,7 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
   const [includedFeedback, setIncludedFeedback] = useState("");
+  const [loadingKind, setLoadingKind] = useState<"generate" | "refine">("generate");
   const applyPlan = usePlannerStore(s => s.applyPlanWithSnapshot);
   const active = result?.plans.find(plan => plan.id === selected);
   const config = { ...DEFAULT_DETECT_CONFIG, termStartDayKey, repeatWindowStartDayKey: dayKey };
@@ -34,6 +36,7 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
 
   async function request() {
     if (phase === "loading" || tasks.length === 0) return;
+    setLoadingKind(feedback.trim() ? "refine" : "generate");
     setPhase("loading"); setError("");
     const original = tasks;
     try {
@@ -66,14 +69,15 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
     <div className="replan-toolbar"><p>{phase === "loading" ? "正在寻找合适的时间…" : applied ? "日程已更新" : "看看怎么调整"}</p>
       <button type="button" className="btn btn-green" onClick={() => void request()} disabled={!tasks.length}
         aria-disabled={phase === "loading" || !tasks.length} aria-busy={phase === "loading"}>
-        {phase === "loading" ? "生成中…" : result ? "重新生成" : "生成重排方案"}
+        {phase === "loading" && <span className="planning-button-spinner" aria-hidden="true" />}
+        {phase === "loading" ? loadingKind === "refine" ? "调整中…" : "生成中…" : result ? "重新生成" : "生成重排方案"}
       </button>
     </div>
-    {phase === "loading" && <div className="replan-loading" role="status"><span className="loading-orbit" aria-hidden="true" />正在整理调整方案</div>}
+    {phase === "loading" && loadingKind === "generate" && <PlanningLoading label="正在整理调整方案" />}
     {error && <p className="replan-warning" role="alert">{error}</p>}
     {!tasks.length && <p className="replan-empty">先添加几条日程</p>}
     {result && <>
-      {(result.fallback || result.mode === "demo") && <span className="replan-source" title={result.fallback ? "AI方案未通过时间与冲突校验，当前由本地规则生成" : "当前未配置AI，使用本地规则生成"}>本地方案</span>}
+      {phase !== "loading" && (result.fallback || result.mode === "demo") && <span className="replan-source" title={result.fallback ? "AI方案未通过时间与冲突校验，当前由本地规则生成" : "当前未配置AI，使用本地规则生成"}>本地方案</span>}
       {!!result.plans.length && <div className="replan-choices" role="group" aria-label="选择方案">{result.plans.map((plan, index) =>
         <button type="button" key={plan.id} disabled={phase === "loading"} aria-pressed={selected === plan.id} onClick={() => setSelected(plan.id)}>
           <span className="replan-choice-number">{String(index + 1).padStart(2, "0")}</span><span>{plan.title}</span>
@@ -108,8 +112,9 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
         <label htmlFor="replan-feedback">想怎么调整？</label>
         <textarea id="replan-feedback" value={feedback} readOnly={phase === "loading"} onChange={event => setFeedback(event.target.value)} maxLength={1000}
           placeholder="比如：晚饭后留出一小时，实验报告优先安排。" />
+        {phase === "loading" && loadingKind === "refine" && <PlanningLoading label="正在按补充调整" />}
         <div><span role="status">{feedbackChanged ? "补充尚未应用" : includedFeedback ? "已结合补充调整" : "补充偏好或说明"}</span>
-          <button type="submit" className="btn btn-green" disabled={!feedback.trim() || !!applied || stale} aria-disabled={phase === "loading"} aria-busy={phase === "loading"}>{phase === "loading" ? "正在调整…" : "按补充调整"}</button></div>
+          <button type="submit" className="btn btn-green" disabled={!feedback.trim() || !!applied || stale} aria-disabled={phase === "loading"} aria-busy={phase === "loading"}>{phase === "loading" && <span className="planning-button-spinner" aria-hidden="true" />}{phase === "loading" ? "正在调整…" : "按补充调整"}</button></div>
         {applied && <p>已采用当前方案。需要继续调整时，请先重新生成。</p>}
       </form>
     </>}

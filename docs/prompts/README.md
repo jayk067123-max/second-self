@@ -1,5 +1,7 @@
 # AI 过程证据阅读说明
 
+014-planning-loading.md记录本轮主题果园加载动画、加载时旧来源隐藏与具体校验原因核对；属于执行摘要，非原始聊天导出。
+
 013-replan-user-feedback.md为最新重排补充、业务失败修复和精简展示的执行摘要；真实合成输入响应另存verification/live-ai/feedback.json。
 
 最新：012-live-ai-and-replan-comparison.md记录本次实际配置修正、真实调用失败及修复、参考入口删除与方案对照更新；不是原始聊天导出。
