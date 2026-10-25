@@ -61,7 +61,7 @@ npm run build
 
 架构见 [ARCHITECTURE](docs/ARCHITECTURE.md)，验证范围见 [TEST-REPORT](docs/TEST-REPORT.md)。真实模型小样本记录位于 docs/verification/live-ai，不代表普遍准确率。
 
-[过程证据说明](docs/prompts/README.md)：保留真实Git历史与现存记录；整理卡片不等于原始对话导出，至少3条完整核心Prompt链仍需本人补齐。参赛视频须按赛事要求录制，不把自动制作的参考演示当作本人原始协作证据。
+[过程证据说明](docs/prompts/README.md)：已从真实Codex本机会话整理导出三条核心功能迭代，保留原始提问、纠错反馈、AI回复、截图与代码提交，缺项和脱敏范围已注明；早期整理卡不冒充原始对话。本人核对后可随作品提交，正式视频仍需真实录制。
 
 ## 素材与许可
 

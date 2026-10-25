@@ -1,0 +1,300 @@
+{
+  "formatVersion": 1,
+  "generatedOn": "2026-10-25",
+  "source": {
+    "type": "Codex local session snapshot",
+    "sessionId": "01a14e27-e0c7-7193-afe6-0d8d683c04ce",
+    "sha256": "1bd46b6966fdc2fbc3851c9f7b594fc03ccbd97692a7890ccba05ed6b62d5f15",
+    "byteLength": 69702692,
+    "privateSnapshotNotPublished": true
+  },
+  "scope": "三段真实功能迭代的可见用户和AI消息；并非全部项目历史。",
+  "excludedTypes": [
+    "system/developer instructions",
+    "reasoning",
+    "token metadata",
+    "compaction handovers"
+  ],
+  "knownMissingAttachments": [
+    {
+      "sourceLine": 2079,
+      "name": "图片.docx",
+      "note": "缺失头像参考文档，未补造；原始10张截图和后续www.docx反馈仍保留。"
+    }
+  ],
+  "redactionPolicy": [
+    "exact configured secret values",
+    "credential token patterns",
+    "registration identity",
+    "local user root path"
+  ],
+  "redactionCounts": {
+    "local_user_path": 244,
+    "token_pattern": 0
+  },
+  "chains": [
+    {
+      "id": "01",
+      "title": "分步录入、人工核对与输入框修复",
+      "file": "01-分步录入与输入修复.html",
+      "sourceLineStart": 2079,
+      "sourceLineEnd": 3386,
+      "messageCounts": {
+        "user": 2,
+        "assistant": 25
+      },
+      "toolCallCount": 15,
+      "toolResultCount": 15,
+      "imageCount": 10,
+      "excludedVisibleInternalSummaries": [
+        {
+          "sourceLine": 2273,
+          "reason": "内部上下文交接摘要，非用户可见原始对话",
+          "sourceLineSha256": "ad03629d33e918ddb2e685d3be53712dc59a2b2e6594b7df6220971d537b22a0"
+        },
+        {
+          "sourceLine": 2929,
+          "reason": "内部上下文交接摘要，非用户可见原始对话",
+          "sourceLineSha256": "99840973399ba17368790e79e88cd4c2be71f3d88558acdcd37c2b43505d4fdb"
+        }
+      ],
+      "commits": [
+        {
+          "sha": "3997e887fbc5e4c1b3a6f03eef38799dc9e3e5b0",
+          "committedAt": "2026-10-25T01:08:23+08:00",
+          "subject": "feat: add profile settings and guided intake sheets [prompt:009]",
+          "files": [
+            "README.md",
+            "docs/TEST-REPORT.md",
+            "docs/prompts/009-profile-and-guided-intake.md",
+            "docs/prompts/README.md",
+            "docs/screenshots/capture-review.png",
+            "docs/screenshots/future-mobile.png",
+            "docs/screenshots/future.png",
+            "docs/screenshots/replan.png",
+            "docs/screenshots/today-mobile.png",
+            "docs/verification/interface-checks.json",
+            "public/avatars/avatar-1.webp",
+            "public/avatars/avatar-2.webp",
+            "public/avatars/avatar-3.webp",
+            "public/avatars/avatar-4.webp",
+            "public/avatars/avatar-5.webp",
+            "public/avatars/avatar-6.webp",
+            "src/app/globals.css",
+            "src/data/profile.ts",
+            "src/domain/profile.ts",
+            "src/domain/schemas/task.ts",
+            "src/ui/FinalPlanner.tsx",
+            "src/ui/PriorityPicker.tsx",
+            "src/ui/ProfileSettings.tsx",
+            "src/ui/Sheet.tsx",
+            "src/ui/TaskEditor.tsx",
+            "src/ui/UndoNotice.tsx",
+            "src/ui/composites/AiFailureCard.tsx",
+            "src/ui/composites/ClarifyPanel.tsx",
+            "src/ui/composites/DataPortability.tsx",
+            "src/ui/composites/ImageIntake.tsx",
+            "src/ui/composites/IntakePanel.tsx",
+            "src/ui/composites/ManualAddForm.tsx",
+            "src/ui/composites/ReplanPanel.tsx",
+            "src/ui/composites/TaskCorrectionTable.tsx",
+            "src/ui/composites/UncoveredNotice.tsx",
+            "src/ui/composites/clarifyQueue.ts",
+            "src/ui/primitives/Priority.tsx",
+            "tests/domain/profile.test.ts",
+            "tests/ui/clarifyQueue.test.ts"
+          ]
+        },
+        {
+          "sha": "2132265661c62f348d0974af910f8a83a0bbd77b",
+          "committedAt": "2026-10-25T15:22:40+08:00",
+          "subject": "fix(ui): restore form input and refine settings and empty days",
+          "files": [
+            "README.md",
+            "docs/TEST-REPORT.md",
+            "docs/design/brand-spec.md",
+            "docs/prompts/010-input-focus-and-empty-scenes.md",
+            "docs/prompts/README.md",
+            "docs/screenshots/future.png",
+            "docs/verification/interface-checks.json",
+            "docs/verification/video-validation.json",
+            "docs/verification/www-input-checks.json",
+            "src/app/globals.css",
+            "src/ui/FinalPlanner.tsx",
+            "src/ui/FixedArrangementField.tsx",
+            "src/ui/ProfileSettings.tsx",
+            "src/ui/Sheet.tsx",
+            "src/ui/TaskEditor.tsx",
+            "src/ui/composites/ManualAddForm.tsx",
+            "src/ui/composites/ReplanPanel.tsx",
+            "src/ui/composites/TaskCorrectionTable.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "title": "图片上传、AI解析接入与契约修复",
+      "file": "02-图片上传与AI解析.html",
+      "sourceLineStart": 3393,
+      "sourceLineEnd": 4126,
+      "messageCounts": {
+        "user": 2,
+        "assistant": 21
+      },
+      "toolCallCount": 15,
+      "toolResultCount": 15,
+      "imageCount": 4,
+      "excludedVisibleInternalSummaries": [
+        {
+          "sourceLine": 3720,
+          "reason": "内部上下文交接摘要，非用户可见原始对话",
+          "sourceLineSha256": "2b38ac3f082a2fc7a2df333d9e5441053557623c8cc399326047a4953655db9d"
+        }
+      ],
+      "commits": [
+        {
+          "sha": "f24f02c964bdbd61689c5bfc7ab748fded47452d",
+          "committedAt": "2026-10-25T15:48:59+08:00",
+          "subject": "fix(upload): activate plus picker and prepare DeepSeek image parsing",
+          "files": [
+            ".env.example",
+            "README.md",
+            "docs/AI-SETUP.md",
+            "docs/TEST-REPORT.md",
+            "docs/prompts/011-upload-entry-and-ai-provider.md",
+            "docs/prompts/README.md",
+            "docs/verification/upload-checks.json",
+            "src/ai/README.md",
+            "src/ai/client.ts",
+            "src/ai/guarded.ts",
+            "src/ui/composites/ImageIntake.tsx",
+            "tests/ai/provider-options.test.ts"
+          ]
+        },
+        {
+          "sha": "0a32ff4472b7319a808a7bb73671925398efa1ff",
+          "committedAt": "2026-10-25T16:45:48+08:00",
+          "subject": "Simplify production controls and compare replan changes; verify live AI contract",
+          "files": [
+            "README.md",
+            "docs/AI-SETUP.md",
+            "docs/TEST-REPORT.md",
+            "docs/prompts/012-live-ai-and-replan-comparison.md",
+            "docs/prompts/README.md",
+            "docs/screenshots/capture-review.png",
+            "docs/screenshots/future-mobile.png",
+            "docs/screenshots/future.png",
+            "docs/screenshots/replan.png",
+            "docs/screenshots/today-mobile.png",
+            "docs/verification/live-ai/README.md",
+            "docs/verification/live-ai/image-fixed.json",
+            "docs/verification/live-ai/image.json",
+            "docs/verification/live-ai/replan.json",
+            "docs/verification/live-ai/schedule-test.png",
+            "docs/verification/live-ai/text-fixed.json",
+            "docs/verification/live-ai/text.json",
+            "docs/verification/replan-checks.json",
+            "docs/verification/video-validation.json",
+            "src/ai/prompts.ts",
+            "src/app/globals.css",
+            "src/ui/FinalPlanner.tsx",
+            "src/ui/ProfileSettings.tsx",
+            "src/ui/composites/IntakePanel.tsx",
+            "src/ui/composites/ReplanPanel.tsx",
+            "src/ui/composites/planChanges.ts",
+            "tests/ai/prompt-contract.test.ts",
+            "tests/ui/planChanges.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "title": "用户补充重排、业务校验与错误诊断",
+      "file": "03-补充重排与校验.html",
+      "sourceLineStart": 4133,
+      "sourceLineEnd": 4641,
+      "messageCounts": {
+        "user": 2,
+        "assistant": 14
+      },
+      "toolCallCount": 17,
+      "toolResultCount": 17,
+      "imageCount": 5,
+      "excludedVisibleInternalSummaries": [
+        {
+          "sourceLine": 4401,
+          "reason": "内部上下文交接摘要，非用户可见原始对话",
+          "sourceLineSha256": "af3e7402ca30b25225ae1ae6b4d50bb4ae9aa0a34e96208aab756e1403e86a41"
+        }
+      ],
+      "commits": [
+        {
+          "sha": "b70ea8c062b2a5421f43821f869f8226df1aab69",
+          "committedAt": "2026-10-25T17:15:24+08:00",
+          "subject": "feat: refine schedule proposals with user feedback",
+          "files": [
+            "README.md",
+            "docs/TEST-REPORT.md",
+            "docs/prompts/013-replan-user-feedback.md",
+            "docs/prompts/README.md",
+            "docs/screenshots/replan-feedback.png",
+            "docs/screenshots/replan.png",
+            "docs/verification/live-ai/README.md",
+            "docs/verification/live-ai/feedback.json",
+            "docs/verification/refinement-checks.json",
+            "docs/verification/video-validation.json",
+            "src/ai/guarded.ts",
+            "src/ai/prompts.ts",
+            "src/ai/tasks.ts",
+            "src/app/api/ai/replan/route.ts",
+            "src/app/globals.css",
+            "src/domain/schemas/api.ts",
+            "src/ui/composites/ReplanPanel.tsx",
+            "tests/ai/replan-refinement.test.ts"
+          ]
+        },
+        {
+          "sha": "aedf630112b382d652200b59995e35cf6ea5a3b7",
+          "committedAt": "2026-10-25T17:28:04+08:00",
+          "subject": "feat: add themed orchard loading states for planning",
+          "files": [
+            "README.md",
+            "docs/TEST-REPORT.md",
+            "docs/prompts/014-planning-loading.md",
+            "docs/prompts/README.md",
+            "docs/screenshots/planning-loading.png",
+            "docs/screenshots/planning-refinement-loading.png",
+            "docs/verification/planning-loading-checks.json",
+            "src/app/globals.css",
+            "src/ui/composites/PlanningLoading.tsx",
+            "src/ui/composites/ReplanPanel.tsx"
+          ]
+        }
+      ]
+    }
+  ],
+  "files": {
+    "01-分步录入与输入修复.html": {
+      "sha256": "d0e45dcb4c0bac264242b51419a71fce9e6d4634b4ffe4c7f14d618cb1263464",
+      "bytes": 1598875
+    },
+    "02-图片上传与AI解析.html": {
+      "sha256": "3356000f77a0cf6d70c5f60f6d5cb85474667fdd72e71b146f8a9056eb3e1926",
+      "bytes": 311039
+    },
+    "03-补充重排与校验.html": {
+      "sha256": "6eacfb168a3ef97269f1ec6443d47958d691403e6c4b71c5b6bca8401013c475",
+      "bytes": 844258
+    },
+    "README.md": {
+      "sha256": "5bbb79dd95675b56f10c7ddf22f958b0f58aa8b950c2623505d5011b904515ea",
+      "bytes": 1978
+    },
+    "records.jsonl": {
+      "sha256": "f639e305bd8d973ce2aa53e5e8080dc5b857cbf6a03d7cdcfc8a4ead87d5ba04",
+      "bytes": 2723390
+    }
+  }
+}
