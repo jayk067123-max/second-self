@@ -142,3 +142,7 @@ recording/
 .playwright/
 .playwright-cli/
 /output/
+
+# 私有账号与日程数据库
+*.sqlite-wal
+*.sqlite-shm

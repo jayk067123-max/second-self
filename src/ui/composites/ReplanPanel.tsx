@@ -13,8 +13,8 @@ import { useLoadingCycle } from "./useLoadingCycle";
 
 type Phase = "idle" | "loading" | "ready";
 
-export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
-  tasks: Task[]; dayKey: string; now: Date; termStartDayKey?: string | null;
+export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null, onApplied }: {
+  tasks: Task[]; dayKey: string; now: Date; termStartDayKey?: string | null; onApplied: () => void;
 }) {
   const cycle = useLoadingCycle();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -68,6 +68,7 @@ export function ReplanPanel({ tasks, dayKey, now, termStartDayKey = null }: {
     const outcome = applyPlan(plan, { dayKey, now: now.toISOString(), termStartDayKey });
     if (!outcome.ok) { setError(outcome.error ?? "未能应用，请重新生成"); return; }
     setApplied(plan.id); setError("");
+    onApplied();
   }
 
   return <section className="replan-panel" aria-label="重排方案">

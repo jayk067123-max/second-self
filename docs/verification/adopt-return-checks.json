@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-25",
+  "passed": 18,
+  "cases": [
+    "今天 adoption closes proposal dialog",
+    "今天 current schedule tab preserved",
+    "今天 schedule contains adopted time",
+    "今天 fixed schedule unchanged",
+    "今天 updated time visible on schedule",
+    "今天 undo remains visible",
+    "今天 undo restores original time",
+    "今天 undo keeps schedule visible",
+    "未来 adoption closes proposal dialog",
+    "未来 current schedule tab preserved",
+    "selected future date preserved",
+    "未来 schedule contains adopted time",
+    "未来 fixed schedule unchanged",
+    "未来 updated time visible on schedule",
+    "未来 undo remains visible",
+    "未来 undo restores original time",
+    "未来 undo keeps schedule visible",
+    "zero page errors"
+  ],
+  "pageErrors": [],
+  "scope": "Desktop today and mobile future: real guarded store writes, automatic close, selected day, visible updated schedule, fixed task and undo. Captured synthetic API response, no paid call."
+}

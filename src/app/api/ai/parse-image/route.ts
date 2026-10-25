@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { accountFailure, requireAccount, sameOrigin } from "@/server/account-http";
 import { ParseImageRequestSchema } from "@/domain/schemas/api";
 import { parseTasksFromImage } from "@/ai/tasks";
-import { checkRateLimit, clientKeyOf } from "@/ai/ratelimit";
+import { checkRateLimit } from "@/ai/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,8 +16,11 @@ export const dynamic = "force-dynamic";
  *  2. 图片是 base64 data URL，先按契约卡长度，不先做无谓的 JSON 大对象解析；
  *  3. demo 模式必须返回 422 + 可读原因，绝不用固定 mock 假装识别成功。
  */
-export async function POST(request: Request) {
-  const limit = checkRateLimit(`parse-image:${clientKeyOf(request)}`, 5);
+export async function POST(request: NextRequest) {
+  let userId: string;
+  try { sameOrigin(request); userId = requireAccount(request).user.id; }
+  catch (error) { return accountFailure(error); }
+  const limit = checkRateLimit(`parse-image:${userId}`, 5);
   if (!limit.allowed) {
     return NextResponse.json(
       {

@@ -1,14 +1,7 @@
 import { z } from "zod";
 import { TaskListSchema, TaskSchema } from "@/domain/schemas/task";
 
-/**
- * 本地持久化适配层 · 契约
- *
- * 为什么没有服务端数据库（ADR-1）：任务是个人本地数据，localStorage 足够；
- * 少一个原生模块（better-sqlite3 预编译产物与 Node 版本/平台强绑定，不匹配就回退
- * node-gyp 编译），评委机器上 `npm i` 的成功率直接上一个台阶。
- * 将来真换 SQLite / IndexedDB，只换适配层实现，上层不动。
- */
+/** 本地缓存与JSON导入导出契约；账号权威副本由server/accounts的SQLite保存。 */
 
 /** 载荷版本：v1 = 裸 tasks 数组；v2 = { tasks, snapshot }（撤销快照一并持久化） */
 export const PAYLOAD_VERSION = 2;

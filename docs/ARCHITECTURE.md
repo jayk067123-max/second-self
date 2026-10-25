@@ -2,22 +2,23 @@
 
 版本1.0.0 · 2026-10-25。唯一应用入口 /；/planner 仅重定向。旧静态预览与四标签组件已从正式树移除，历史仍可在Git检索。
 
-## 六层与依赖
+## 应用分层与服务端边界
 
 | 层 | 职责 | 关键入口 |
 |---|---|---|
 | app | Next路由、装配、API参数和限流 | page.tsx、api/ai/*/route.ts |
 | ui | React交互、草稿、反馈、无障碍 | FinalPlanner、TaskEditor、IntakePanel、ReplanPanel |
 | domain | Zod契约、冲突、周期、重排与写回护栏 | schemas、conflicts、time、reflow、planGuard |
-| data | localStorage适配、版本迁移、统一状态与快照 | store、local-adapter、migrate |
+| data | 按账号缓存、迁移、状态、快照与同步 | store、account-sync、account-cache |
+| server | 认证、会话、SQLite持久化与版本控制 | accounts、account-http |
 | ai | 服务端模型调用、JSON修复重试、规则降级 | tasks、prompts、guarded、demo |
 | shared | 日期输入、样例和常量 | datetime、samples、constants |
 
-UI通过store读取和写入，通过API请求模型；不直连底层存储与模型SDK。domain不依赖React和IO；业务时钟显式传入。ESLint限制跨层导入。API密钥只在服务器环境读取。
+业务UI通过store读写任务；账号外壳经account-sync调用账号API，AI交互经API请求模型。UI不直连数据库或模型SDK。domain不依赖React和IO；业务时钟显式传入。ESLint限制跨层导入。API密钥只在服务器环境读取。
 
 ## 两条业务闭环
 
-录入：原文/图片 → API参数校验 → 规则或模型 → JSON与TaskDraft校验 → 文本原文逐行比对 / 图片不可独立核验提示 → 缺信息追问或核对卡片 → 用户确认 → TaskSchema → store → localStorage。
+录入：原文/图片 → API参数校验 → 规则或模型 → JSON与TaskDraft校验 → 文本原文逐行比对 / 图片不可独立核验提示 → 缺信息追问或核对卡片 → 用户确认 → TaskSchema → store → 账号缓存 → 防抖同步 → SQLite。
 
 重排：所选日期 + 全量任务/固定/周期/地点/截止 + 注入now/学期 → 模型或本地候选 → 结构校验 + guardPlan → 候选对照（原时间、调整后、冲突前后）→ 用户选择 → 指纹检查 + guardPlan再次校验 → 统一快照写回 → 单步撤销。
 
@@ -37,14 +38,20 @@ OpenAI兼容Chat Completions，JSON模式；语法/结构错误最多3次修复�
 
 未配置密钥采用规则文本解析和本地重排。图片明确失败。真实模型输出永远是候选：格式合法仍可能理解错，人工核对不可省。
 
-部署范围以本地单用户/评审为主。内存限流不是多实例计费安全网；公开部署并配置付费密钥时，需额外鉴权、可信反向代理、统一限流和费用上限。无账号的演示站不应直接暴露高额度密钥。
+密码用scrypt随机盐摘要，随机会话仅存哈希；HttpOnly、SameSite=Lax Cookie，HTTPS时Secure。账号写入与AI接口校验同源及登录，AI限流以账号为键。公开部署仍需HTTPS、持久磁盘、可信代理及费用上限；内存AI限流不支持多实例。
 
 ## 取舍
 
-localStorage降低10分钟复现门槛，但无跨设备同步；纯函数保证固定输入下检测可重跑，不保证同Prompt的模型逐字一致。规则兜底可离线判断，浏览器访问应用/API仍需本地Next服务。没有Service Worker，不宣称PWA离线安装。
+账号数据存服务端SQLite，localStorage只作按账号缓存；同一部署服务支持跨浏览器恢复。内置node:sqlite无需额外原生依赖，要求Node22.13+。纯函数保证固定输入下检测可重跑，不保证同Prompt的模型逐字一致。规则兜底可离线判断，浏览器访问应用/API仍需本地Next服务。没有Service Worker，不宣称PWA离线安装。
 
 重复任务允许编辑整个系列和按日完成，尚无单次调课例外。重排采用保守启发式加本地裁决，不保证最优。截图使用隔离浏览器人工合成数据；浏览器API回放与真实模型调用分开记录，当前不包含正式视频。
 
 ## 加载生命周期
 
-PlanningLoading始终自动播放本地Orchard；操作与首轮绘制完成分别等待，二者均满足才退出。画布按可见帧推进，9秒绘制+1.5秒停留；较慢请求循环。父组件核对message来源窗口，关闭时取消界面结果；动画加载失败只能重试，不伪造完成。初始读取、文字/图片解析、生成/补充、头像和JSON导入共用实现。
+PlanningLoading始终自动播放本地Orchard；操作与首轮绘制完成分别等待，二者均满足才退出。画布按可见帧推进，9秒绘制+1.5秒停留；较慢请求循环。父组件核对message来源窗口，关闭时取消界面结果；动画加载失败只能重试，不伪造完成。会话恢复、注册登录、退出、文字/图片解析、生成/补充、头像和JSON导入共用实现；后台自动保存只显示轻量状态，不阻断操作。
+
+## 账号与保存
+
+GET session恢复会话；POST register/login/logout管理账号；GET/PUT workspace保存本人日程、快照、时钟、学期及头像昵称。服务端不接受任意userId读取；写入accountId必须与会话一致。450ms防抖串行写入，revision条件更新防止旧设备覆盖新修改。断网在本机保留待同步副本；冲突需用户选择，未保存不能直接退出。仅旧本机任务通过用户主动确认导入，不自动分配旧数据归属。
+
+SQLite默认data/accounts.sqlite；ACCOUNT_DATA_DIR支持持久目录。数据库和密钥不公开分发；新安装从空账号库开始。未实现密码找回、邮箱认证、多实例或实时推送。历史Prompt卡记录早期无数据库决策，保留真实演进。

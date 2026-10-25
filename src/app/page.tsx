@@ -1,2 +1,2 @@
-import { FinalPlanner } from "@/ui/FinalPlanner";
-export default function HomePage() { return <FinalPlanner />; }
+import { AccountApp } from "@/ui/AccountApp";
+export default function HomePage() { return <AccountApp />; }

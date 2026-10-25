@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { mkdir, writeFile, rm } from "node:fs/promises";
-import path from "node:path";
+import { accountRepository } from "@/server/accounts";
 import { resolveAiMode } from "@/ai";
 import { ARCHITECTURE_LAYERS, APP_NAME, APP_VERSION } from "@/shared/constants";
 import {
@@ -13,30 +12,20 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/**
- * 数据层自检：探测「本地持久化」是否可用。
- *
- * 注意：本项目不使用服务端数据库（见 ARCHITECTURE §7 ADR-1，SQLite 方案已否决），
- * 任务数据存在浏览器 localStorage；这里只验证进程能否在本机落一个探针文件，
- * 用来发现"目录只读 / 磁盘满"这类环境问题，不代表存在数据库。
- */
+/** 检查账号数据库连接与写事务，不返回用户数据或本机路径。 */
 async function checkData(): Promise<CheckResult> {
-  const dir = path.join(process.cwd(), "data");
-  const probe = path.join(dir, ".health-probe");
   try {
-    await mkdir(dir, { recursive: true });
-    await writeFile(probe, new Date().toISOString(), "utf8");
-    await rm(probe, { force: true });
+    accountRepository().health();
     return {
       name: "data.write",
       ok: true,
-      detail: "本机目录可写 · 数据存 localStorage（无服务端数据库）",
+      detail: "账号SQLite连接与写事务正常",
     };
-  } catch (err) {
+  } catch {
     return {
       name: "data.write",
       ok: false,
-      detail: err instanceof Error ? err.message : "data/ 不可写",
+      detail: "账号数据库暂时不可用",
     };
   }
 }

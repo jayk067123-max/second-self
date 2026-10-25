@@ -5,7 +5,7 @@
   "license": "MIT",
   "description": "第二自我 · 校园日程与冲突规划助手",
   "engines": {
-    "node": ">=22.11 <25"
+    "node": ">=22.13 <25"
   },
   "scripts": {
     "dev": "next dev",

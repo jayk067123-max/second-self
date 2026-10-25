@@ -1,7 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { POST } from "@/app/api/ai/parse-image/route";
 import { resetRateLimit } from "@/ai/ratelimit";
 import { MAX_IMAGE_DATA_URL_LENGTH } from "@/domain/schemas/api";
+vi.mock("@/server/account-http", async (original) => ({ ...await original<typeof import("@/server/account-http")>(), requireAccount: () => ({ user: { id: "test-account" } }), sameOrigin: () => undefined }));
 
 /**
  * 图片路由的入口校验 —— 便宜的一道闸：能在解包前拦下的，绝不进模型。
@@ -14,7 +16,7 @@ const TINY_PNG =
 
 function post(body: unknown): Promise<Response> {
   return POST(
-    new Request("http://localhost/api/ai/parse-image", {
+    new NextRequest("http://localhost/api/ai/parse-image", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
@@ -30,7 +32,7 @@ describe("POST /api/ai/parse-image", () => {
 
   it("请求体不是 JSON → 400 且给可读原因", async () => {
     const response = await POST(
-      new Request("http://localhost/api/ai/parse-image", { method: "POST", body: "{不是 JSON" }),
+      new NextRequest("http://localhost/api/ai/parse-image", { method: "POST", body: "{不是 JSON" }),
     );
     expect(response.status).toBe(400);
     const json = (await response.json()) as { error: string };

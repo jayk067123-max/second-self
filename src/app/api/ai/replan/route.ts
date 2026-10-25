@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { accountFailure, requireAccount, sameOrigin } from "@/server/account-http";
 import { ReplanRequestSchema } from "@/domain/schemas/api";
 import { replanForDay } from "@/ai/tasks";
-import { checkRateLimit, clientKeyOf } from "@/ai/ratelimit";
+import { checkRateLimit } from "@/ai/ratelimit";
 import { readAiConfig } from "@/ai/client";
 
 export const runtime = "nodejs";
@@ -12,9 +13,12 @@ export const dynamic = "force-dynamic";
  * 任务集合 → 2-3 套重排方案。模型只提方案，合法性由 domain 的 validatePlan 判定，
  * 被否决的方案连同原因一起返回（透明化）。
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  let userId: string;
+  try { sameOrigin(request); userId = requireAccount(request).user.id; }
+  catch (error) { return accountFailure(error); }
   const mode = readAiConfig().mode;
-  const limit = checkRateLimit(`replan:${clientKeyOf(request)}`);
+  const limit = checkRateLimit(`replan:${userId}`);
   if (!limit.allowed) {
     return NextResponse.json(
       { ok: false, mode, error: `请求太频繁，请 ${limit.retryAfterSec} 秒后再试`, issues: [], timings: [] },

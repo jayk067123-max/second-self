@@ -16,6 +16,7 @@ import { UndoNotice } from "./UndoNotice";
 import { PriorityMark } from "./primitives/Priority";
 import { TaskEditor } from "./TaskEditor";
 import { PlanningLoading } from "./composites/PlanningLoading";
+import { useAccount } from "./AccountContext";
 import { EMPTY_SCENES } from "./emptyScenes";
 
 type Tab = "today" | "add" | "future";
@@ -26,8 +27,9 @@ function Icon({ name }: { name: Tab }) {
 }
 
 export function FinalPlanner() {
+  const { status: syncStatus, error: syncError, sync } = useAccount();
   const hydrated = usePlannerHydration();
-  const [initialCycleDone, setInitialCycleDone] = useState(false);
+  const [initialCycleDone, setInitialCycleDone] = useState(true);
   const ready = hydrated && initialCycleDone;
   const store = usePlannerStore();
   const [tab, setTab] = useState<Tab>("today");
@@ -97,7 +99,7 @@ export function FinalPlanner() {
         {dayConflicts.map(c => <div className="note" key={c.conflictId}><span className="note-dot" /><div><h3 className="note-title">{c.humanMessage}</h3><p className="note-detail">{c.involvedTaskIds.map(id => store.tasks.find(t => t.id === id)?.title).filter(Boolean).join(" / ")}</p></div></div>)}
       </section>
       {dayConflicts.length > 0 && dayTasks.some(t => !t.done && !t.locked && !t.repeat && t.durationMin > 0) && <div className="plan-entry"><button className="btn btn-green" onClick={() => setShowPlan(!showPlan)} aria-expanded={showPlan}>{showPlan ? "收起建议" : "帮我重排这一天 ↗"}</button></div>}
-      {showPlan && <Sheet title="重新安排这一天" onBack={()=>setShowPlan(false)} onClose={()=>setShowPlan(false)} wide><ReplanPanel key={day} tasks={store.tasks} dayKey={day} now={now} termStartDayKey={store.termStartDayKey} /></Sheet>}
+      {showPlan && <Sheet title="重新安排这一天" onBack={()=>setShowPlan(false)} onClose={()=>setShowPlan(false)} wide><ReplanPanel key={day} tasks={store.tasks} dayKey={day} now={now} termStartDayKey={store.termStartDayKey} onApplied={()=>setShowPlan(false)} /></Sheet>}
     </>;
   }
 
@@ -109,6 +111,7 @@ export function FinalPlanner() {
     </button></div></div></header>
     <main id="main-content">
       {ready && <div className="clock-strip">{today} {weekdayLabel(today)} {formatClock(now.getTime())} · {store.demoClock.source === "seed" ? <><strong>演示时间</strong><button onClick={() => {store.exitDemo(); setSelected(null); setMonthOffset(0); setNotice("已返回实时日程");}}>返回实时</button></> : "实时日程"}</div>}
+      {syncStatus !== "saved" && <div className={"account-save-notice is-" + syncStatus} role="status"><span>{syncStatus === "saving" ? "正在保存…" : syncStatus === "offline" ? "连接中断，修改已留在本机" : syncError}</span>{syncStatus === "offline" && <button onClick={() => void sync.flush()}>重试保存</button>}{(syncStatus === "conflict" || syncStatus === "expired") && <button onClick={() => setSettings(true)}>处理</button>}</div>}
       {(!storageOK || store.lastError) && <div className="global-alert" role="alert">{!storageOK ? "浏览器未能保存数据，请立即到设置导出备份。" : store.lastError}<button onClick={store.dismissError}>知道了</button></div>}
       {!ready && <div className="page-shell"><PlanningLoading label="正在读取日程" onCycleComplete={() => setInitialCycleDone(true)} /></div>}
       {ready && tab === "today" && <section id="view-today"><div className="hero-in"><div className="hero-copy"><p className="eyebrow">今天的你，也有另一个自己照应。</p><h1 className="hero-title">把今天，<br /><mark>{dayConflicts.length ? "安排明白。" : "过得从容。"}</mark></h1><p className="hero-sub">{ready ? todayTasks.length ? todayTasks.filter(t=>!t.done).length + " 件待办，一件一件来。" : "事情交给日程，生活留给自己。" : "正在准备你的今天。"}</p><p className="hero-status"><i /><span>{stateLabel}</span><span>·</span><span>{formatDuration(load)} / 10 小时</span></p></div></div><div className="home-shell"><div className="stack">{dayCard()}{looseTasks.length > 0 && <section className="add-card mt-5"><h2 className="section-heading">还没定时间 · {looseTasks.length}</h2>{renderRows(looseTasks, day)}</section>}</div></div></section>}

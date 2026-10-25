@@ -7,6 +7,7 @@ import { DataPortability } from "./composites/DataPortability";
 import { PlanningLoading } from "./composites/PlanningLoading";
 import { useLoadingCycle } from "./composites/useLoadingCycle";
 import { Sheet } from "./Sheet";
+import { AccountControls } from "./AccountControls";
 
 export function ProfileSettings({ profile, onSave, onClose, onClear }: {
   profile: Profile; onSave: (profile: Profile) => boolean; onClose: () => void; onClear: () => void;
@@ -47,6 +48,7 @@ export function ProfileSettings({ profile, onSave, onClose, onClear }: {
     {uploading && <PlanningLoading key={cycle.animationKey} onCycleComplete={cycle.complete} label="正在处理头像" />}
     {error && <p className="form-error" role="alert">{error}</p>}</section>
     <section className="settings-section"><h3>日程数据</h3><DataPortability /><div className="settings-actions"><button className="btn btn-coral" disabled={!tasks} onClick={onClear}>清空任务</button></div></section>
-    <p className="settings-footnote">个人资料与日程仅保存在当前浏览器。</p>
+    <AccountControls />
+    <p className="settings-footnote">个人资料与日程自动保存到当前账号。</p>
   </Sheet>;
 }

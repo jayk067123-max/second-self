@@ -34,3 +34,5 @@ Windows实际文件名须为.env.local，不能是隐藏扩展名后的.env.loca
 - https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
 
 请在实际启动应用的源码目录填写.env.local；不同目录的私密配置不会自动同步。
+
+账号接入后，文字、图片及重排API均要求有效登录会话和同源请求。先在页面注册/登录，再操作AI入口。账号数据与密钥分别保管，数据库无需随源码提交。

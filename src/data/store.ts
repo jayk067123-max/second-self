@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { accountStorageKey } from "./account-cache";
 import { TaskListSchema, TaskSchema, type Task, type TaskDraft } from "@/domain/schemas/task";
 import { guardPlan, type PlanContext } from "@/domain/planGuard";
 import { applyPlan, type ReplanPlan } from "@/domain/reflow";
@@ -360,7 +361,11 @@ export const usePlannerStore = create<PlannerState>()(
     {
       name: "vibe-coding-2026/planner",
       version: 2,
-      storage: createJSONStorage(() => browserAdapter),
+      storage: createJSONStorage(() => ({
+        getItem: name => { const key = accountStorageKey(name); return key ? browserAdapter.getItem(key) : null; },
+        setItem: (name, value) => { const key = accountStorageKey(name); if (key) browserAdapter.setItem(key, value); },
+        removeItem: name => { const key = accountStorageKey(name); if (key) browserAdapter.removeItem(key); },
+      })),
       skipHydration: true,
       partialize: (state) => ({ tasks: state.tasks, snapshot: state.snapshot, snapshotClock: state.snapshotClock, snapshotTermStart: state.snapshotTermStart, demoClock: state.demoClock, termStartDayKey: state.termStartDayKey }),
       merge: (persisted, current) => {
