@@ -4,5 +4,4 @@ export * from "./Card";
 export * from "./EmptyState";
 export * from "./Field";
 export * from "./Priority";
-export * from "./Skeleton";
 export * from "./StatusBanner";

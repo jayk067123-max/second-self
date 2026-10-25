@@ -12,7 +12,7 @@
 | 项 | 内容 |
 |---|---|
 | **目标** | 为「第二自我」（日程冲突重排 + 数字分身）搭出可运行的空骨架：**六层目录结构**（`app / ui / domain / data / ai / shared`）落地、目录定型、开发/构建命令能跑通、首屏能打开不白屏。**本轮不写业务逻辑。** |
-| **上下文** | ①项目现状：仓库已有 docs 规范与脚手架，无任何业务代码 ②选题已定：B 组 · 第二自我 · 方向 8 ③本卡编号 001，是"1 条地基链 + 3 条核心功能链"结构里的地基链，6 个子步在本卡 §4 逐条记 ④已定规范：`docs/prompts/TEMPLATE.md`、`RECORDING-GUIDE.md` |
+| **上下文** | ①项目现状：仓库已有 docs 规范与脚手架，无任何业务代码 ②选题已定：[组别已脱敏] · 第二自我 · 方向 8 ③本卡编号 001，是"1 条地基链 + 3 条核心功能链"结构里的地基链，6 个子步在本卡 §4 逐条记 ④已定规范：`docs/prompts/TEMPLATE.md`、`RECORDING-GUIDE.md` |
 | **约束** | ①技术栈一次定死，后续不换：Node 24.14.0 / Next.js 16.4.2 / React 19.3.1 / TypeScript 5.9.3（不用 7.x）/ Tailwind 4.3.3 / zod 4.6.7 / Zustand 5.0.15 / framer-motion 14.3.0 / openai 官方 SDK 7.38.0 / vitest 5.0.5；**data 层不引入任何服务端数据库** ②目录按六层：`src/app`（路由装配）`src/ui`（纯展示，不 fetch 不读 env）`src/domain`（纯函数+zod）`src/data`（**本地持久化适配层**：storage adapter + zustand persist + localStorage + JSON 导入导出；无服务端数据库、无迁移脚本、无 `db:push`）`src/ai`（AI 编排四道闸）`src/shared`，依赖方向铁律 5 条逐条可核对 ③一键启动 `npm ci && npm run dev`，零 API Key 时自动走 demo provider，全链路照常跑通且有提示 ④密钥只走 `.env`，禁止硬编码，`LLM_API_KEY` 不得出现在 `NEXT_PUBLIC_` 变量里 ⑤统一验收命令 `npm run verify` = typecheck && lint && test |
 | **禁止事项** | ①不许写解析、冲突检测、重排等任何业务逻辑 ②不许接入真实 LLM 调用 ③不许引入未经确认的重型框架/依赖 ④**不许保留需要 node-gyp 编译的原生依赖（`better-sqlite3` / `drizzle-orm` / `drizzle-kit` 一律移除），评委机器装 VS Build Tools 会直接拖死 10 分钟复现** ⑤不许把 `.env` 或任何密钥提交进仓库 ⑥不许"顺手"改 docs 下的规范文件 |
 | **验收标准** | ①`npm ci && npm run dev` 能起来，浏览器打开首屏无控制台报错 ②`src` 下六层目录齐全，每层至少一个占位文件且职责注释清楚，依赖方向不越界 ③未配 API Key 时自动走 demo 模式、有友好提示而非白屏 ④`npm run verify` 通过 ⑤`git status` 干净，无 `.env`、无 `node_modules` 进入版本库，且 `package.json` 依赖里不存在 `better-sqlite3` / `drizzle-*` |

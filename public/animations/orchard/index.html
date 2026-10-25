@@ -286,8 +286,8 @@ function createEngine(styleConfig, opts = {}) {
       if (!strokes.length) { load(nextConfig(0)); drawFrame(freeze * cfg.loopMs); updateStatus(freeze); noLoop(); }
       return;
     }
-    if (startMs === null) startMs = millis();
-    const now = millis() - startMs, cycleMs = cfg.loopMs + cfg.holdMs;
+    if (startMs === null) startMs = visibleElapsed;
+    const now = visibleElapsed - startMs, cycleMs = cfg.loopMs + cfg.holdMs;
     const cycle = Math.floor(now / cycleMs), elapsed = now % cycleMs;
     if (cycle !== currentCycle) { currentCycle = cycle; load(nextConfig(cycle)); }
     drawFrame(Math.min(elapsed, cfg.loopMs));
@@ -544,10 +544,26 @@ const CONFIG = {
 const engine = createEngine(CONFIG, {
   mount: document.getElementById('sheet'),
   statusEl: document.getElementById('status'),
-  ...(new URLSearchParams(location.search).get('motion') === 'still' ? { freeze: 1 } : {}),
+
 });
-function setup() { engine.setup(); }
-function draw() { engine.draw(); }
+let visibleElapsed = 0, previousFrame = null, completedCycle = false;
+function notify(type) { parent.postMessage({channel: 'second-self:orchard', type}, '*'); }
+window.addEventListener('error', () => notify('error'));
+window.addEventListener('unhandledrejection', () => notify('error'));
+function setup() {
+  engine.setup();
+  document.querySelector('canvas')?.addEventListener('webglcontextlost', () => notify('error'));
+}
+function draw() {
+  const now = performance.now();
+  // Hidden tabs cannot skip the visible drawing cycle.
+  if (!document.hidden && previousFrame !== null) visibleElapsed += Math.min(now - previousFrame, 100);
+  previousFrame = now;
+  engine.draw();
+  if (!completedCycle && visibleElapsed >= CONFIG.loopMs + CONFIG.holdMs) {
+    completedCycle = true; notify('cycle-complete');
+  }
+}
 </script>
 </body>
 </html>

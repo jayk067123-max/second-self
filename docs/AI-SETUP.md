@@ -33,4 +33,4 @@ Windows实际文件名须为.env.local，不能是隐藏扩展名后的.env.loca
 - https://api-docs.deepseek.com/zh-cn/guides/vision
 - https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
 
-本机预览运行在C:/Users/y8702/Desktop/10.31-11.18/release-work/clean-reproduce，须在该运行目录配置.env.local；正式源码目录的文件不会自动同步私密配置到预览。无需在聊天发送密钥，填好后只告知“已配置”。
+请在实际启动应用的源码目录填写.env.local；不同目录的私密配置不会自动同步。

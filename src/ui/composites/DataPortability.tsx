@@ -4,11 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { usePlannerStore } from "@/data/store";
 import { Button } from "@/ui/primitives";
 
+import { PlanningLoading } from "./PlanningLoading";
+import { useLoadingCycle } from "./useLoadingCycle";
+
 /**
  * 数据可携带性 —— 「数据不出本机」这个卖点的可操作证明：
  * 一键导出单文件 JSON，换台机器/换浏览器导入回来，任务与撤销快照都在。
  */
 export function DataPortability() {
+  const cycle = useLoadingCycle();
+  const [busy, setBusy] = useState(false);
   const exportJson = usePlannerStore((s) => s.exportJson);
   const importJson = usePlannerStore((s) => s.importJson);
   const taskCount = usePlannerStore((s) => s.tasks.length);
@@ -34,11 +39,14 @@ export function DataPortability() {
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || busy) return;
+    let animation: Promise<boolean> | null = null;
     try {
       if (file.size > 5_000_000) throw new Error("文件超过 5 MB");
       if (!window.confirm("导入会替换当前全部任务，可撤销。是否继续？")) return;
+      setBusy(true); animation = cycle.start();
       const text = await file.text();
+      if (!await animation) return;
       const result = importJson(text);
       setMsg(
         result.ok
@@ -51,8 +59,10 @@ export function DataPortability() {
           : { tone: "err", text: result.error ?? "导入失败" },
       );
     } catch {
+      if (animation && !await animation) return;
       setMsg({ tone: "err", text: "读取文件失败" });
     } finally {
+      setBusy(false);
       // 允许重复选择同一个文件
       event.target.value = "";
     }
@@ -64,12 +74,12 @@ export function DataPortability() {
         variant="secondary"
         className="h-8 px-3 text-micro"
         onClick={handleExport}
-        disabled={taskCount === 0}
+        disabled={busy || taskCount === 0}
         title="导出为本机 JSON 文件"
       >
         导出 JSON
       </Button>
-      <Button variant="secondary" className="h-8 px-3 text-micro" onClick={() => fileRef.current?.click()}>
+      <Button variant="secondary" className="h-8 px-3 text-micro" disabled={busy} onClick={() => fileRef.current?.click()}>
         导入 JSON
       </Button>
       <input
@@ -80,6 +90,7 @@ export function DataPortability() {
         onChange={(e) => void handleFile(e)}
         aria-label="选择要导入的 JSON 文件"
       />
+      {busy && <PlanningLoading key={cycle.animationKey} onCycleComplete={cycle.complete} label="正在导入日程" />}
       {msg ? (
         <span
           role="status"

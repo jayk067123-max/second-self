@@ -13,9 +13,13 @@ import { TaskCorrectionTable } from "./TaskCorrectionTable";
 import { UncoveredNotice } from "./UncoveredNotice";
 import { requestParseImage, requestParseText, type IntakeOutcome } from "./intakeClient";
 
+import { PlanningLoading } from "./PlanningLoading";
+import { useLoadingCycle } from "./useLoadingCycle";
+
 type Phase = "idle" | "parsing" | "uncovered" | "ask" | "review" | "done" | "error";
 type LastInput = { kind: "text"; text: string } | { kind: "image"; file: File; hint: string };
 export function IntakePanel() {
+  const cycle = useLoadingCycle();
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"text" | "image">("text");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -41,15 +45,17 @@ export function IntakePanel() {
   function toQuestions(next = drafts) { asked.current = pendingCount(next, dayKey, []) > 0; setPhase(asked.current ? "ask" : "review"); setAskRound(n => n+1); }
   function applyPatch(index: number, patch: Partial<TaskDraft>) { setDrafts(prev => prev.map((d,i) => i === index ? mergeDraftPatch(d,patch) : d)); setError(""); }
   async function run(input: LastInput) {
+    if (busy) return;
+    const animation = cycle.start();
     const id = ++requestId.current; setLastInput(input); setPhase("parsing"); setPanelOpen(true); setError(""); setEditIndex(null);
     const outcome: IntakeOutcome = input.kind === "text" ? await requestParseText({ text: input.text, dayKey }) : await requestParseImage({ file: input.file, hint: input.hint, dayKey });
-    if (id !== requestId.current) return;
+    if (!await animation || id !== requestId.current) return;
     if (outcome.kind === "fail") { setError(outcome.message); setPhase("error"); return; }
     setSkipped([]); askHistory.current = []; setDrafts(outcome.response.tasks); setCoverage(outcome.response.coverage); setDismissed([]); setAdopted([]);
     if (outcome.response.coverage.uncovered.length) setPhase("uncovered");
     else toQuestions(outcome.response.tasks);
   }
-  function close() { setPanelOpen(false); }
+  function close() { if (busy) { cycle.cancel(); ++requestId.current; setPhase("idle"); } setPanelOpen(false); }
   function back() {
     setError("");
     if (editIndex !== null) { setEditIndex(null); return; }
@@ -83,7 +89,7 @@ export function IntakePanel() {
     {!panelOpen && phase !== "idle" && <button className="resume-intake" onClick={() => setPanelOpen(true)}>{phase === "parsing" ? "查看整理进度" : phase === "done" ? "查看入库结果" : "继续核对 ↗"}</button>}
     {panelOpen && <Sheet title={title} caption={phase === "ask" ? "01 / 补充" : phase === "review" ? "02 / 核对" : undefined} stepKey={phase + "-" + editIndex + "-" + skipped.length + "-" + askRound} onBack={back} onClose={close} wide={phase === "review"}
       footer={phase === "uncovered" ? <button className="btn btn-green" disabled={!!unresolved.length} onClick={() => toQuestions()}>继续</button> : phase === "review" && editIndex === null ? <><span className="sheet-count">{drafts.length} 条日程</span><button className="btn btn-green" disabled={!drafts.length || drafts.some(d => d.needsReview)} onClick={confirm}>确认入库</button></> : undefined}>
-      {phase === "parsing" && <div className="flow-loading" role="status"><span className="loading-orbit" />正在提取时间与任务</div>}
+      {phase === "parsing" && <PlanningLoading key={cycle.animationKey} onCycleComplete={cycle.complete} label="正在整理日程" />}
       {phase === "error" && <div className="flow-error"><p role="alert">{error}</p><div className="settings-actions"><button className="btn btn-green" onClick={() => lastInput && void run(lastInput)}>重试</button><button className="btn" onClick={() => { close(); window.dispatchEvent(new Event("second-self:manual-open")); }}>手动添加</button></div></div>}
       {phase === "uncovered" && coverage && <UncoveredNotice coverage={coverage} dismissedLineNos={dismissed} adoptedLineNos={adopted} onAdopt={adopt} onDismiss={n => setDismissed(prev => [...prev,n])} onRestore={n => setDismissed(prev => prev.filter(v => v !== n))} />}
       {phase === "ask" && <ClarifyPanel key={askRound} drafts={drafts} dayKey={dayKey} onPatch={applyPatch} onFinish={() => setPhase("review")} onSkipAll={() => setPhase("review")} skipped={skipped} onAnswer={(index,patch,skip) => { askHistory.current.push({drafts,skipped}); applyPatch(index,patch); if (skip) setSkipped(prev => [...prev,index]); setAskRound(n => n+1); }} />}
