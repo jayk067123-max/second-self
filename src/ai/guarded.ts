@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { describeAiError, getClient, type AiRuntimeConfig } from "./client";
+import { describeAiError, getClient, providerRequestOptions, type AiRuntimeConfig } from "./client";
 
 /**
  * 结构化输出调用 —— 「四道闸」里的第 1~3 道：
@@ -92,6 +92,7 @@ export async function callStructuredJson<T>(
         temperature: attempt === 1 ? 0.2 : 0,
         max_tokens: options.maxOutputTokens ?? 2000,
         response_format: { type: "json_object" },
+        ...providerRequestOptions(config),
         messages: [
           { role: "system", content: options.system },
           { role: "user", content: userContent },

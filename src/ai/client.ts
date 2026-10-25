@@ -28,6 +28,16 @@ export function readAiConfig(env: NodeJS.ProcessEnv = process.env): AiRuntimeCon
   };
 }
 
+/** 官方 DeepSeek 默认开启思考；字段提取关闭思考以保留 JSON 输出预算。 */
+export function providerRequestOptions(config: AiRuntimeConfig): { thinking?: { type: "disabled" } } {
+  try {
+    if (config.baseURL && new URL(config.baseURL).hostname === "api.deepseek.com") {
+      return { thinking: { type: "disabled" } };
+    }
+  } catch { /* 地址错误仍由请求层统一提示，不向其他服务发送专属参数。 */ }
+  return {};
+}
+
 /** 单例客户端：避免每次请求都新建连接池 */
 let cached: { key: string; client: OpenAI } | null = null;
 

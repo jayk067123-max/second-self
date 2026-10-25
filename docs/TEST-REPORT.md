@@ -78,3 +78,8 @@ Chromium1243、Asia/Shanghai、生产服务3018：262项检查通过，pageerror
 见verification/www-input-checks.json、verification/interface-checks.json和prompts/010-input-focus-and-empty-scenes.md。追问仍是受控响应，重排是规则模式；未测试真实模型、Safari/iOS实机或跨时区。
 
 本轮同步更新PDF，作品介绍6页、技术文档10页；正式演示重新录制应用操作，去除学期起始日旁白并更新测试记录，过程回放仍为161秒，真实性边界不变。视频探测与全片解码结果见verification/video-validation.json。
+
+
+## 加号上传与DeepSeek配置准备（2026-10-25）
+
+最新typecheck、ESLint、27文件/371项单测及生产构建通过。新增6项服务商参数隔离检查；仅官方api.deepseek.com添加关闭思考参数。Chromium上传流程30项通过，pageerror 0，覆盖320×568、390×844、1440×900；通过真正的filechooser验证绿色加号点击、键盘Enter、同文件重选、替换、移除、取消、非法文件与无密钥失败。见verification/upload-checks.json。未提供真实密钥，未测试模型文字/图片效果。完整历史回归本轮未全部重跑。

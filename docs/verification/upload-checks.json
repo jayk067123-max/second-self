@@ -1,0 +1,128 @@
+{
+  "date": "2026-10-25",
+  "checks": [
+    {
+      "name": "single plus entry 320",
+      "pass": true
+    },
+    {
+      "name": "touch target 320",
+      "pass": true
+    },
+    {
+      "name": "recognize disabled before select 320",
+      "pass": true
+    },
+    {
+      "name": "actual plus opens picker 320",
+      "pass": true
+    },
+    {
+      "name": "selected enables recognize 320",
+      "pass": true
+    },
+    {
+      "name": "same file may be reselected 320",
+      "pass": true
+    },
+    {
+      "name": "remove restores plus 320",
+      "pass": true
+    },
+    {
+      "name": "no horizontal overflow 320",
+      "pass": true
+    },
+    {
+      "name": "single plus entry 390",
+      "pass": true
+    },
+    {
+      "name": "touch target 390",
+      "pass": true
+    },
+    {
+      "name": "recognize disabled before select 390",
+      "pass": true
+    },
+    {
+      "name": "actual plus opens picker 390",
+      "pass": true
+    },
+    {
+      "name": "selected enables recognize 390",
+      "pass": true
+    },
+    {
+      "name": "same file may be reselected 390",
+      "pass": true
+    },
+    {
+      "name": "remove restores plus 390",
+      "pass": true
+    },
+    {
+      "name": "no horizontal overflow 390",
+      "pass": true
+    },
+    {
+      "name": "single plus entry 1440",
+      "pass": true
+    },
+    {
+      "name": "touch target 1440",
+      "pass": true
+    },
+    {
+      "name": "recognize disabled before select 1440",
+      "pass": true
+    },
+    {
+      "name": "actual plus opens picker 1440",
+      "pass": true
+    },
+    {
+      "name": "selected enables recognize 1440",
+      "pass": true
+    },
+    {
+      "name": "same file may be reselected 1440",
+      "pass": true
+    },
+    {
+      "name": "remove restores plus 1440",
+      "pass": true
+    },
+    {
+      "name": "no horizontal overflow 1440",
+      "pass": true
+    },
+    {
+      "name": "cancel leaves empty state usable",
+      "pass": true
+    },
+    {
+      "name": "keyboard activates upload",
+      "pass": true
+    },
+    {
+      "name": "invalid type rejected",
+      "pass": true
+    },
+    {
+      "name": "valid selection clears error",
+      "pass": true
+    },
+    {
+      "name": "unconfigured model remains explicit failure",
+      "pass": true
+    },
+    {
+      "name": "no runtime errors",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "liveModelTested": false,
+  "notes": "Actual filechooser opened by clicking plus, replacing and keyboard Enter. No real API key."
+}
