@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TimestampSchema } from "./date";
 
 /**
  * 重排方案契约 —— 模型输出与本地裁决共用的唯一真源（ARCHITECTURE §3 第一道闸）。
@@ -12,7 +13,7 @@ import { z } from "zod";
  * 它一定会把数字写得很漂亮。契约层面就不给它这个机会，比事后校验更可靠。
  */
 
-const isoString = z.string().min(1);
+const isoString = TimestampSchema;
 const taskIdField = z.string().min(1);
 
 /** 移动：换个时间块，任务本身不变 */

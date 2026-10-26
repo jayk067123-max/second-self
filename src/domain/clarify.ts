@@ -13,7 +13,7 @@ import { addDaysToKey, dayKeyOf, msFromDayKey, weekdayLabel } from "./time";
  *   - 追问面板**不直接写库**，只产出 patch；落库永远走同一个 store action；
  *   - 修正表与追问面板改同一条草稿，必须调用**同一个** `mergeDraftPatch`。
  *
- * 口径（选题官 TBD-2a 定稿）：**一屏一问**，没有"最多 3 条"这种没出处的上限；
+ * 交互规则：**一屏一问**，没有"最多 3 条"这种没出处的上限；
  * 用户随时可以「剩下的我自己改」退出——退出不是失败，已收进来的照样入库。
  *
  * 刻意**不问地点**：`TaskDraft` 契约里没有 `location` 字段（只有落库后的 Task 有），

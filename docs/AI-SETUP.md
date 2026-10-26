@@ -1,6 +1,6 @@
 # 真实AI配置与验证
 
-2026-10-25核对DeepSeek官方文档。赛事材料的推荐方向明确包含多模态标准API与API编排，未禁止作品运行时接入模型。AI辅助开发过程证据与应用实际调用AI是两个独立要求；接入模型不替代Prompt链和演进记录。
+2026-10-26核对DeepSeek官方文档。模型接入与AI辅助开发过程证据分别记录。
 
 ## 推荐配置
 
@@ -25,7 +25,7 @@
 
 /api/health只说明配置状态，不证明模型成功。2026-10-25本机真实合成样本：文字与图片各2条，日期时段正确；重排2套通过，1套被规则拒绝。单次耗时分别1.27/2.12/1.78秒，费用未统计，不代表普遍准确率。首测repeat契约错误422及修复后响应均保留在verification/live-ai。
 
-Windows实际文件名须为.env.local，不能是隐藏扩展名后的.env.local.txt。本轮只重命名用户填好的运行配置，密钥未复制到正式源码、Git或提交包。
+Windows文件名须为.env.local，不能是.env.local.txt。
 
 ## 官方依据
 
@@ -33,6 +33,6 @@ Windows实际文件名须为.env.local，不能是隐藏扩展名后的.env.loca
 - https://api-docs.deepseek.com/zh-cn/guides/vision
 - https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
 
-请在实际启动应用的源码目录填写.env.local；不同目录的私密配置不会自动同步。
+运行目录的私密配置不会自动同步到其他副本。
 
 账号接入后，文字、图片及重排API均要求有效登录会话和同源请求。先在页面注册/登录，再操作AI入口。账号数据与密钥分别保管，数据库无需随源码提交。

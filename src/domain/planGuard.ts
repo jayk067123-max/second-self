@@ -1,4 +1,4 @@
-import { applyPlan, validatePlan, type ReplanPlan } from "./reflow";
+import { applyPlan, DEFAULT_PLAN_OPTIONS, validatePlan, type ReplanPlan } from "./reflow";
 import { DEFAULT_DETECT_CONFIG, detectConflicts } from "./conflicts";
 import { dayKeyOf, msFromDayKey } from "./time";
 import type { Task } from "./schemas/task";
@@ -20,10 +20,9 @@ export function guardPlan(plan: ReplanPlan, tasks: readonly Task[], context: Pla
     if (changed && (task.locked || task.repeat || task.done)) issues.push("固定、周期或已完成安排不可自动移动：" + task.title);
     if (changed && task.start && dayKeyOf(Date.parse(task.start)) !== context.dayKey) issues.push("只可移动所选日期的任务：" + task.title);
     if (context.now && changed && Date.parse(block.start) < now.getTime()) issues.push("不能把任务排入已过去的时间");
-    const blockDay = dayKeyOf(Date.parse(block.start));
-    const verdict = validatePlan({ ...plan, blocks: [block] }, tasks, blockDay);
-    issues.push(...verdict.issues);
   }
+  // 整套方案一起落地校验，避免把其他待移动任务的旧位置当成新冲突。
+  issues.push(...validatePlan(plan, tasks, context.dayKey, { ...DEFAULT_PLAN_OPTIONS, allowMultipleDays: true }).issues);
   const after = applyPlan(tasks, plan);
   const beforeConflicts = detectConflicts(tasks, detect, now);
   const afterConflicts = detectConflicts(after, detect, now);

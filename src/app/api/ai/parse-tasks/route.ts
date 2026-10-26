@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { accountFailure, requireAccount, sameOrigin } from "@/server/account-http";
+import { accountFailure, readAccountJson, requireAccount, sameOrigin } from "@/server/account-http";
+import { AccountError } from "@/server/accounts";
+import { readAiConfig } from "@/ai/client";
 import { ParseTasksRequestSchema } from "@/domain/schemas/api";
 import { parseTasksFromText } from "@/ai/tasks";
 import { checkRateLimit } from "@/ai/ratelimit";
@@ -15,11 +17,13 @@ export async function POST(request: NextRequest) {
   let userId: string;
   try { sameOrigin(request); userId = requireAccount(request).user.id; }
   catch (error) { return accountFailure(error); }
+  const mode = readAiConfig().mode;
   const limit = checkRateLimit(`parse:${userId}`);
   if (!limit.allowed) {
     return NextResponse.json(
       {
         ok: false,
+        mode,
         error: `请求太频繁，请 ${limit.retryAfterSec} 秒后再试`,
         issues: [],
         timings: [],
@@ -30,11 +34,11 @@ export async function POST(request: NextRequest) {
 
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
+    body = await readAccountJson(request, 64_000);
+  } catch (error) {
     return NextResponse.json(
-      { ok: false, error: "请求体不是合法 JSON", issues: [], timings: [] },
-      { status: 400 },
+      { ok: false, mode, error: error instanceof AccountError ? error.message : "请求体不是合法 JSON", issues: [], timings: [] },
+      { status: error instanceof AccountError ? error.status : 400 },
     );
   }
 
@@ -43,6 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
+        mode,
         error: "请求参数不合法",
         issues: parsed.error.issues.map((i) => `${i.path.join(".") || "(根)"}: ${i.message}`),
         timings: [],

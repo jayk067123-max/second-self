@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { accountStorageKey } from "./account-cache";
+import { isValidDayKey, isValidTimestamp } from "@/domain/schemas/date";
 import { MAX_TASKS, TaskListSchema, TaskSchema, type Task, type TaskDraft } from "@/domain/schemas/task";
 import { guardPlan, type PlanContext } from "@/domain/planGuard";
 import { applyPlan, type ReplanPlan } from "@/domain/reflow";
@@ -93,7 +94,10 @@ export const usePlannerStore = create<PlannerState>()(
     (set, get) => ({
       tasks: [],
       termStartDayKey: null,
-      setTermStart: (day) => set({ termStartDayKey: day }),
+      setTermStart: (day) => {
+        if (day !== null && !isValidDayKey(day)) { set({ lastError: "开学日期不是有效的日历日期" }); return; }
+        set({ termStartDayKey: day, lastError: null });
+      },
       storageAvailable: () => browserAdapter.available,
       tickClock: () => { if (get().demoClock.source === "system") set({ demoClock: { iso: new Date().toISOString(), source: "system" } }); },
       exitDemo: () => set({ demoClock: { iso: new Date().toISOString(), source: "system" } }),
@@ -339,7 +343,11 @@ export const usePlannerStore = create<PlannerState>()(
         }
 
         const isSeed = isDemoSeed(parsed);
-        const settings = (parsed as { settings?: { demoClock?: { iso?: string; source?: string }; termStartDayKey?: string } })?.settings;
+        const settings = (parsed as { settings?: { demoClock?: { iso?: string; source?: string }; termStartDayKey?: string | null } })?.settings;
+        if (settings?.termStartDayKey !== undefined && settings.termStartDayKey !== null && !isValidDayKey(settings.termStartDayKey)) {
+          const error = "导入失败：开学日期不是有效的日历日期";
+          set({ lastError: error }); return { ok: false, error };
+        }
         const migrated = migrateImportedPayload(parsed);
         if (!migrated.ok) {
           set({ lastError: `导入失败：${migrated.error}` });
@@ -349,8 +357,8 @@ export const usePlannerStore = create<PlannerState>()(
 
         set({
           tasks: migrated.value.tasks,
-          demoClock: settings?.demoClock?.source === "seed" && settings.demoClock.iso && Number.isFinite(Date.parse(settings.demoClock.iso)) ? { iso: settings.demoClock.iso, source: "seed" as const } : { iso: new Date().toISOString(), source: "system" as const },
-          termStartDayKey: settings?.termStartDayKey && /^\d{4}-\d{2}-\d{2}$/.test(settings.termStartDayKey) ? settings.termStartDayKey : null,
+          demoClock: settings?.demoClock?.source === "seed" && isValidTimestamp(settings.demoClock.iso) ? { iso: settings.demoClock.iso, source: "seed" as const } : { iso: new Date().toISOString(), source: "system" as const },
+          termStartDayKey: isValidDayKey(settings?.termStartDayKey) ? settings.termStartDayKey : null,
           // 种子自带演示时钟（seed.demoNow）→ 导入后以它为准，标来源 seed；
           // 普通导出恢复有效的演示设置，否则返回实时日程
           ...(isSeed && typeof (parsed as { demoNow?: unknown }).demoNow === "string"
@@ -383,9 +391,9 @@ export const usePlannerStore = create<PlannerState>()(
         if (!migrated.ok) return current;
         const saved = (persisted ?? {}) as { demoClock?: { source?: string; iso?: string }; snapshotClock?: { source: "seed" | "system"; iso: string }; snapshotTermStart?: string | null; termStartDayKey?: string };
         const clock = saved.demoClock;
-        return { ...current, tasks: migrated.value.tasks, snapshot: migrated.value.snapshot, snapshotClock: saved.snapshotClock && ["seed", "system"].includes(saved.snapshotClock.source) && Number.isFinite(Date.parse(saved.snapshotClock.iso)) ? saved.snapshotClock : null, snapshotTermStart: typeof saved.snapshotTermStart === "string" && /^\d{4}-\d{2}-\d{2}$/.test(saved.snapshotTermStart) ? saved.snapshotTermStart : null,
-          ...(clock?.source === "seed" && clock.iso && Number.isFinite(Date.parse(clock.iso)) ? { demoClock: { iso: clock.iso, source: "seed" as const } } : {}),
-          termStartDayKey: typeof saved.termStartDayKey === "string" && /^\d{4}-\d{2}-\d{2}$/.test(saved.termStartDayKey) ? saved.termStartDayKey : null,
+        return { ...current, tasks: migrated.value.tasks, snapshot: migrated.value.snapshot, snapshotClock: saved.snapshotClock && ["seed", "system"].includes(saved.snapshotClock.source) && isValidTimestamp(saved.snapshotClock.iso) ? saved.snapshotClock : null, snapshotTermStart: isValidDayKey(saved.snapshotTermStart) ? saved.snapshotTermStart : null,
+          ...(clock?.source === "seed" && isValidTimestamp(clock.iso) ? { demoClock: { iso: clock.iso, source: "seed" as const } } : {}),
+          termStartDayKey: isValidDayKey(saved.termStartDayKey) ? saved.termStartDayKey : null,
         };
       },
     },

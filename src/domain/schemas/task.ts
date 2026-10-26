@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { WeekSpecSchema } from "./schedule";
+import { DayKeySchema, TimestampSchema } from "./date";
 
 /**
  * Task 实体契约 —— 全系统唯一的任务定义。
@@ -43,7 +44,7 @@ export function priorityBandOf(priority: number): PriorityBand {
   return "low";
 }
 
-const isoOrNull = z.string().refine(value => Number.isFinite(Date.parse(value)), "时间不是合法的时间戳").nullable();
+const isoOrNull = TimestampSchema.nullable();
 const minutesField = z.number().int().min(0).max(24 * 60);
 const priorityField = z.number().int().min(1).max(3);
 
@@ -110,7 +111,7 @@ export const TaskSchema = z
     priority: priorityField,
     source: TaskSourceSchema,
     done: z.boolean(),
-    completedOn: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+    completedOn: z.array(DayKeySchema).optional(),
     /** 来自粘贴文本的原始行，用于人工修正时溯源 */
     rawTextOrigin: z.string().max(2000).nullable(),
     /**

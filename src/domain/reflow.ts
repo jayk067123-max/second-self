@@ -923,7 +923,7 @@ export function validatePlan(
   plan: ReplanPlan,
   tasks: readonly Task[],
   dayKey: string,
-  options: PlanOptions = DEFAULT_PLAN_OPTIONS,
+  options: PlanOptions & { allowMultipleDays?: boolean } = DEFAULT_PLAN_OPTIONS,
 ): PlanValidationResult {
   const issues: string[] = [];
   if (plan.blocks.length === 0) issues.push("方案没有任何时间块");
@@ -952,7 +952,7 @@ export function validatePlan(
 
     // 方案是"某一天的重排"：块落到别的日子说明模型算错位了
     const blockDay = dayKeyOf(shape.startMs);
-    if (blockDay !== dayKey) {
+    if (!options.allowMultipleDays && blockDay !== dayKey) {
       issues.push(`「${task.title}」被排到了 ${blockDay}，不在 ${dayKey}`);
     }
 

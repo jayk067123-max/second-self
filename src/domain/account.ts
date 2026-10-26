@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TaskListSchema } from "./schemas/task";
+import { DayKeySchema, TimestampSchema } from "./schemas/date";
 import { AVATARS, DEFAULT_PROFILE } from "./profile";
 
 export const CredentialsSchema = z.object({
@@ -7,8 +8,8 @@ export const CredentialsSchema = z.object({
   password: z.string().min(8, "密码至少8位").max(128, "密码不能超过128位"),
 });
 export const RegisterSchema = CredentialsSchema.extend({ name: z.string().trim().min(1, "请填写昵称").max(24) });
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable();
-const clock = z.object({ iso: z.string().refine(value => Number.isFinite(Date.parse(value))), source: z.enum(["seed", "system"]) });
+const day = DayKeySchema.nullable();
+const clock = z.object({ iso: TimestampSchema, source: z.enum(["seed", "system"]) });
 export const AccountProfileSchema = z.object({
   name: z.string().trim().min(1).max(24),
   avatar: z.string().max(500_000).refine(value => AVATARS.includes(value) || /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(value)),

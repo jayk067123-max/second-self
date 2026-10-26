@@ -15,7 +15,7 @@ npm ci
 npm run dev
 ~~~
 
-2026-10-25纯净副本实测：npm ci、verify及build合计约2分24秒，随后生产启动、注册和保存通过；当前网络与npm缓存环境，不含配置模型密钥。
+2026-10-26纯净副本实测：npm ci、verify及build合计约2分04秒，随后生产启动、注册和保存通过；当前网络与npm缓存环境，不含配置模型密钥。
 
 打开 http://localhost:3000 。端口占用时运行 npm run dev -- --port 3022。
 生产模式：npm run build，然后 npm run start。
@@ -61,8 +61,8 @@ npm run build
 
 架构见 [ARCHITECTURE](docs/ARCHITECTURE.md)，验证范围见 [TEST-REPORT](docs/TEST-REPORT.md)。真实模型小样本记录位于 docs/verification/live-ai，不代表普遍准确率。
 
-[过程证据说明](docs/prompts/README.md)：已从真实Codex本机会话整理导出三条核心功能迭代，保留原始提问、纠错反馈、AI回复、截图与代码提交，缺项和脱敏范围已注明；早期整理卡不冒充原始对话。本人核对后可随作品提交，正式视频仍需真实录制。
+[过程证据说明](docs/prompts/README.md)：已从真实Codex本机会话整理导出三条核心功能迭代，保留原始提问、纠错反馈、AI回复、截图与代码提交，缺项和脱敏范围已注明；早期原型与意图卡保留于Git历史。三条链可离线查阅；正式演示视频包含产品操作与真实历史AI协作回顾。
 
 ## 素材与许可
 
-项目代码使用MIT许可。六款加载动画采用用户提供的HTML，使用本地p5与p5.brush，共用绘画引擎，许可证随源码保留。头像由用户提供，提交前须确认素材使用权；第三方素材不计为自研算法。
+项目代码使用MIT许可。六款加载动画采用用户提供的HTML，使用本地p5与p5.brush，共用绘画引擎，许可证随源码保留。头像由作品提供方提供；第三方素材不计为自研算法。素材来源与许可见 [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES.md)。

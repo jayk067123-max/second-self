@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TaskSchema, type Task } from "@/domain/schemas/task";
+import { DayKeySchema, TimestampSchema } from "@/domain/schemas/date";
 import type { PlannerPayload, Result } from "./storage";
 
 /**
@@ -21,7 +22,7 @@ export const SeedTaskSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   /** YYYY-MM-DD（本地时区）；纯 DDL 任务没有具体日期，为 null */
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  date: DayKeySchema.nullable(),
   /** HH:mm 或 null（纯 DDL 任务） */
   start: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
   end: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
@@ -39,7 +40,7 @@ export const SeedTaskSchema = z.object({
 
 export const DemoSeedSchema = z.object({
   seedVersion: z.literal(SEED_VERSION),
-  demoNow: z.string(),
+  demoNow: TimestampSchema,
   timezone: z.string().optional(),
   tasks: z.array(SeedTaskSchema).min(1),
 });

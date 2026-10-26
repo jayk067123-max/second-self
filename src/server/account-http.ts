@@ -24,11 +24,11 @@ export async function readAccountJson(request: NextRequest, limit = 6_000_000): 
   for (;;) {
     const { done, value } = await reader.read(); if (done) break;
     size += value.byteLength;
-    if (size > limit) { await reader.cancel(); throw new AccountError(413, "内容过大，请减少任务或图片体积"); }
+    if (size > limit) { await reader.cancel().catch(() => undefined); throw new AccountError(413, "内容过大，请减少任务或图片体积"); }
     chunks.push(value);
   }
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); }
-  catch { throw new AccountError(400, "提交格式不正确"); }
+  catch { throw new AccountError(400, "请求体不是合法 JSON"); }
 }
 export function withSession(response: NextResponse, request: NextRequest, token: string, clear = false) {
   response.cookies.set(SESSION_COOKIE, clear ? "" : token, { httpOnly: true, sameSite: "lax", secure: new URL(request.url).protocol === "https:", path: "/", maxAge: clear ? 0 : 30 * 24 * 60 * 60 });

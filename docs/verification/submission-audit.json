@@ -1,18 +1,39 @@
 {
-  "date": "2026-10-25",
-  "unitTests": {
-    "files": 34,
-    "passed": 413
+  "date": "2026-10-26",
+  "environment": {
+    "node": "24.14.0",
+    "npm": "11.9.0",
+    "platform": "Windows",
+    "timezone": "Asia/Shanghai"
   },
-  "productionBuild": "passed",
+  "unitTests": {
+    "files": 37,
+    "passed": 443
+  },
   "staticChecks": [
     "TypeScript passed",
     "ESLint passed"
   ],
-  "productionPort": 3021,
-  "publicRepository": true,
+  "productionBuild": "passed",
+  "cleanReproduction": [
+    {
+      "phase": "install",
+      "exitCode": 0,
+      "seconds": 75.34
+    },
+    {
+      "phase": "verify",
+      "exitCode": 0,
+      "seconds": 29.32
+    },
+    {
+      "phase": "build",
+      "exitCode": 0,
+      "seconds": 19.67
+    }
+  ],
   "account": {
-    "date": "2026-10-25",
+    "date": "2026-10-26",
     "passed": 27,
     "cases": [
       "login no overflow 320",
@@ -46,8 +67,8 @@
     "pageErrors": [],
     "scope": "Real registration, scrypt passwords, SQLite persistence, cookie sessions, two isolated browser contexts, profile/avatar and import autosave, reload, wrong password, conflict/origin/user isolation, adoption and undo autosave, logout. Synthetic test accounts only; no paid AI call."
   },
-  "targetedAudit": {
-    "date": "2026-10-25",
+  "data": {
+    "date": "2026-10-26",
     "passed": 21,
     "cases": [
       "synthetic audit account registration",
@@ -73,30 +94,13 @@
       "zero browser page errors"
     ],
     "pageErrors": [],
-    "scope": "Production 3021, synthetic account, UI CRUD/weekly completion/reload/undo/invalid import and real server boundary validation. No paid model requests."
+    "scope": "Isolated production 3036, synthetic account, UI CRUD/weekly completion/reload/undo/invalid import and real server boundary validation. No paid model requests."
   },
-  "fixes": [
-    "Reject invalid task timestamps across draft, import and account boundaries",
-    "Reject duplicate task ids including undo snapshots",
-    "Align client/import and server 5000 task limit before mutations"
+  "regressions": [
+    "Whole-plan validation permits valid joint moves without introducing conflicts",
+    "Weekly occurrences overlapping midnight are included",
+    "Invalid calendar days rejected across import, API and stored data",
+    "AI JSON body limits enforced before parsing and model invocation"
   ],
-  "noPaidAiCallsThisAudit": true,
-  "cleanReproduction": {
-    "completed": true,
-    "seconds": 143.8,
-    "node": "v24.14.0",
-    "npm": "11.9.0",
-    "configuredKey": false,
-    "productionStartup": true,
-    "registrationAndManualSave": true,
-    "pageErrors": [],
-    "scope": "Fresh public source copy, no node_modules/build/env/database, npm ci + verify + build; then isolated production startup, account registration and manual task save. npm cache and current network available; excludes API key procurement and paid-model accuracy."
-  },
-  "packageHygiene": {
-    "scannedCurrentTextFiles": 180,
-    "sensitiveRegistrationMatches": 0,
-    "privateRuntimePathsInGitHistory": 0,
-    "currentSecretMatchesInHistoricalObjects": 0,
-    "historicalObjectsChecked": 1487
-  }
+  "scope": "Isolated clean source copy; no secret, initial database, installed dependencies or build artifacts. Synthetic accounts and controlled AI responses. No new paid model call."
 }

@@ -5,12 +5,13 @@
 
 import type { Task } from "./schemas/task";
 import { dayInWeekSpec, termWeekOf } from "./schedule";
+import { isValidTimestamp } from "./schemas/date";
 
 export const MS_MINUTE = 60_000;
 export const MS_DAY = 24 * 60 * MS_MINUTE;
 
 export function parseIsoToMs(value: string | null | undefined): number | null {
-  if (!value) return null;
+  if (!isValidTimestamp(value)) return null;
   const ms = Date.parse(value);
   return Number.isNaN(ms) ? null : ms;
 }
@@ -157,11 +158,13 @@ export function expandOccurrences(
   // 重复时段的"时刻"与"时长"取自任务自己的那一行：08:00–09:40 每周二
   const minuteOfDay = minutesFromLocalMidnight(startMs);
   const durationMs = endMs - startMs;
-  const firstDayKey = dayKeyOf(rangeStartMs);
+  // 包含窗口开始前已发生、但跨入窗口的周期安排。
+  const lookbackDays = Math.min(MAX_EXPAND_DAYS, Math.ceil(durationMs / MS_DAY));
+  const firstDayKey = addDaysToKey(dayKeyOf(rangeStartMs), -lookbackDays);
   const weeks = task.repeat.weeks ?? null;
 
   const occurrences: TaskOccurrence[] = [];
-  for (let offset = 0; offset < MAX_EXPAND_DAYS; offset += 1) {
+  for (let offset = 0; offset < MAX_EXPAND_DAYS + lookbackDays; offset += 1) {
     const dayKey = addDaysToKey(firstDayKey, offset);
     const dayStartMs = msFromDayKey(dayKey, 0);
     if (dayStartMs >= rangeEndMs) break;

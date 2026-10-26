@@ -61,4 +61,17 @@ describe("导入与账号共用数据边界", () => {
   it("撤销快照同样拒绝重复id", () => {
     expect(migrateImportedPayload({ tasks: [base], snapshot: [base, base] }).ok).toBe(false);
   });
+  it("非法学期日期导入被拒绝且不改动现有数据", () => {
+    usePlannerStore.setState({ tasks: [base], termStartDayKey: "2026-09-21" });
+    const result = usePlannerStore.getState().importJson(JSON.stringify({ tasks: [], snapshot: null, settings: { termStartDayKey: "2026-02-30" } }));
+    expect(result.ok).toBe(false);
+    expect(usePlannerStore.getState().tasks).toEqual([base]);
+    expect(usePlannerStore.getState().termStartDayKey).toBe("2026-09-21");
+  });
+  it("直接设置学期日期也拒绝不存在的日期", () => {
+    usePlannerStore.setState({ termStartDayKey: "2026-09-21" });
+    usePlannerStore.getState().setTermStart("2026-02-30");
+    expect(usePlannerStore.getState().termStartDayKey).toBe("2026-09-21");
+    expect(usePlannerStore.getState().lastError).toContain("日期");
+  });
 });

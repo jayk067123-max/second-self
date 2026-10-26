@@ -76,4 +76,9 @@ describe("demo-seed 转换", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toContain("演示种子结构不合法");
   });
+  it("种子的日期与演示时钟不能使用不存在的日期", () => {
+    const seed = seedRaw as { tasks: unknown[]; demoNow: string };
+    expect(adaptDemoSeed({ ...seed, demoNow: "2026-02-30T09:00:00+08:00" }).ok).toBe(false);
+    expect(adaptDemoSeed({ ...seed, tasks: [{ ...(seed.tasks[0] as object), date: "2026-02-30" }] }).ok).toBe(false);
+  });
 });

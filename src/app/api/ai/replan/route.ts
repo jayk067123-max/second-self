@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { accountFailure, requireAccount, sameOrigin } from "@/server/account-http";
+import { accountFailure, readAccountJson, requireAccount, sameOrigin } from "@/server/account-http";
+import { AccountError } from "@/server/accounts";
 import { ReplanRequestSchema } from "@/domain/schemas/api";
 import { replanForDay } from "@/ai/tasks";
 import { checkRateLimit } from "@/ai/ratelimit";
@@ -28,11 +29,11 @@ export async function POST(request: NextRequest) {
 
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
+    body = await readAccountJson(request);
+  } catch (error) {
     return NextResponse.json(
-      { ok: false, mode, error: "请求体不是合法 JSON", issues: [], timings: [] },
-      { status: 400 },
+      { ok: false, mode, error: error instanceof AccountError ? error.message : "请求体不是合法 JSON", issues: [], timings: [] },
+      { status: error instanceof AccountError ? error.status : 400 },
     );
   }
 

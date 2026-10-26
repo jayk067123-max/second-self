@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TaskDraftSchema, TaskSchema } from "./task";
 import { CoverageReportSchema } from "../completeness";
 import { ReplanPlanSchema } from "../reflow";
+import { DayKeySchema } from "./date";
 
 /**
  * API DTO 契约 —— 服务端返回什么、客户端接受什么，都从这里取。
@@ -17,7 +18,7 @@ export const PhaseTimingSchema = z.object({
 });
 export type PhaseTiming = z.infer<typeof PhaseTimingSchema>;
 
-export const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+export { DAY_KEY_RE } from "./date";
 
 /* ---------------- 文本 → 任务 ---------------- */
 
@@ -25,7 +26,7 @@ export const ParseTasksRequestSchema = z.object({
   /** 用户粘贴的原始文本（已经在客户端 trim） */
   text: z.string().trim().min(5, "至少输入 5 个字").max(8000, "一次最多 8000 字"),
   /** 客户端本地日期，模型据此换算"明天""周三" */
-  dayKey: z.string().regex(DAY_KEY_RE, "dayKey 必须是 YYYY-MM-DD"),
+  dayKey: DayKeySchema,
 });
 export type ParseTasksRequest = z.infer<typeof ParseTasksRequestSchema>;
 
@@ -88,7 +89,7 @@ export const ParseImageRequestSchema = z.object({
     .max(MAX_IMAGE_DATA_URL_LENGTH, "图片太大，请压缩后再传（建议长边 ≤1400px）")
     .refine((value) => IMAGE_DATA_URL_PREFIX_RE.test(value), "只支持 PNG / JPEG / WebP 的 base64 data URL"),
   /** 客户端本地日期，模型据此换算"周三""下周一" */
-  dayKey: z.string().regex(DAY_KEY_RE, "dayKey 必须是 YYYY-MM-DD"),
+  dayKey: DayKeySchema,
   /** 用户附带的半句话（可选）。有就比没有准，但没有也必须能跑 */
   hint: z.string().trim().max(500).optional(),
 });
@@ -104,8 +105,8 @@ export const ReplanRequestSchema = z.object({
   feedback: z.string().trim().max(1000, "补充要求请控制在1000字以内").optional(),
   previousPlan: ReplanPlanSchema.optional(),
   now: z.string().datetime({ offset: true }).optional(),
-  termStartDayKey: z.string().regex(DAY_KEY_RE).nullable().optional(),
-  dayKey: z.string().regex(DAY_KEY_RE, "dayKey 必须是 YYYY-MM-DD"),
+  termStartDayKey: DayKeySchema.nullable().optional(),
+  dayKey: DayKeySchema,
 });
 export type ReplanRequest = z.infer<typeof ReplanRequestSchema>;
 
