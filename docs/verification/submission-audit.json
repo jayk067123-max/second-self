@@ -102,5 +102,19 @@
     "Invalid calendar days rejected across import, API and stored data",
     "AI JSON body limits enforced before parsing and model invocation"
   ],
-  "scope": "Isolated clean source copy; no secret, initial database, installed dependencies or build artifacts. Synthetic accounts and controlled AI responses. No new paid model call."
+  "scope": "Isolated clean source copy; no secret, initial database, installed dependencies or build artifacts. Synthetic accounts and controlled AI responses. No new paid model call.",
+  "dependencyAudit": {
+    "date": "2026-10-26",
+    "scope": "all locked dependencies",
+    "registry": "https://registry.npmjs.org",
+    "knownVulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "limitation": "Registry advisories only; not proof that application code is vulnerability-free"
+  }
 }
